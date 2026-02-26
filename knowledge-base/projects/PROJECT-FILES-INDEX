@@ -1,0 +1,216 @@
+# Project Files - Complete Knowledge Base Index
+
+## Structure Overview
+
+All project files are stored in a **flat structure** at `knowledge-base/projects/` for optimal AI retrieval.
+
+```
+knowledge-base/projects/
+├── abnormal-innovation.md
+├── agentic-personal-shopper.md
+├── google-gemini-enterprise-deployment.md
+├── agentic-content-orchestration.md
+├── ai-customer-service-optimization.md
+├── brand-incubator-ecosystem.md
+├── digital-transformation-salesforce.md
+├── tiktok-shop-integration.md
+├── regimen-builder.md
+└── ai-resume.md
+```
+
+---
+
+## All Project Files (10 Total)
+
+### 1. **abnormal-innovation.md** ⭐ PARENT INITIATIVE
+**Status**: Ongoing (2022 - Present)
+
+**Overview**: The internal digital strategy & innovation lab that serves as the umbrella for AI transformation initiatives at DECIEM.
+
+**Tags**: `abnormal-innovation`, `innovation-lab`, `internal-consulting`, `strategy`
+
+---
+
+### 2. **agentic-personal-shopper.md** 🤖 AI PROJECT
+**Status**: In Production (2024 - Present)
+
+**Overview**: Multi-agent agentic AI system orchestrating 5 specialized agents (product recommendation, regimen builder, education, order management, FAQ) to create unified personal shopping experience. Featured at Salesforce NRF 2025.
+
+**Tags**: `abnormal-innovation`, `agentic-ai`, `conversational-commerce`, `salesforce-agentforce`
+
+---
+
+### 3. **google-gemini-enterprise-deployment.md** 🚀 AI PROJECT
+**Status**: Completed & Ongoing (2024)
+
+**Overview**: Enterprise-wide Google Gemini deployment with tiered governance, strongest adoption of any internal launch.
+
+**Tags**: `abnormal-innovation`, `ai`, `change-management`, `governance`, `google-gemini`
+
+---
+
+### 4. **agentic-content-orchestration.md** ✍️ AI PROJECT
+**Status**: Prototype/Pilot (2025)
+
+**Overview**: Multi-agent system with 4 specialized agents (researcher, copywriter, brand guardian, editor) for 10x content velocity with brand governance.
+
+**Tags**: `abnormal-innovation`, `crewai`, `multi-agent`, `content-generation`, `brand-governance`
+
+---
+
+### 5. **ai-customer-service-optimization.md** ⚡ AI PROJECT
+**Status**: Completed & In Production (2024)
+
+**Overview**: AI-powered workflow automation with intelligent routing achieving 86% reduction in resolution time.
+
+**Tags**: `abnormal-innovation`, `ai`, `workflow-automation`, `customer-service`, `operational-efficiency`
+
+---
+
+### 6. **brand-incubator-ecosystem.md** 🏗️ PRODUCT PROJECT
+**Status**: Completed & In Production (2023 - Present)
+
+**Overview**: Repeatable system for rapidly launching new brand concepts with tier-based architecture (Shopify → Shopify Plus → Salesforce).
+
+**Tags**: `incubator`, `brand-development`, `lean-operations`, `platform-architecture`
+
+---
+
+### 7. **digital-transformation-salesforce.md** 🔄 DIGITAL TRANSFORMATION
+**Status**: Completed (2020 - 2021)
+
+**Overview**: Led enterprise digital transformation from legacy to unified Salesforce ecosystem across 12 global markets supporting $150M+ revenue.
+
+**Tags**: `digital-transformation`, `salesforce`, `platform-migration`, `unified-commerce`
+
+---
+
+### 8. **tiktok-shop-integration.md** 📱 SOCIAL COMMERCE
+**Status**: Completed & In Production (2023)
+
+**Overview**: First fully integrated brand on TikTok Shop via Salesforce Commerce Cloud, creating new revenue channel with 6-month first-mover advantage.
+
+**Tags**: `social-commerce`, `tiktok-shop`, `platform-integration`, `first-mover`
+
+---
+
+### 9. **regimen-builder.md** 💡 PRODUCT TOOL
+**Status**: Completed & In Production (2021 - 2022)
+
+**Overview**: Interactive rules-based skincare regimen builder guiding customers through personalized routine creation. Foundation for AI personal shopper.
+
+**Tags**: `product-tool`, `guided-selling`, `customer-experience`, `conversion-optimization`
+
+---
+
+### 10. **ai-resume.md** 🧠 PERSONAL PROJECT
+**Status**: In Production (2024 - Present)
+
+**Overview**: Custom MCP server transforming professional experience into AI-searchable knowledge base. Built in 5 days to demonstrate capabilities vs. talking about them. Enables conversational interface to resume and portfolio.
+
+**Tags**: `ai`, `mcp`, `rag`, `vector-search`, `personal-portfolio`, `show-dont-tell`
+
+---
+
+## Projects by Category
+
+### 🤖 AI & Automation (6 projects)
+1. **Agentic Personal Shopper** - Agentic AI conversational commerce (ABNORMAL INNOVATION)
+2. **Google Gemini Enterprise Deployment** - Workforce AI enablement (ABNORMAL INNOVATION)
+3. **Agentic Content Orchestration** - Multi-agent content generation (ABNORMAL INNOVATION)
+4. **AI Customer Service Optimization** - AI workflow automation (ABNORMAL INNOVATION)
+5. **AI Resume** - Personal AI-powered portfolio system (PERSONAL PROJECT)
+6. **Regimen Builder** → AI evolution (see Agentic Personal Shopper for details)
+
+### 🏗️ Platform & Product (4 projects)
+1. **Digital Transformation Salesforce** - Enterprise digital transformation
+2. **Brand Incubator Ecosystem** - Rapid brand launches
+3. **TikTok Shop Integration** - Social commerce channel
+4. **Regimen Builder** - Guided selling tool
+
+### 📂 By Company Context
+
+**DECIEM Projects (9)**
+- All projects except AI Resume
+
+**Personal Projects (1)**
+- AI Resume
+
+---
+
+## File Structure for AI Optimization
+
+### Frontmatter Metadata (Every File)
+```yaml
+---
+title: "Project Name"
+date: "YYYY or YYYY - Present"
+status: "Completed | In Production | Prototype | Ongoing"
+role: "Your Role"
+company: "DECIEM | Personal Project"
+parent_initiative: "abnormal-innovation | independent | personal-portfolio"
+tags: ["tag1", "tag2", "tag3"]
+impact_metrics: ["metric1", "metric2"]
+technologies: ["tech1", "tech2"]
+context_type: "project_detail | initiative_overview"
+context_priority: "critical | high | medium"
+---
+```
+
+### Content Structure (Consistent Across Files)
+1. **Executive Summary** - TL;DR with key achievement
+2. **The Problem & Opportunity** - Context, pain points, business impact
+3. **Solution Design** - Architecture, approach, innovation
+4. **Implementation** - Phased rollout, timeline, process
+5. **Results & Impact** - Quantitative + qualitative outcomes
+6. **Challenges & Learnings** - What worked, what didn't, lessons
+7. **Skills Demonstrated** - Explicit skill callouts
+
+---
+
+## Project Relationships Map
+
+```
+Abnormal Innovation (Parent Initiative - AI Transformation Focus)
+│
+└── AI Transformation Pillar
+    ├── Agentic Personal Shopper (customer-facing AI)
+    ├── Google Gemini Enterprise Deployment (internal AI enablement)
+    ├── Agentic Content Orchestration (internal AI automation)
+    └── AI Customer Service Optimization (operational AI)
+
+Independent DECIEM Projects
+│
+├── Platform & Digital Transformation
+│   ├── Digital Transformation Salesforce (enterprise platform)
+│   ├── TikTok Shop Integration (channel expansion)
+│   └── Brand Incubator Ecosystem (portfolio strategy)
+│
+└── Customer Experience & Product
+    └── Regimen Builder (guided selling)
+         └── Evolution: Agentic Personal Shopper (AI-powered)
+
+Personal Projects
+│
+└── AI Resume (personal portfolio system)
+    └── Demonstrates: AI/ML, RAG, MCP, rapid prototyping, show-don't-tell
+```
+
+---
+
+## Special Notes on Project Relationships
+
+**Abnormal Innovation Scope:**
+- Focused specifically on innovative initiatives
+- Represents DECIEM's strategic investment in AI capabilities
+
+**Independent Projects:**
+- Completed before or outside of Abnormal Innovation scope
+- Foundation projects that enabled later innovation
+- Equal importance but different organizational context
+
+**AI Resume Meta-Value:**
+- Uses itself to demonstrate the capabilities it describes
+- Shows problem-solving process from problem identification to solution
+- Built with same rapid prototyping approach described in experience
+- Pattern recognition: applying AI to reimagine traditional experiences
