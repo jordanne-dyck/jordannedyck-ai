@@ -1,0 +1,6 @@
+flask>=2.0
+flask-cors>=3.0
+faiss-cpu>=1.7.0
+numpy>=1.20
+openai>=1.0
+python-dotenv>=0.19
