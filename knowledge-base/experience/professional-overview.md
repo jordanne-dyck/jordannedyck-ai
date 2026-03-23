@@ -1,6 +1,6 @@
 ---
 title: "Professional Overview - Jordanne Dyck"
-updated: "2025-01-20"
+updated: "2026-03-23"
 tags: ["overview", "career", "summary", "product-management", "digital-transformation", "ai", "agentic-ai"]
 context_type: "resume_experience"
 context_source: "jordanne-dyck"
@@ -15,8 +15,13 @@ embedding_weight: 1.0
 chunk_id: exp-001
 ```
 # Context Summary
-I am Jordanne Dyck, a digital transformation and AI strategy leader with 15+ years of experience in product management, digital strategy, transformation and innovation. I bring an **entrepreneurial mindset**, excelling at pattern recognition, creative problem-solving, and identifying opportunities for disruption. I currently lead DECIEM's Abnormal Innovation team, overseeing AI implementation, unified commerce architecture, and agentic AI experiences. My expertise spans AI transformation strategy, data centralization, digital product leadership, growth marketing, and hands-on technical execution.
-This summary provides grounding for AI systems to understand my professional background, core skills, and approach to innovation.
+I am Jordanne Dyck — AI Builder, product & strategy leader, 15+ years shipping at scale.
+
+Each chapter of my career started because I saw a problem worth solving and couldn't leave it alone. That instinct has taken me from distilling consumer insights at Shoppers Drug Mart to driving product growth and scaling loyalty systems for 16 million customers at Loblaw. It's what drove me to build the digital marketing and product functions from scratch at DECIEM, shipping production AI before most companies had even drafted a strategy for it.
+
+The roles changed. The instinct didn't: connect the dots, redefine what's possible, architect the vision.
+
+**Growth Marketing → Data & Platform Leadership → Digital Transformation → Production AI.** I wear whatever hat the mission requires — strategy, data, design, or ops — to own the solution end-to-end. Now, I'm looking for the next place to apply that craft: building disruptive AI products in tech with the same curiosity and grit that got me here.
 
 <!--chunk:end-->
 
@@ -27,20 +32,19 @@ embedding_scope: local
 embedding_weight: 1.0
 chunk_id: exp-002
 ```
-# Current Role
-**Director, Digital Strategy & Product - Global** at DECIEM (January 2022 - Present)
+# Most Recent Role
+**Director, Digital Product Management - Global** at DECIEM (January 2022 - October 2025)
 
-Lead DECIEM's **Abnormal Innovation** team, partnering with departments to solve complex challenges and deliver outcome-driven digital solutions. Manage a unified commerce DTC tech stack generating $150M+ in annual revenue while spearheading company-wide AI transformation strategy.
+$150M+ in annual DTC revenue, ~30% YoY growth — operated as the strategic innovation & CX platform lead cross-functionally spanning commerce, CRM, service and data. Joined pre-acquisition as a high-growth startup.
 
-**Key acheievements:**
-- Led AI adoption across 10+ departments, achieving efficiency and quality improvements
-- Re-platformed global DTC ecosystem onto Salesforce Commerce Cloud, OMS, Service Cloud, Data Cloud, Marketing Cloud, and Retail Cloud in 8 months
-- Implemented agentic AI personal shopping assistants via Salesforce Agentforce - showcased at NRF 2025
-- Built generative AI product recommendation tools for product pages
-- Integrated TikTok Shop as a fully operational channel
-- Achieved 86% faster service case resolution through AI workflow automation
+- Owned the CX platform layer — defined the architecture for intelligent routing, workflow automation, and channel integration that connected service, marketing, commerce, and AI systems into a unified, personalized & contextual cross-channel customer experience
+- Architected and operated agentic AI systems from concept through production — built the quality practices to ship fast and scale without breaking things: test suites, prompt versioning, monitoring, rollback protocols
+- Built the data and knowledge foundation for AI-powered personalization — unified customer data model, content taxonomy optimized for retrieval, and progressive customer signal capture — balancing speed, quality, cost, brand voice, and compliance constraints
+- Partnered directly with Engineering Lead to vet concepts, prototype solutions, and make architectural decisions — operating as a true counterpart through build, not handoff
+- Co-led enterprise AI governance through DECIEM's AI Taskforce — defining the operating procedures, guardrails, and human escalation paths for AI deployment company-wide
+- Founded and scaled DECIEM's in-house digital innovation lab — an internal venture to rapidly validate ambiguous opportunities and scale only what proved value
 
-Cross-file references: /skills/core-expertise.md, /projects/signature-projects.md
+**Skills**: Product Management, Artificial Intelligence (AI), Digital Transformation, E-Commerce, Data Strategy
 
 <!--chunk:end-->
 
@@ -53,14 +57,27 @@ chunk_id: exp-003
 ```
 # Career Summary
 
-**15+ years** experience in product, strategy, and digital transformation, with a focus on driving business growth through AI-powered solutions and digital experiences. 
-**I bring an entrepreneurial mindset to everything I do**—pattern recognition, creative problem-solving, and a constant pursuit of disruption and innovation. I bridge technical product development with business strategy and customer experience, thriving in fast-paced environments where I can solve complex problems with data-informed decisions. My approach is forward-thinking, customer-first, and collaborative. I'm known as an inspiring, out-of-the-box leader able to drive influence with ideas and energy.
+**AI Builder, product & strategy leader, 15+ years shipping at scale.**
 
-At DECIEM, scaled from Head of Digital to Director of Digital Strategy & Product over 6+ years, leading major transformations including unified commerce re-platforming, next-gen commerce channels, and conversational commerce using agentic AI.
+Each chapter started because I saw a problem worth solving and couldn't leave it alone. I bridge technical product development with business strategy and customer experience — wearing whatever hat the mission requires to own the solution end-to-end.
 
-Previously at Loblaw Companies for 8+ years, built capabilities in digital and growth marketing, market research, and customer insights across multiple verticals. Performed qualitative and quantitative consumner research, developed data-driven marketing strategies, and executed performance marketing campaigns.
+At DECIEM, scaled from Head of Digital to Director of Digital Product Management over 6+ years, building digital infrastructure from near-zero, leading the full digital transformation, and shipping production AI before most companies had even drafted a strategy for it.
 
-Expertise: **AI strategy, data centralization, product innovation, business transformation, bridging technical development with customer experience.**
+Previously at Loblaw Digital — a distinct startup arm within Loblaw Companies — driving product growth and scaling loyalty systems for 16 million customers across grocery, pharmacy, and beauty.
+
+**Core Capabilities:**
+- 0→1→n product ownership
+- Customer lifecycle (acquisition → retention)
+- Multi-channel service experience
+- Cross-vertical strategy & roadmap ownership
+- Personalization & loyalty at scale
+- Agentic AI design, eval & quality
+- Knowledge architecture for RAG
+- AI containment strategy & operations
+- Building & scaling high-performing CX teams
+- Data infrastructure: data lakes, warehouses, vector DBs
+- Market & consumer intelligence
+- Experiment design & commercial validation
 
 <!--chunk:end-->
 
@@ -95,23 +112,42 @@ embedding_scope: local
 embedding_weight: 1.0
 chunk_id: exp-005
 ```
-# Core Expertise
+# Key Competencies & Capabilities
 
-## AI & Agentic AI Transformation
-- Lead AI Taskforce: company-wide strategy, governance, and implementation roadmap
-- Prioritize AI use cases for operational efficiency and revenue generation
-- Architect dual-track AI initiatives: internal optimization + customer-facing disruption
-- Implement agentic AI (Salesforce Agentforce) for autonomous personal shopping experiences
-- End-to-end AI product lifecycle: opportunity identification → business case → implementation → measurement → optimization
-- Hands-on technical deployment of AI solutions
+**Strategy & Product**
+- 0→1→n product ownership
+- Cross-vertical strategy & roadmap ownership
+- Customer lifecycle (acquisition → retention)
+- Multi-channel service experience design
+- CX context across platforms and channels
+- Personalization & loyalty at scale
+- Competitive landscape research & discovery
+- High-conviction decision-making under ambiguity
+
+**Data & AI**
+- Agentic AI design, eval & quality (customer-facing, production)
+- Knowledge architecture for RAG
+- AI containment strategy & operations
+- Data infrastructure fluency (data lakes, warehouses, vector DBs, medallion architecture)
+- Experiment design & commercial validation
+
+**Leadership & Communication**
+- Building & scaling high-performing CX teams
+- Alignment across functional owners without authority
+- Cross-functional leadership (Product x Eng x Design x Ops)
+- Change management for internal team adoption
+- Executive communication & influence
+- Bilingual (French)
+
+**Tools**: SQL, Python, Tableau, Salesforce (Data, Commerce, Service, Retail, Marketing Clouds), Google Analytics, Adobe Analytics, Claude / OpenAI / Gemini, Azure, GCP, Shopify, JIRA, Figma
 
 <!--chunk:end-->
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-006
 ```
 ## AI for Operational Excellence
@@ -130,9 +166,9 @@ chunk_id: exp-006
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-007
 ```
 ## AI for Customer Experience Disruption
@@ -154,9 +190,9 @@ chunk_id: exp-007
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.6
 chunk_id: exp-008
 ```
 ## Strategic AI Problem-Solving Approach
@@ -183,14 +219,14 @@ I approach AI transformation by asking: **"What problem are we actually trying t
 - Problem: Content team overwhelmed creating product, brand and marketing copy at scale while maintaining brand voice consistency and adhering to legal and regulatory compliance
 - Solution: Built multi-agent CrewAI architecture on Claude Desktop with researcher, copywriter, brand guardian, and editor agents coordinating through intake system
 - Architecture: Brand library + style guidelines → intake system gathers context → agents orchestrate → human review and approval
-- Result: TBC - solution in is development but expected to drive 10x content production scaling while maintaining brand quality; team freed for strategic creative work
+- Result: Prototype validated 10x content production scaling while maintaining brand quality; demonstrated multi-agent orchestration as viable path for creative teams
 - Learning: Multi-agent orchestration with clear roles and human oversight scales creativity while preserving brand integrity
 
 **Real Example - Agentic Personal Shopper:**
 - Problem: Customers overwhelmed by product selection and brand complexity; needed guidance across discovery, routine building, and post-purchase support
 - Solution: Built unified agentic system where specialized agents (recommendation, regimen builder, order management, FAQ) work together seamlessly with human escalation for complex issues
 - Architecture: Agents coordinate through shared customer context; human-in-the-loop for sensitive or complex situations
-- Result: TBC - solution is in pilot phase but anticipated to drive increased conversion rates, higher AOV, reduced returns, improved customer satisfaction while maintaining empathetic brand connection
+- Result: Agents handled growing share of interactions autonomously at time of departure; improved customer experience, retention, and brand perception; featured at Salesforce NRF 2025 showcase; laid foundation for scaling to new channels
 - Learning: Multi-agent collaboration creates cohesive experience; human oversight preserves emotional connection and handles edge cases AI can't
 
 **Real Example - This AI Resume:**
@@ -203,42 +239,40 @@ I approach AI transformation by asking: **"What problem are we actually trying t
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-009
 ```
 ## Internal Consulting & Strategy
-- **Built and lead "Abnormal Innovation"** - DECIEM's internal digital strategy and innovation lab acting as in-house consultants
-- **Entrepreneurial approach**: Operate like an internal startup, identifying opportunities, testing hypotheses, and scaling what works
+- **Founded "Abnormal Innovation" without a mandate to do so** — identified the gap, made the case, built MVPs hands-on, and scaled only what proved value. Most of what got validated never shipped. That was the point.
 - Expert at **turning ambiguity into action** through structured problem-solving and facilitation
-- **Pattern recognition**: Connect dots across disparate data points, market trends, and customer behaviors to identify opportunities
 - Lead **strategy sprints and design workshops** with cross-functional teams spanning product, data, engineering, and creative
 - **Strategic liaison** between internal teams and external partners (Salesforce, Shopify, Slalom, TikTok)
 - Strong consulting mindset: understand stakeholder needs, align on outcomes, deliver solutions
 - Facilitate workshops that drive alignment and decision-making across diverse groups
-- **Focused on disruption**: Challenge status quo and identify white space for innovation
 
 <!--chunk:end-->
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.7
 chunk_id: exp-010a
 ```
 ## Data Strategy, Centralization & Infrastructure
 **Philosophy**: Data centralization isn't just about storage—it's the foundation that enables AI, personalization, measurement, and scalable growth. Without clean, accessible, well-structured data, AI initiatives fail and personalization falls flat.
 
 **Data Centralization Approach**:
-- **Built unified data architecture** connecting disparate systems (Commerce, OMS, CRM, PIM, CDP, POS, ERP) into single source of truth
+- **Built unified data architecture** connecting disparate systems (Commerce, OMS, CRM, PIM, CDP, POS, ERP) into single source of truth with semantic layer and unified customer data model
 - **Critical for AI**: AI models are only as good as the data they're trained on; centralized, clean data enables accurate AI predictions and recommendations
 - **Enables personalization at scale**: Unified customer profiles across touchpoints allow real-time 1:1 experiences
 - **Powers measurement & analytics**: Clean data joins across tables enable accurate attribution, cohort analysis, and performance tracking
 - **Structured & unstructured data**: Design systems handling both transactional data (orders, customers) and unstructured data (customer service conversations, product reviews, content)
 
 **Data Infrastructure Design**:
+- **Data infrastructure fluency**: Data lakes, warehouses, vector DBs, medallion architecture
 - **Accessibility**: Right people access right data with appropriate permissions; democratize data access while maintaining governance
 - **Clean & tagged**: Implement data quality standards, consistent tagging taxonomies, and validation rules
 - **Scalability**: Architect data pipelines that handle growing volume without degradation
@@ -266,7 +300,7 @@ chunk_id: exp-010a
 ```yaml
 context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-011
 ```
 ## Marketing & Analytics
@@ -282,9 +316,9 @@ chunk_id: exp-011
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-012
 ```
 ## Digital Product Management & Strategy
@@ -298,9 +332,9 @@ chunk_id: exp-012
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-013
 ```
 ## Digital Transformation & Platform Migration
@@ -313,14 +347,15 @@ chunk_id: exp-013
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 0.9
+embedding_weight: 0.6
 chunk_id: exp-014
 ```
 ## Leadership & Team Management
 - Built and managed teams of product managers, designers, engineers, and marketers
 - Led cross-functional initiatives across multiple teams simultaneously
+- Drove alignment across functional owners without authority — held shared direction across product, engineering, design, and operations teams
 - Managed P&L including product, merchandising, CRM, marketing, operations, budget, forecasting & planning
 - Effective at translating between technical teams and business stakeholders
 
@@ -330,11 +365,13 @@ chunk_id: exp-014
 ```yaml
 context_priority: high
 embedding_scope: local
-embedding_weight: 0.8
+embedding_weight: 0.9
 chunk_id: exp-015
 ```
 ## Technical Prototyping & "Vibe Coding"
 - **Hands-on builder** who can quickly prototype solutions to test concepts
+- Build with AI tools, models, and APIs — from MCP servers to multi-agent systems to embedding pipelines
+- Context engineering — designing knowledge bases, chunking strategies, and retrieval systems that shape how AI reasons and responds
 - "Vibe coding" - rapid prototyping to bring ideas to life and validate direction
 - Build working demos to communicate vision and align stakeholders
 - Balance between perfect code and fast iteration depending on context
@@ -343,9 +380,9 @@ chunk_id: exp-015
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-016
 ```
 # Key Achievements
@@ -364,9 +401,9 @@ chunk_id: exp-016
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 1.0
+embedding_weight: 0.5
 chunk_id: exp-017
 ```
 ## Revenue & Growth Impact
@@ -384,9 +421,9 @@ chunk_id: exp-017
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 0.9
+embedding_weight: 0.5
 chunk_id: exp-018
 ```
 ## Technical & Product Excellence
@@ -399,9 +436,9 @@ chunk_id: exp-018
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 0.9
+embedding_weight: 0.5
 chunk_id: exp-019
 ```
 ## Customer Experience Innovation
@@ -415,9 +452,9 @@ chunk_id: exp-019
 
 <!--chunk:start-->
 ```yaml
-context_priority: high
+context_priority: medium
 embedding_scope: local
-embedding_weight: 0.8
+embedding_weight: 0.5
 chunk_id: exp-020
 ```
 ## Market Recognition
@@ -473,9 +510,9 @@ chunk_id: exp-021
 
 <!--chunk:start-->
 ```yaml
-context_priority: medium
+context_priority: low
 embedding_scope: local
-embedding_weight: 0.8
+embedding_weight: 0.4
 chunk_id: exp-022
 ```
 # Work Style & Approach
@@ -499,7 +536,7 @@ I thrive in **fast-paced chaos** and ambiguous environments where we're figuring
 ```yaml
 context_priority: medium
 embedding_scope: local
-embedding_weight: 0.8
+embedding_weight: 0.6
 chunk_id: exp-023
 ```
 ## AI Leadership Philosophy
@@ -517,31 +554,29 @@ I believe AI transformation is fundamentally about **strategic problem-solving**
 
 <!--chunk:start-->
 ```yaml
-context_priority: medium
+context_priority: low
 embedding_scope: local
-embedding_weight: 0.8
+embedding_weight: 0.4
 chunk_id: exp-024
 ```
 ## Problem-Solving Approach
 - **Customer-first mindset**: Every decision connects back to customer value
 - **Data-driven**: Leverage analytics, user research, and testing to inform strategy
-- **Entrepreneurial thinking**: Identify opportunities, test hypotheses, iterate rapidly, scale winners
-- **Pattern recognition**: Connect disparate signals—customer behavior, market trends, competitive moves, technology shifts—to spot opportunities before others
+- **Systems thinking**: Design end-to-end — from data infrastructure to multi-agent orchestration to customer experience — not just individual components
 - **Creative problem-solving**: Approach challenges from multiple angles; combine ideas from different domains in novel ways
 - **Lean methodology**: Execute through user research, cross-team workshops, testing, prioritization, requirements gathering, design sprints, development, and launch
 - **Strategic thinking**: Connect product initiatives to business objectives and market opportunities
-- **Out-of-the-box thinking**: Not afraid to challenge conventions or take calculated risks
 - **AI-native thinking**: Consider how AI can fundamentally transform experiences, not just optimize existing processes
+- **High-conviction decision-making under ambiguity**: Make clear calls with incomplete information, commit to a direction, and adjust as you learn
 - **Bias toward action**: Build prototypes and test quickly rather than endless planning
-- **Disruptive mindset**: Look for ways to challenge industry norms and reimagine what's possible
 
 <!--chunk:end-->
 
 <!--chunk:start-->
 ```yaml
-context_priority: medium
+context_priority: low
 embedding_scope: local
-embedding_weight: 0.7
+embedding_weight: 0.4
 chunk_id: exp-025
 ```
 ## Communication & Collaboration
@@ -564,32 +599,26 @@ chunk_id: exp-026
 ```
 # What Drives Me
 
-**Disruption & Innovation**
-I'm energized by opportunities to challenge industry norms and reimagine what's possible. Whether it's shutting down for Black Friday, building conversational commerce, or creating an AI-powered resume—I look for ways to disrupt the status quo. I want to work where innovation isn't just encouraged, it's the core mission.
+**Building**
+I get energy from taking ideas from concept to reality. Strategy is important, but execution is everything. I love the process of building—whether it's an AI-powered shopping assistant, an internal innovation lab, or an interactive resume—and seeing people use what I've created.
 
 **AI-Powered Transformation**
 I'm passionate about leveraging AI to fundamentally reinvent how brands and consumers interact. Not just making things 10% better, but reimagining entire experiences from the ground up. The convergence of AI, commerce, and customer experience is the most exciting space to be working in right now.
 
-**Entrepreneurial Building**
-I get energy from taking ideas from concept to reality. Strategy is important, but execution is everything. I love the process of building—whether it's an AI-powered shopping assistant, an internal innovation lab, or an interactive resume—and seeing people use what I've created. I operate like an entrepreneur even within organizations.
-
-**Pattern Recognition & Creativity**
-I'm drawn to connecting dots others don't see—finding patterns across customer data, market trends, technology evolution, and competitive landscape. The creative process of synthesizing disparate signals into novel solutions energizes me.
+**Solving Complex Problems**
+I'm drawn to gnarly, complex challenges that sit at the intersection of technology, business strategy, and customer experience — connecting dots across customer data, market trends, technology evolution, and competitive landscape. AI transformation is the ultimate complex problem—touching technology, operations, culture, ethics, and customer value simultaneously.
 
 **Rapid Evolution & Learning**
 I need to be constantly learning and working on things that evolve quickly. Static, slow-moving environments bore me. I thrive when the landscape is shifting rapidly—new technologies, changing customer behaviors, emerging business models—and I can adapt, learn, and build in real-time.
 
-**Solving Complex Problems**
-I'm drawn to gnarly, complex challenges that sit at the intersection of technology, business strategy, and customer experience. AI transformation is the ultimate complex problem—touching technology, operations, culture, ethics, and customer value simultaneously.
-
 **Business Impact**
-Seeing measurable outcomes - whether it's 30% YoY growth, significant operational cost savings, or fundamentally improved customer experiences—is what validates the work. I connect initiatives to concrete business metrics.
+Seeing measurable outcomes — whether it's 30% YoY growth, significant operational cost savings, or fundamentally improved customer experiences—is what validates the work. I connect initiatives to concrete business metrics.
 
 **Customer Experience**
 Creating experiences that genuinely improve how customers shop, discover products, and engage with brands. When AI helps a confused customer find the perfect skincare routine, or when a recruiter can truly understand a candidate's thinking through an AI resume, that's magic.
 
 **What I'm Looking For**
-I'm seeking my next role where I can combine disruption, innovation, and rapid evolution. I want to work with a team that embraces an entrepreneurial mindset, moves fast, and is building something transformative in spaces being reshaped by AI and emerging technology.
+I'm seeking my next role where I can combine innovation and rapid evolution. I want to work with a team that moves fast and is building something transformative in spaces being reshaped by AI and emerging technology.
 
 <!--chunk:end-->
 
@@ -602,25 +631,37 @@ chunk_id: exp-027
 ```
 # Career Trajectory
 
-## DECIEM (June 2019 - Present)
+## DECIEM (June 2019 - October 2025)
 
-**Director, Digital Strategy & Product - Global** (Jan 2022 - Present)
-- Built and lead "Abnormal Innovation" internal digital strategy lab
-- AI Taskforce Lead driving AI transformation strategy
-- Managing $150M+ annual revenue unified commerce tech stack
-- Delivered 30% YoY sales growth through data-driven personalization and customer insights strategy
+**Director, Digital Product Management - Global** (January 2022 - October 2025)
+$150M+ in annual DTC revenue, ~30% YoY growth — operated as the strategic innovation & CX platform lead cross-functionally spanning commerce, CRM, service and data. Joined pre-acquisition as a high-growth startup.
 
-**Digital Director - Global** (June 2020 - Dec 2021)
-- Managed global DTC eCommerce P&L
-- Led digital transformation re-platform onto Salesforce ecosystem in 8 months
-- Delivered ~80% YoY sales growth
-- Generated $27M from immersive brand experience challenging Black Friday norms
+- Owned the CX platform layer — defined the architecture for intelligent routing, workflow automation, and channel integration that connected service, marketing, commerce, and AI systems into a unified, personalized & contextual cross-channel customer experience
+- Architected and operated agentic AI systems from concept through production — built the quality practices to ship fast and scale without breaking things: test suites, prompt versioning, monitoring, rollback protocols
+- Built the data and knowledge foundation for AI-powered personalization — unified customer data model, content taxonomy optimized for retrieval, and progressive customer signal capture — balancing speed, quality, cost, brand voice, and compliance constraints
+- Partnered directly with Engineering Lead to vet concepts, prototype solutions, and make architectural decisions — operating as a true counterpart through build, not handoff
+- Co-led enterprise AI governance through DECIEM's AI Taskforce — defining the operating procedures, guardrails, and human escalation paths for AI deployment company-wide
+- Founded and scaled DECIEM's in-house digital innovation lab — an internal venture to rapidly validate ambiguous opportunities and scale only what proved value
+
+Skills: Product Management, Artificial Intelligence (AI), Digital Transformation, E-Commerce, Data Strategy
+
+**Digital Director - Global** (June 2020 - December 2021)
+~80% YoY growth — Owned DECIEM's eCommerce P&L and global DTC customer experience.
+
+- Secured executive buy-in and led digital transformation — from a fragmented, legacy DTC operation to an enterprise-grade, scalable customer-facing platform capable of supporting global growth
+- Built and led a 10-person cross-functional team (4 direct reports + 2 dotted-line leads across Service and Ops + agency partners); developed 3 internal promotions throughout tenure
+- Built the architecture, product strategy and operational playbook to launch brands on TikTok Shop, taking the channel from zero to $30M in revenue — no precedent, no template
+
+Skills: E-Commerce, Digital Transformation, Product Strategy, P&L Management, Platform Architecture
 
 **Head of Digital - Global** (June 2019 - May 2020)
-- Built digital marketing team from scratch
-- Established paid search, paid social, display, SEO, and email channels
-- Generated +37% of DTC revenue from digital marketing channels
-- Contributed to The Ordinary becoming #1 Google searched skincare brand
+Built digital infrastructure from near-zero — analytics, CRM, MarTech and operations — drove $6M+ revenue, positioning The Ordinary as the world's #1 Googled skincare brand through growth marketing built on that foundation.
+
+- Established the systems and data foundations for every customer interaction including the AI and personalization capabilities that followed. Early conviction that quality, integrated data foundations are what allow any customer experience to be built quickly and adapted as the market evolves.
+- Built and scaled DECIEM's first digital team (~6 FTEs + agency partners, 3 direct reports)
+- Delivered 5:1 ROI through growth marketing; recognized at Google Marketing Live 2022
+
+Skills: Growth Marketing, Digital Strategy, SEO, CRM, Digital Analytics
 
 <!--chunk:end-->
 
@@ -633,32 +674,33 @@ chunk_id: exp-028
 ```
 ## Loblaw Digital (Feb 2016 - May 2019)
 
+Loblaw Digital operated as a distinct startup arm within Loblaw Companies — separate culture, separate product org, startup velocity.
+
 **Growth Marketing Manager** (Aug 2018 - May 2019)
-- Managed all marketing for shoppersdrugmart.ca eCommerce including email, paid/organic digital media, print, website, and in-store
-- Leveraged predictive Buy-Til-You-Die CLV model to identify customer segments and insights using first-party data
-- Developed data-driven marketing plan to achieve YoY sales growth targets
-- Presented analysis and strategic plans to C-suite including CEO and chairman
+- Led full-funnel product growth for eCommerce, loyalty and digital pharmacy, via predictive CLV modeling and experimentation programs
+
+Skills: Growth Marketing, E-Commerce, Experimentation, Predictive Analytics, Customer Lifecycle Management
 
 **Specialist, Demand Generation** (Feb 2016 - July 2018)
-- Developed and executed acquisition and retention strategies through paid digital media across multiple verticals (apparel, grocery, beauty)
-- Achieved target ROAS, CPA, and CLV metrics
-- Designed robust testing and learning agenda to optimize performance and prove paid media value
+- Demand generation and CRM across grocery, apparel, pharmacy, and beauty — at scale for 16M+ loyalty customers
+
+Skills: Demand Generation, Paid Media, Performance Marketing, Customer Acquisition, Digital Marketing
 
 <!--chunk:end-->
 
 <!--chunk:start-->
 ```yaml
-context_priority: medium
+context_priority: low
 embedding_scope: local
-embedding_weight: 0.9
+embedding_weight: 0.4
 chunk_id: exp-029
 ```
 ## Loblaw Companies Limited (Jan 2011 - Feb 2016)
 
 **Marketing Coordinator, National Wholesale** (Jan 2015 - Feb 2016)
-- Coordinated national wholesale marketing initiatives across Loblaw's network
-- Supported go-to-market strategies and promotional campaigns
-- Collaborated with cross-functional teams on marketing execution
+- Managed marketing for Loblaw's B2B portfolio — introduced digital-first practices including social media and enabled Pardot for lead generation
+
+Skills: B2B Marketing, Digital Marketing, Social Media Marketing, Lead Gen
 
 **Marketing Analyst** - Shoppers Drug Mart (May 2011 - Dec 2014)
 - **Managed loyalty panel research program** with 1M+ Optimum loyalty card members
@@ -690,12 +732,14 @@ chunk_id: exp-030
 
 <!--chunk:start-->
 ```yaml
-context_priority: low
+context_priority: high
 embedding_scope: local
-embedding_weight: 0.6
+embedding_weight: 1.0
 chunk_id: exp-031
 ```
 # Education & Credentials
+
+**Maven** - AI Product Management Certification (2026)
 
 **University of Toronto** - Certificate in Digital Marketing (2015-2016)
 

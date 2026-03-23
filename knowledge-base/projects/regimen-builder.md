@@ -9,17 +9,33 @@ tags: ["product-tool", "customer-experience", "guided-selling", "skincare", "con
 impact_metrics: ["conversion_rate", "aov", "customer_satisfaction", "return_rate"]
 technologies: ["React", "Product Recommendation Engine", "Compatibility Logic", "Salesforce Commerce Cloud"]
 context_type: "project_detail"
-context_priority: "high"
+context_priority: "critical"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: critical
+embedding_weight: 1.0
+chunk_id: regimen-001
+```
 # Regimen Builder
 
 ## Executive Summary
 
-Built an interactive, rules-based skincare regimen builder that guides customers through creating personalized multi-step routines tailored to their specific skin concerns and goals. Achieved 35% higher conversion rate and 40% higher average order value compared to standard product browsing.
+**Personalization at scale, built and grown.** Mystery-shopped every channel to generate a recommendation — each gave a different answer, eroding brand trust. 40% of service tickets were confused customers. Partnered with brand, lab, legal, and regulatory to build a central knowledge base — tested with customers, refined, scaled what held and continued growth optimization. **35% higher conversion, 40% higher AOV.** Became the knowledge foundation AI systems relied on.
+
+Built an interactive, rules-based skincare regimen builder that guides customers through creating personalized multi-step routines tailored to their specific skin concerns and goals.
 
 **Key Innovation**: Translated complex dermatological knowledge into an intuitive tool that democratizes expert skincare advice at scale. Later evolved into AI-powered Unified Personal Shopper system.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: regimen-002
+```
 ## The Problem & Opportunity
 
 **The Challenge:**
@@ -37,11 +53,27 @@ Built an interactive, rules-based skincare regimen builder that guides customers
 **Strategic Insight:**
 Customers want The Ordinary's efficacy and pricing, but need guidance to navigate complexity. Traditional product pages don't solve this. Opportunity: Replicate in-store expert consultation digitally.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.6
+chunk_id: regimen-003
+```
 ## Solution Design
 
 Build UI that takes customers through a simple quiz to understand their skin type, concerns, and goals → recommend complete routine with products in right order and usage instructions using rules-based recommendation engine on website front end.
 
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: regimen-004
+```
 ## Results & Impact
 
 - 35% higher conversion rate
@@ -50,6 +82,14 @@ Build UI that takes customers through a simple quiz to understand their skin typ
 - Higher quality reviews (customers understood products better)
 - Proved value of guided shopping experiences
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.6
+chunk_id: regimen-005
+```
 ## Challenges & Learnings
 
 ### What Worked Well
@@ -83,6 +123,14 @@ Build UI that takes customers through a simple quiz to understand their skin typ
 
 **Data-Driven Iteration**: A/B tested variations, analyzed drop-off, optimized based on metrics
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 1.0
+chunk_id: regimen-006
+```
 ## Evolution to AI
 
 **2024: Next Generation (AI-Powered)**
@@ -102,6 +150,8 @@ This rules-based tool laid foundation for the **Unified Personal Shopper** AI ag
 
 **Key Learning:**
 The regimen builder proved customers value expert guidance at scale. AI scaled the concept from rules-based tool to conversational experience.
+
+<!--chunk:end-->
 
 ---
 

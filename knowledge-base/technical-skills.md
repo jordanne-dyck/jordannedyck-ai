@@ -64,7 +64,7 @@ tags: ["skills", "technical", "ai", "ml", "product", "development"]
 
 **LLM Development & Production**
 - **Frameworks**: MCP, LangChain, LlamaIndex
-- **Models**: Claude (Sonnet 4.5, Opus 4), OpenAI (GPT-5, GPT-4, GPT-3.5-turbo), Google Gemini (Pro, Flash, DeepMind, Nano Banana), Atlas Reasoning Engine
+- **Models**: Claude (Sonnet 4, Opus 4, Haiku 3.5), OpenAI (GPT-4o, GPT-4, GPT-3.5-turbo), Google Gemini (Pro, Flash)
 - **Techniques**: Prompt engineering, RAG (Retrieval Augmented Generation), Context Window Management, semantic search, rapid prototyping, vibe coding, chunking, embedding models
 - **Architectures**: Agent orchestration, multi-agent frameworks, tool calling, context management
 - **Use Cases**: Workflow automation, research automation, data analysis, product recommendations

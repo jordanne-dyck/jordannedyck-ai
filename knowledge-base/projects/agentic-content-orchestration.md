@@ -1,7 +1,7 @@
 ---
 title: "Agentic Content Orchestration System"
-date: "2025 - In Discovery"
-status: "Discovery/Prototype"
+date: "2025"
+status: "Prototype (Completed at DECIEM)"
 role: "AI Architect & Product Lead"
 company: "DECIEM"
 parent_initiative: "abnormal-innovation"
@@ -12,6 +12,12 @@ context_type: "project_detail"
 context_priority: "medium"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.8
+chunk_id: content-001
+```
 # Agentic Content Orchestration System
 
 ## Executive Summary
@@ -22,6 +28,14 @@ Building a multi-agent AI system using CrewAI architecture on Claude Desktop to 
 
 **Status**: Currently in discovery and prototype phase. Testing architecture and validating approach before production build.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: low
+embedding_weight: 0.5
+chunk_id: content-002
+```
 ## The Problem & Opportunity
 
 ### Content Production Bottleneck
@@ -118,7 +132,7 @@ Intake (Human) → Researcher → Copywriter → Brand Guardian → Editor → H
 - CrewAI Framework (open-source multi-agent orchestration)
 - Claude Desktop (local development and testing)
 - Model Context Protocol (MCP) for tool integration
-- Claude Sonnet 4.5 (optimal balance of speed, quality, cost)
+- Claude Sonnet 4 (optimal balance of speed, quality, cost)
 - ChromaDB for brand library embeddings
 
 **Current Phase:**
@@ -128,6 +142,14 @@ Intake (Human) → Researcher → Copywriter → Brand Guardian → Editor → H
 - Validating quality of outputs
 - Iterating on prompts and agent logic
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: low
+embedding_weight: 0.5
+chunk_id: content-003
+```
 ## Expected Outcomes
 
 - 10x increase in content production capacity
@@ -163,6 +185,8 @@ Intake (Human) → Researcher → Copywriter → Brand Guardian → Editor → H
 **Technical Prototyping**: Building working prototype on Claude Desktop, validating concept quickly
 
 **Strategic Thinking**: Framing as learning opportunity, managing risk through phased approach
+
+<!--chunk:end-->
 
 ---
 

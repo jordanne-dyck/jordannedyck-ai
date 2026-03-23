@@ -41,7 +41,7 @@ except Exception as e:
     exit(1)
 
 # Create MCP server
-server = Server("jordan-resume")
+server = Server("jordanne-resume")
 
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
@@ -49,7 +49,7 @@ async def handle_list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="search_experience",
-            description="Search through Jordan's professional experience, skills, projects, and personality. Use this to answer questions about Jordan's background, capabilities, work style, or specific projects.",
+            description="Search through Jordanne's professional experience, skills, projects, and personality. Use this to answer questions about Jordanne's background, capabilities, work style, or specific projects.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -133,7 +133,7 @@ async def handle_call_tool(
             
             combined_text = "\n".join(formatted_results)
         else:
-            combined_text = "No relevant information found in Jordan's knowledge base."
+            combined_text = "No relevant information found in Jordanne's knowledge base."
         
         print(f"Returning {len(combined_text)} characters", file=sys.stderr)
         sys.stderr.flush()
@@ -159,7 +159,7 @@ async def main():
             read_stream,
             write_stream,
             InitializationOptions(
-                server_name="jordan-resume",
+                server_name="jordanne-resume",
                 server_version="0.1.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),

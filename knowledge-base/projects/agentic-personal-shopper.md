@@ -1,6 +1,6 @@
 ---
 title: "Agentic Personal Shopper - AI Agent System"
-date: "2024 - Present"
+date: "2024 - 2025"
 status: "In Production"
 role: "Product Lead & AI Architect"
 company: "DECIEM"
@@ -12,14 +12,30 @@ context_type: "project_detail"
 context_priority: "critical"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: critical
+embedding_weight: 1.0
+chunk_id: shopper-001
+```
 # Agentic Personal Shopper - AI Agent System
 
 ## Executive Summary
 
-Built a unified agentic AI personal shopping system that orchestrates multiple specialized agents to guide customers through product discovery, education, routine building, and post-purchase support. Featured at Salesforce NRF 2025 as pioneering implementation of autonomous commerce.
+**Concept to production to global scale.** Personally built the first working version — unifying product discovery, order management, and checkout into a single conversational experience. Tested with pilots, identified failure modes, and iterated fast before scaling. Defined AI operating model for continuous optimization post-production. Concept to production in 6 months. Featured at NRF 2025.
+
+Built a unified agentic AI personal shopping system that orchestrates multiple specialized agents to guide customers through product discovery, education, routine building, and post-purchase support. Featured by Salesforce at NRF 2025 as a pioneering implementation of autonomous commerce.
 
 **Key Innovation**: Multiple AI agents working together seamlessly while maintaining human connection and brand voice through strategic human-in-the-loop design.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: shopper-002
+```
 ## The Problem & Opportunity
 
 ### Customer Confusion at Scale
@@ -41,6 +57,14 @@ Built a unified agentic AI personal shopping system that orchestrates multiple s
 **The Opportunity:**
 Create AI-powered personal shopper that feels like talking to a knowledgeable beauty advisor in-store, but at scale online. Evolution of the rules-based Regimen Builder tool using agentic AI.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: shopper-003
+```
 ## Solution Design
 
 ### Multi-Agent Architecture
@@ -103,16 +127,24 @@ Built **unified system** where specialized agents collaborate through shared cus
 - Started with "Where is my order" agent (high impact, low LOE)
 - Gradually added more features and functionality
 - Piloted to smaller market (Canada) ahead of global rollout
-- Full unified experience planned for 2026
+- Full unified experience in rollout at time of departure
 
 **Change Management:**
 - Trained customer service team on new workflows
 - Established monitoring and escalation protocols
 - Regular review sessions with stakeholders
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: shopper-004
+```
 ## Results & Impact
 
-- Expect agents handle 70-80% of interactions autonomously by July 2026; humans focus on high-value, high-empathy interactions.
+- Agents handled a growing share of interactions autonomously at time of departure; humans focused on high-value, high-empathy interactions.
 - Improved customer experience
 - Improved retention rate
 - Featured at Salesforce NRF 2025 (showcase for innovation)
@@ -121,6 +153,14 @@ Built **unified system** where specialized agents collaborate through shared cus
 - Enhanced brand perception as digital-first and innovative
 - Laid foundation for scaling personal shopper experience to new channels (ie. whatsapp, chatGPT, marketing channels, etc.)
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.6
+chunk_id: shopper-005
+```
 ## Challenges & Learnings
 
 ### What Worked Well
@@ -148,6 +188,14 @@ Built **unified system** where specialized agents collaborate through shared cus
 - Solution: Implemented continuous monitoring and optimization process, fallback to human when uncertain
 - Result: Reliability improved, customer and brand trust maintained
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.5
+chunk_id: shopper-006
+```
 ## Skills Demonstrated
 
 **AI Product Strategy**: Identified opportunity, evaluated build vs. buy, designed multi-agent architecture aligned with customer journey
@@ -161,6 +209,8 @@ Built **unified system** where specialized agents collaborate through shared cus
 **Change Management**: Trained teams on new workflows, managed stakeholder expectations, drove adoption
 
 **Business Acumen**: Connected AI capabilities to business outcomes (conversion, AOV, satisfaction), articulated ROI
+
+<!--chunk:end-->
 
 ---
 

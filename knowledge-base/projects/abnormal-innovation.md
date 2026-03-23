@@ -1,7 +1,7 @@
 ---
 title: "Abnormal Innovation - Internal Digital Strategy & Innovation Lab"
-date: "2022 - Present"
-status: "Ongoing"
+date: "2022 - 2025"
+status: "Completed (2022-2025)"
 role: "Founder & Lead"
 company: "DECIEM"
 tags: ["innovation-lab", "internal-consulting", "strategy", "transformation", "ai", "product", "entrepreneurial", "abnormal-innovation"]
@@ -10,14 +10,28 @@ context_type: "initiative_overview"
 context_priority: "critical"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: critical
+embedding_weight: 1.0
+chunk_id: abnormal-001
+```
 # Abnormal Innovation - Internal Strategy & Innovation Lab
 
 ## Executive Summary
 
-Founded and lead **Abnormal Innovation**, DECIEM's internal digital strategy and innovation lab that operates as in-house consultants. We solve complex organizational challenges, align cross-functional roadmaps, and deliver outcome-driven digital solutions with an entrepreneurial mindset.
+Founded Abnormal Innovation without a mandate to do so. Identified a gap — DECIEM was scaling fast but teams were chasing the next shiny thing without focus, pouring effort into initiatives that hadn't been validated. No framework for deciding what was worth building vs. what was a distraction. Made the case, built MVPs to prove the model, and scaled it into DECIEM's internal digital strategy and innovation lab. Created the discipline to validate ambiguous opportunities quickly and scale only what proved value — killing everything else before it consumed resources.
 
-**Why "Abnormal"**: Reflects DECIEM's brand DNA—challenging conventions, thinking differently, and not being constrained by how things are "supposed" to be done.
+**Why "Abnormal"**: Reflects DECIEM's brand DNA — challenging conventions, thinking differently, and not being constrained by how things are "supposed" to be done.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: abnormal-002
+```
 ## The Lab's Purpose
 
 ### The Problem We Solve
@@ -56,6 +70,14 @@ We operate like an internal startup:
 
 **6. Measurement**: Track outcomes and iterate
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.6
+chunk_id: abnormal-003
+```
 ## Our Principles
 
 **1. Pattern Recognition Over Process**
@@ -91,6 +113,14 @@ We operate like an internal startup:
 - "This is how we've always done it" is not an acceptable reason
 - Embrace the "Abnormal"
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: abnormal-004
+```
 ## Lab Statistics
 
 **Team & Scale:**
@@ -110,6 +140,14 @@ We operate like an internal startup:
 - 2-3 month delivery for MVP solutions
 - Continuous iteration and optimization model
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.5
+chunk_id: abnormal-005
+```
 ## Projects & Initiatives Under Abnormal Innovation
 
 - [Agentic Personal Shopper](./agentic-personal-shopper.md) - Multi-agent agentic AI system
@@ -123,6 +161,14 @@ We operate like an internal startup:
 - Innovation Portfolio Management - Opportunity identification and prioritization
 - Cross-Functional Alignment - Workshop facilitation and decision frameworks
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.5
+chunk_id: abnormal-006
+```
 ## Skills Demonstrated Through Abnormal Innovation
 
 **Strategic Thinking:**
@@ -168,6 +214,14 @@ We operate like an internal startup:
 - Stakeholder communication and expectation management
 - Measurement and continuous improvement
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.8
+chunk_id: abnormal-007
+```
 ## Why This Matters
 
 Abnormal Innovation demonstrates:
@@ -196,6 +250,8 @@ Abnormal Innovation demonstrates:
 - Focus on measurable business outcomes
 - Move key metrics (revenue, efficiency, satisfaction)
 - ROI-focused with clear value demonstration
+
+<!--chunk:end-->
 
 ---
 
