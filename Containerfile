@@ -12,7 +12,7 @@ RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 # Stage 2: runtime — lean image with no build tools
 FROM registry.access.redhat.com/ubi9/python-311
 
-WORKDIR /app
+WORKDIR /opt/app-root/src
 
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
@@ -20,8 +20,8 @@ COPY --from=builder /install /usr/local
 # Copy only the application entrypoint
 COPY api_server.py .
 
-# faiss_db/ is NOT copied here — it is mounted from a PVC at /app/faiss_db at runtime
-# api_server.py uses relative path "faiss_db/resume.index" so WORKDIR must stay /app
+# faiss_db/ is NOT copied here — it is mounted from a PVC at /opt/app-root/src/faiss_db at runtime
+# api_server.py uses relative path "faiss_db/resume.index" so WORKDIR must stay /opt/app-root/src
 
 EXPOSE 5000
 
