@@ -1,0 +1,15 @@
+venv/
+.venv/
+faiss_db/
+chroma_db/
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+test_*.py
+*.egg-info/
+.env
+mcp_server/
+scripts/
+knowledge-base/
