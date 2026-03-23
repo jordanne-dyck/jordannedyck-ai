@@ -46,7 +46,7 @@ except Exception as e:
     exit(1)
 
 # Create MCP server
-server = Server("jordan-resume")
+server = Server("jordanne-resume")
 
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
@@ -54,7 +54,7 @@ async def handle_list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="search_experience",
-            description="Search through Jordan's professional experience, skills, projects, and personality. Use this to answer questions about Jordan's background, capabilities, work style, or specific projects.",
+            description="Search through Jordanne's professional experience, skills, projects, and personality. Use this to answer questions about Jordanne's background, capabilities, work style, or specific projects.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -102,25 +102,45 @@ async def handle_call_tool(
         print(f"Got embedding, searching index...", file=sys.stderr)
         sys.stderr.flush()
         
-        # Search FAISS index
-        k = min(int(n_results), 10)
-        distances, indices = index.search(query_vector, k)
-        
-        print(f"Found {len(indices[0])} results", file=sys.stderr)
+        # Search FAISS index - over-fetch for re-ranking (min 30 candidates)
+        fetch_count = min(max(int(n_results) * 5, 30), len(documents))
+        distances, indices = index.search(query_vector, fetch_count)
+
+        print(f"Found {len(indices[0])} candidates, re-ranking...", file=sys.stderr)
         sys.stderr.flush()
-        
+
+        # Re-rank with metadata boost
+        priority_boost = {"critical": 1.4, "high": 1.2, "medium": 1.0, "low": 0.8}
+        candidates = []
+        for idx, distance in zip(indices[0], distances[0]):
+            if idx < len(documents):
+                meta = metadatas[idx]
+                similarity = 1 / (1 + distance)
+                priority = meta.get("context_priority", "medium")
+                weight = meta.get("embedding_weight", 1.0)
+                score = similarity * priority_boost.get(priority, 1.0) * weight
+                candidates.append((idx, similarity, score))
+
+        candidates.sort(key=lambda x: x[2], reverse=True)
+        # Source diversity: max 3 chunks per file
+        top = []
+        source_counts = {}
+        for c in candidates:
+            source = metadatas[c[0]].get('filename', '')
+            source_counts[source] = source_counts.get(source, 0) + 1
+            if source_counts[source] <= 3:
+                top.append(c)
+            if len(top) >= int(n_results):
+                break
+
         # Format results
         formatted_results = []
-        
-        for i, (idx, distance) in enumerate(zip(indices[0], distances[0])):
-            if idx < len(documents):
-                doc = documents[idx]
-                metadata = metadatas[idx]
-                
-                # Calculate similarity score (FAISS returns L2 distance, lower is better)
-                similarity = 1 / (1 + distance)
-                
-                result_text = f"""
+
+        for i, (idx, similarity, score) in enumerate(top):
+            doc = documents[idx]
+            metadata = metadatas[idx]
+
+            result_text = f"""
 ### Result {i+1} (Relevance: {similarity:.2f})
 **Source**: {metadata.get('filename', 'Unknown')}
 **Category**: {metadata.get('category', 'Unknown')}
@@ -129,7 +149,7 @@ async def handle_call_tool(
 
 ---
 """
-                formatted_results.append(result_text)
+            formatted_results.append(result_text)
         
         combined_text = "\n".join(formatted_results) if formatted_results else "No relevant information found."
         
@@ -157,7 +177,7 @@ async def main():
             read_stream,
             write_stream,
             InitializationOptions(
-                server_name="jordan-resume",
+                server_name="jordanne-resume",
                 server_version="0.1.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
