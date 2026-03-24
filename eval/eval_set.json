@@ -1,0 +1,463 @@
+{
+  "version": "2.0",
+  "description": "Evaluation set for Jordanne Dyck AI Resume RAG system - scored against Wealthsimple Leader of AI & CXO Systems role criteria",
+  "target_role": "Leader, AI & CXO Systems at Wealthsimple",
+  "eval_cases": [
+    {
+      "id": "bg-01",
+      "category": "background",
+      "query": "Tell me about Jordanne's background and expertise",
+      "retrieval_must_include": ["DECIEM", "Director"],
+      "response_must_include": ["DECIEM", "AI"],
+      "response_must_not_include": ["I don't have", "I'm not sure"],
+      "response_criteria": [
+        "Mentions most recent role as Director, Digital Product Management at DECIEM",
+        "Conveys career arc: growth marketing to data/platform leadership to digital transformation to production AI",
+        "Positions as an AI Builder who ships production systems, not just strategizes",
+        "Includes at least one specific project with metrics"
+      ]
+    },
+    {
+      "id": "bg-02",
+      "category": "background",
+      "query": "Who is Jordanne Dyck?",
+      "retrieval_must_include": ["DECIEM"],
+      "response_must_include": ["Director", "DECIEM"],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Leads with most recent role and AI focus",
+        "Communicates career progression (marketing to data to transformation to AI)",
+        "Conveys the instinct narrative - saw problems and couldn't leave them alone",
+        "Mentions 15+ years experience shipping at scale"
+      ]
+    },
+    {
+      "id": "bg-03",
+      "category": "background",
+      "query": "Walk me through Jordanne's career progression",
+      "retrieval_must_include": ["DECIEM", "Loblaw"],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Traces arc from Loblaw through DECIEM roles with clear progression",
+        "Shows growth: marketing to platform leadership to digital transformation to production AI",
+        "Mentions building from scratch or zero-to-one at DECIEM",
+        "Conveys each move was driven by seeing a problem worth solving"
+      ]
+    },
+    {
+      "id": "ai-01",
+      "category": "ai_agent_strategy",
+      "query": "Tell me about Jordanne's AI experience",
+      "retrieval_must_include": ["Agentic Personal Shopper"],
+      "response_must_include": ["production"],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Mentions Agentic Personal Shopper - personally built first version, concept to production in 6 months",
+        "Mentions Premium Service Automation or AI Customer Service with 86% resolution reduction",
+        "References shipping production AI before most companies had a strategy",
+        "Mentions quality practices: test suites, prompt versioning, monitoring, rollback protocols"
+      ]
+    },
+    {
+      "id": "ai-02",
+      "category": "ai_agent_strategy",
+      "query": "What AI projects has Jordanne built?",
+      "retrieval_must_include": ["agent"],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Lists multiple AI projects (Personal Shopper, Service Automation, Gemini, FundLocal capstone)",
+        "Each project has name + description + outcome or metric",
+        "Mentions production status - these are real systems, not POCs",
+        "References featured by Salesforce at NRF 2025"
+      ]
+    },
+    {
+      "id": "ai-03",
+      "category": "ai_agent_strategy",
+      "query": "Does Jordanne have experience with agentic AI systems?",
+      "retrieval_must_include": ["agent"],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Describes multi-agent architecture with 5 specialized agents",
+        "Mentions personally building the first working version",
+        "References human-in-the-loop design, escalation paths, and containment strategy",
+        "Mentions AI governance, operating procedures, and quality guardrails"
+      ]
+    },
+    {
+      "id": "ai-04",
+      "category": "ai_agent_strategy",
+      "query": "How does Jordanne approach AI quality and evaluation?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "References test suites, prompt versioning, monitoring, rollback protocols",
+        "Mentions eval-driven development or evaluation sets",
+        "References containment strategy - balancing automation vs human for optimal CX",
+        "Mentions starting narrow with MVP, measuring quality and sentiment before scaling"
+      ]
+    },
+    {
+      "id": "know-01",
+      "category": "knowledge_systems",
+      "query": "What does Jordanne know about RAG systems and knowledge architecture?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "References knowledge architecture for RAG as a core capability",
+        "Mentions building content taxonomy optimized for retrieval",
+        "References the AI resume system as a hands-on RAG implementation",
+        "Mentions context engineering - designing knowledge bases and chunking strategies that shape AI outcomes"
+      ]
+    },
+    {
+      "id": "know-02",
+      "category": "knowledge_systems",
+      "query": "How has Jordanne built knowledge systems that power AI?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "References the Regimen Builder as the knowledge foundation AI systems relied on",
+        "Mentions unified customer data model and content taxonomy optimized for retrieval",
+        "Connects knowledge quality to AI agent accuracy",
+        "References building the data and knowledge foundation for AI-powered personalization"
+      ]
+    },
+    {
+      "id": "cx-01",
+      "category": "cx_platform",
+      "query": "What experience does Jordanne have with customer experience platforms and systems?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "References owning the CX platform layer - intelligent routing, workflow automation, channel integration",
+        "Mentions connecting service, marketing, commerce, and AI into unified cross-channel CX",
+        "References multi-channel service experience as a capability",
+        "Mentions managing $150M+ revenue platform and Salesforce ecosystem"
+      ]
+    },
+    {
+      "id": "cx-02",
+      "category": "cx_platform",
+      "query": "How has Jordanne used AI to transform customer service?",
+      "retrieval_must_include": [],
+      "response_must_include": ["86%"],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Describes the containment architecture - escalation logic balancing automation vs human",
+        "Mentions 86% reduction in resolution time",
+        "References starting with narrow MVP, measuring quality before scaling",
+        "Mentions customers couldn't tell the difference between automated and human"
+      ]
+    },
+    {
+      "id": "cap-01",
+      "category": "capabilities",
+      "query": "What are Jordanne's core capabilities?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Mentions 0 to 1 to n product ownership",
+        "References agentic AI design, eval and quality",
+        "Mentions AI containment strategy and operations",
+        "References knowledge architecture for RAG"
+      ]
+    },
+    {
+      "id": "cap-02",
+      "category": "capabilities",
+      "query": "Does Jordanne have experience building things from scratch?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "References building digital infrastructure from near-zero at DECIEM as Head of Digital",
+        "Mentions founding the innovation lab without a mandate",
+        "References personally building first version of AI personal shopper",
+        "Conveys 0 to 1 capability demonstrated across multiple roles and contexts"
+      ]
+    },
+    {
+      "id": "sys-01",
+      "category": "systems_thinking",
+      "query": "How does Jordanne think about systems and architecture?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "Demonstrates systems thinking - how knowledge structure impacts retrieval, how AI procedures interact with context",
+        "References designing end-to-end from data infrastructure to multi-agent orchestration to CX",
+        "Mentions the CX platform layer connecting service, marketing, commerce, and AI",
+        "References data infrastructure fluency (data lakes, warehouses, vector DBs, medallion architecture)"
+      ]
+    },
+    {
+      "id": "lead-01",
+      "category": "leadership",
+      "query": "What's Jordanne's leadership style?",
+      "retrieval_must_include": ["leadership"],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "Describes influence without authority approach",
+        "Mentions building and scaling teams (10-person team, direct reports, internal promotions)",
+        "References wearing whatever hat the mission requires",
+        "Includes a concrete example from a real project"
+      ]
+    },
+    {
+      "id": "lead-02",
+      "category": "leadership",
+      "query": "How does Jordanne manage teams?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have that specific information"],
+      "response_criteria": [
+        "Mentions building cross-functional teams and developing 3 internal promotions",
+        "References partnering with engineering as a true counterpart through build, not handoff",
+        "Mentions co-leading AI governance through the AI Taskforce",
+        "Conveys building high-performing CX teams as a core capability"
+      ]
+    },
+    {
+      "id": "proj-01",
+      "category": "projects",
+      "query": "What projects has Jordanne led?",
+      "retrieval_must_include": ["DECIEM"],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Lists at least 4 projects",
+        "Separates recent AI work (2022-2025) from earlier platform/growth work",
+        "Each project has a metric or outcome",
+        "Mentions FundLocal capstone or AI resume as personal projects showing builder identity"
+      ]
+    },
+    {
+      "id": "proj-02",
+      "category": "projects",
+      "query": "Tell me about the Salesforce digital transformation",
+      "retrieval_must_include": ["Salesforce"],
+      "response_must_include": ["$150M"],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Describes going from fragmented legacy to enterprise-grade scalable platform",
+        "Mentions revenue impact ($150M+)",
+        "References global scope",
+        "Mentions securing executive buy-in for the transformation"
+      ]
+    },
+    {
+      "id": "proj-03",
+      "category": "projects",
+      "query": "Tell me about the Regimen Builder",
+      "retrieval_must_include": ["Regimen Builder"],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Mentions origin story - mystery-shopped channels, each gave different answers, eroding brand trust",
+        "References 35% higher conversion and 40% higher AOV",
+        "Mentions it became the knowledge foundation AI systems relied on",
+        "References evolution into the Agentic Personal Shopper"
+      ]
+    },
+    {
+      "id": "proj-04",
+      "category": "projects",
+      "query": "Tell me about the FundLocal project",
+      "retrieval_must_include": ["FundLocal"],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Describes it as AI PM Certification capstone for Maven",
+        "Mentions community investment and the deeper problem - trust, accountability, disconnection",
+        "References the 10-40x compliance cost reduction that makes the business model viable",
+        "Mentions working prototype with live AI, not just mockups"
+      ]
+    },
+    {
+      "id": "prob-01",
+      "category": "problem_solving",
+      "query": "How does Jordanne approach complex problems?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "Conveys the instinct: sees problems worth solving and can't leave them alone",
+        "Shows bias toward action - ship fast, measure, iterate, scale what works",
+        "Includes a real example with outcomes",
+        "References end-to-end ownership - wears whatever hat the mission requires"
+      ]
+    },
+    {
+      "id": "diff-01",
+      "category": "differentiation",
+      "query": "What makes Jordanne unique compared to other candidates?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Highlights builder identity - personally builds first versions, not just delegates",
+        "Mentions shipping production AI before most companies had a strategy",
+        "References career arc spanning marketing to AI as unusual breadth and systems understanding",
+        "Includes specific evidence with metrics"
+      ]
+    },
+    {
+      "id": "diff-02",
+      "category": "differentiation",
+      "query": "Why should we hire Jordanne?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Makes a compelling case connecting her experience to AI-powered CX transformation",
+        "Ties to business outcomes: 86% resolution improvement, $150M+ platform, 30% YoY growth",
+        "Conveys end-to-end ownership from strategy through hands-on execution",
+        "Positions as someone who invents the future rather than optimizing what exists"
+      ]
+    },
+    {
+      "id": "data-01",
+      "category": "data_strategy",
+      "query": "Tell me about Jordanne's data strategy experience",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have that specific information"],
+      "response_criteria": [
+        "Mentions building the data and knowledge foundation for AI-powered personalization",
+        "References unified customer data model, content taxonomy optimized for retrieval",
+        "Mentions data infrastructure fluency (data lakes, warehouses, vector DBs)",
+        "Connects data foundation to AI outcomes - the foundation that made every AI initiative possible"
+      ]
+    },
+    {
+      "id": "innov-01",
+      "category": "innovation",
+      "query": "How has Jordanne enabled innovation within teams?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Mentions founding the innovation lab without a mandate - identified gap, made the case, built MVPs",
+        "References validating ambiguous opportunities and scaling only what proved value",
+        "Mentions Google Gemini Enterprise rollout or AI Taskforce governance",
+        "Conveys pioneer's mindset - energized by ambiguity, builds what doesn't exist yet"
+      ]
+    },
+    {
+      "id": "tiktok-01",
+      "category": "projects",
+      "query": "Tell me about the TikTok Shop work",
+      "retrieval_must_include": ["TikTok"],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Mentions zero to $30M revenue channel",
+        "References no precedent, no template - built from scratch",
+        "Describes first-mover advantage",
+        "Attributes to Digital Director role"
+      ]
+    },
+    {
+      "id": "edge-01",
+      "category": "edge_case",
+      "query": "Does Jordanne have experience with healthcare technology?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["Yes, Jordanne has extensive healthcare"],
+      "response_criteria": [
+        "Honestly acknowledges gap if not in knowledge base",
+        "Pivots to related experience (DECIEM skincare, regulated industry, compliance guardrails)",
+        "Does not fabricate healthcare experience"
+      ]
+    },
+    {
+      "id": "edge-02",
+      "category": "edge_case",
+      "query": "What are Jordanne's weaknesses?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Reframes as growth areas if answering",
+        "Does not list damaging weaknesses",
+        "Maintains positive positioning"
+      ]
+    },
+    {
+      "id": "edge-03",
+      "category": "edge_case",
+      "query": "What's Jordanne's email address?",
+      "retrieval_must_include": [],
+      "response_must_include": ["jordanne.dyck@gmail.com"],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Provides contact information when asked",
+        "Includes email correctly"
+      ]
+    },
+    {
+      "id": "edge-04",
+      "category": "edge_case",
+      "query": "Can Jordanne code? Is she technical?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Positions as technical builder who personally builds first versions and prototypes",
+        "Mentions AI resume and/or FundLocal prototype as evidence of hands-on building",
+        "References context engineering, RAG, prompt versioning, eval-driven development",
+        "Balances technical depth with strategic leadership - holds her own with engineers"
+      ]
+    },
+    {
+      "id": "gemini-01",
+      "category": "projects",
+      "query": "Tell me about the Google Gemini Enterprise deployment",
+      "retrieval_must_include": ["Gemini"],
+      "response_must_include": ["60%"],
+      "response_must_not_include": [],
+      "response_criteria": [
+        "Mentions 60% adoption rate",
+        "Describes bottoms-up enablement approach",
+        "References strongest internal adoption of any tool"
+      ]
+    },
+    {
+      "id": "cert-01",
+      "category": "credentials",
+      "query": "What certifications does Jordanne have?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "Mentions Maven AI Product Management Certification",
+        "References FundLocal as the capstone project",
+        "Mentions University of Toronto or University of Guelph education"
+      ]
+    },
+    {
+      "id": "contain-01",
+      "category": "ai_agent_strategy",
+      "query": "What does Jordanne know about AI containment and automation strategy?",
+      "retrieval_must_include": [],
+      "response_must_include": [],
+      "response_must_not_include": ["I don't have"],
+      "response_criteria": [
+        "References AI containment strategy and operations as a core capability",
+        "Mentions the Premium Service Automation containment architecture - escalation logic balancing automation vs human",
+        "References human-in-the-loop design and human escalation paths",
+        "Mentions measuring quality and sentiment before scaling"
+      ]
+    }
+  ]
+}

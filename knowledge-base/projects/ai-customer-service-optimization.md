@@ -12,14 +12,30 @@ context_type: "project_detail"
 context_priority: "high"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: critical
+embedding_weight: 1.0
+chunk_id: service-001
+```
 # AI Customer Service Optimization
 
 ## Executive Summary
 
-Redesigned customer service workflows using AI automation and intelligent routing, achieving **86% reduction in average case resolution time**. Automated repetitive manual tasks, freeing service agents to focus on high-value, empathy-driven interactions.
+**Premium Service Automation** — high-touch experience, engineered and scaled. 5,000+ monthly tickets, resolution stretching weeks. Started with a narrow MVP, measured quality and sentiment, tightening the model before scaling. Defined the escalation logic and quality guardrails balancing automation vs. human for optimal CX — the containment architecture enabling **86% reduction in average resolution**. Customers couldn't tell the difference.
+
+Automated repetitive manual tasks, freeing service agents to focus on high-value, empathy-driven interactions.
 
 **Key Result**: Resolution time dropped 86%, significantly improving customer experience and operational efficiency.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: service-002
+```
 ## The Problem & Opportunity
 
 ### Customer Service Bottleneck
@@ -41,6 +57,14 @@ Redesigned customer service workflows using AI automation and intelligent routin
 
 **The Opportunity**: Automate repetitive tasks so agents can focus on high-empathy, complex interactions that truly require human judgment.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.8
+chunk_id: service-003
+```
 ## Solution Design
 
 ### AI-Powered Workflow Solution
@@ -70,11 +94,27 @@ Redesigned customer service workflows using AI automation and intelligent routin
 - Scaled to all customer service agents
 - Trained full service team on new workflows
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: service-004
+```
 ## Results & Impact
 
 - 86% improvement to resolution time
 - Peak season scalability: Fewer additional seasonal hires needed
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: service-005
+```
 ## Challenges & Learnings
 
 ### What Worked Well
@@ -95,6 +135,14 @@ Redesigned customer service workflows using AI automation and intelligent routin
 - Solution: Personalized automated responses (customer name, order details), maintained brand voice
 - Result: Customers couldn't tell difference between automated and human responses
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.5
+chunk_id: service-006
+```
 ## Skills Demonstrated
 
 **Process Analysis**: Systematic ticket data analysis, pattern recognition, opportunity identification
@@ -108,6 +156,8 @@ Redesigned customer service workflows using AI automation and intelligent routin
 **Metrics & Measurement**: Defined KPIs, tracked impact, demonstrated ROI, iterated based on data
 
 **Customer-Centric Design**: Balanced efficiency with empathy, maintained quality while automating
+
+<!--chunk:end-->
 
 ---
 

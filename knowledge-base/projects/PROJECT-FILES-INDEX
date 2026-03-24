@@ -15,15 +15,16 @@ knowledge-base/projects/
 ├── digital-transformation-salesforce.md
 ├── tiktok-shop-integration.md
 ├── regimen-builder.md
-└── ai-resume.md
+├── ai-resume.md
+└── fundlocal-ai-capstone.md
 ```
 
 ---
 
-## All Project Files (10 Total)
+## All Project Files (11 Total)
 
 ### 1. **abnormal-innovation.md** ⭐ PARENT INITIATIVE
-**Status**: Ongoing (2022 - Present)
+**Status**: Ongoing (2022 - 2025)
 
 **Overview**: The internal digital strategy & innovation lab that serves as the umbrella for AI transformation initiatives at DECIEM.
 
@@ -32,7 +33,7 @@ knowledge-base/projects/
 ---
 
 ### 2. **agentic-personal-shopper.md** 🤖 AI PROJECT
-**Status**: In Production (2024 - Present)
+**Status**: In Production (2024 - 2025)
 
 **Overview**: Multi-agent agentic AI system orchestrating 5 specialized agents (product recommendation, regimen builder, education, order management, FAQ) to create unified personal shopping experience. Featured at Salesforce NRF 2025.
 
@@ -68,7 +69,7 @@ knowledge-base/projects/
 ---
 
 ### 6. **brand-incubator-ecosystem.md** 🏗️ PRODUCT PROJECT
-**Status**: Completed & In Production (2023 - Present)
+**Status**: Completed & In Production (2023 - 2025)
 
 **Overview**: Repeatable system for rapidly launching new brand concepts with tier-based architecture (Shopify → Shopify Plus → Salesforce).
 
@@ -112,6 +113,15 @@ knowledge-base/projects/
 
 ---
 
+### 11. **fundlocal-ai-capstone.md** 🎓 CAPSTONE PROJECT
+**Status**: Completed (2026)
+
+**Overview**: AI Product Management Certification capstone (Maven). Designed FundLocal — an AI-native community investment feature for Wealthsimple. Applied full 4D methodology with live working prototype. AI compliance verification reduces review costs 10-40x, making community-scale investment viable.
+
+**Tags**: `ai`, `product-management`, `fintech`, `capstone`, `certification`, `agentic-ai`, `community-investment`
+
+---
+
 ## Projects by Category
 
 ### 🤖 AI & Automation (6 projects)
@@ -120,7 +130,8 @@ knowledge-base/projects/
 3. **Agentic Content Orchestration** - Multi-agent content generation (ABNORMAL INNOVATION)
 4. **AI Customer Service Optimization** - AI workflow automation (ABNORMAL INNOVATION)
 5. **AI Resume** - Personal AI-powered portfolio system (PERSONAL PROJECT)
-6. **Regimen Builder** → AI evolution (see Agentic Personal Shopper for details)
+6. **FundLocal AI Capstone** - AI-native community investment feature (MAVEN CERTIFICATION)
+7. **Regimen Builder** → AI evolution (see Agentic Personal Shopper for details)
 
 ### 🏗️ Platform & Product (4 projects)
 1. **Digital Transformation Salesforce** - Enterprise digital transformation
@@ -133,8 +144,9 @@ knowledge-base/projects/
 **DECIEM Projects (9)**
 - All projects except AI Resume
 
-**Personal Projects (1)**
+**Personal Projects (2)**
 - AI Resume
+- FundLocal AI Capstone (Maven Certification)
 
 ---
 
@@ -192,8 +204,11 @@ Independent DECIEM Projects
 
 Personal Projects
 │
-└── AI Resume (personal portfolio system)
-    └── Demonstrates: AI/ML, RAG, MCP, rapid prototyping, show-don't-tell
+├── AI Resume (personal portfolio system)
+│   └── Demonstrates: AI/ML, RAG, MCP, rapid prototyping, show-don't-tell
+│
+└── FundLocal AI Capstone (Maven AI PM Certification)
+    └── Demonstrates: 4D methodology, agentic AI, compliance automation, working prototype
 ```
 
 ---
