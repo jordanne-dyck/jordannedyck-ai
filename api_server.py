@@ -30,27 +30,50 @@ def get_embedding(text):
     )
     return response.data[0].embedding
 
+PRIORITY_BOOST = {"critical": 1.4, "high": 1.2, "medium": 1.0, "low": 0.8}
+
 @app.route('/search', methods=['POST'])
 def search():
     data = request.json
     query = data.get('query', '')
     n_results = data.get('n_results', 5)
-    
-    # Get embedding and search
+
+    # Get embedding and search - over-fetch for re-ranking (min 30 candidates)
     query_embedding = get_embedding(query)
     query_vector = np.array([query_embedding]).astype('float32')
-    
-    distances, indices = index.search(query_vector, min(n_results, 10))
-    
-    results = []
+    fetch_count = min(max(n_results * 5, 30), len(documents))
+
+    distances, indices = index.search(query_vector, fetch_count)
+
+    # Score with metadata boost: similarity * priority_boost * embedding_weight
+    candidates = []
     for idx, distance in zip(indices[0], distances[0]):
         if idx < len(documents):
-            results.append({
+            meta = metadatas[idx]
+            base_similarity = float(1 / (1 + distance))
+            priority = meta.get("context_priority", "medium")
+            weight = meta.get("embedding_weight", 1.0)
+            boosted_score = base_similarity * PRIORITY_BOOST.get(priority, 1.0) * weight
+            candidates.append({
                 'content': documents[idx],
-                'metadata': metadatas[idx],
-                'similarity': float(1 / (1 + distance))
+                'metadata': meta,
+                'similarity': base_similarity,
+                'score': boosted_score,
             })
-    
+
+    # Re-rank by boosted score with source diversity (max 3 per file, ensures mix)
+    candidates.sort(key=lambda x: x['score'], reverse=True)
+    results = []
+    source_counts = {}
+    max_per_source = 3
+    for c in candidates:
+        source = c['metadata'].get('filename', '')
+        source_counts[source] = source_counts.get(source, 0) + 1
+        if source_counts[source] <= max_per_source:
+            results.append(c)
+        if len(results) >= n_results:
+            break
+
     return jsonify({'results': results})
 
 if __name__ == '__main__':
