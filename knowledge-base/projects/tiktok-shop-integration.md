@@ -11,14 +11,28 @@ context_type: "project_detail"
 context_priority: "medium"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 1.0
+chunk_id: tiktok-001
+```
 # TikTok Shop Integration
 
 ## Executive Summary
 
-Led The Ordinary's launch on TikTok Shop as **the first fully integrated brand** on the platform via Salesforce Commerce Cloud. Delivered end-to-end integration in 6 months, creating new revenue channel with significant first-mover advantage in social commerce.
+Led The Ordinary's launch on TikTok Shop as **the first fully integrated brand** on the platform via Salesforce Commerce Cloud. Delivered end-to-end integration in 6 months, creating what is now a **$30M+ annual revenue channel** with significant first-mover advantage in social commerce.
 
 **Key Achievement**: Worked alongside Salesforce and TikTok to refine beta Salesforce Commerce Cloud integration for production, becoming first  brand with full technical integration (not just catalog upload) and setting foundation for social commerce at DECIEM.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: tiktok-002
+```
 ## The Problem & Opportunity
 
 - TikTok Shop emerging as major social commerce platform with explosive growth
@@ -34,6 +48,14 @@ Led The Ordinary's launch on TikTok Shop as **the first fully integrated brand**
   - Price and promotion sync
   - Unified customer service
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: tiktok-003
+```
 ## Results & Impact
 
 - First major beauty brand with full Salesforce-TikTok Shop integration
@@ -45,6 +67,14 @@ Led The Ordinary's launch on TikTok Shop as **the first fully integrated brand**
 - Blueprint for future social commerce integrations (Instagram Shopping, etc.)
 - Reached younger demographic (Gen Z, Millennials)
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.6
+chunk_id: tiktok-004
+```
 ## Challenges & Learnings
 
 ### What Worked Well
@@ -75,6 +105,8 @@ Led The Ordinary's launch on TikTok Shop as **the first fully integrated brand**
 **Vendor Management**: Partnered with TikTok Shop adn Salesforce team, influenced platform roadmap, became showcase partner
 
 **Risk Management**: Phased regional rollout, extensive testing, monitoring infrastructure minimized launch risk
+
+<!--chunk:end-->
 
 ---
 

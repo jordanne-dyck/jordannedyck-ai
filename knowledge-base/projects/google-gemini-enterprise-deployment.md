@@ -12,6 +12,12 @@ context_type: "project_detail"
 context_priority: "high"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 1.0
+chunk_id: gemini-001
+```
 # Google Gemini Enterprise Deployment
 
 ## Executive Summary
@@ -20,6 +26,14 @@ Led enterprise-wide deployment of Google Gemini AI assistant to DECIEM's 200+ em
 
 **Key Innovation**: Balanced rapid AI enablement with responsible governance—ensuring the right people have access to the right data while empowering teams to work faster and smarter.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: gemini-002
+```
 ## The Problem & Opportunity
 
 ### Organizational Pressure & Resistance
@@ -39,9 +53,19 @@ Led enterprise-wide deployment of Google Gemini AI assistant to DECIEM's 200+ em
 **The Opportunity:**
 Deploy AI that measurably improves productivity while maintaining security, quality, and employee confidence.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: gemini-003
+```
 ## Solution Design
 
-### Phased Deployment Approach
+### Bottom-Up Enablement Approach
+
+Designed a bottoms-up enablement strategy — rather than mandating adoption top-down, built grassroots momentum through early wins, peer advocates, and role-specific value demonstration.
 
 **Phase 1: Executive Alignment & Team Activation**
 - Secured executive sponsorship and budget
@@ -53,7 +77,7 @@ Deploy AI that measurably improves productivity while maintaining security, qual
 - 20-person pilot with representatives from each department
 - Diverse roles and technical literacy levels
 - Intensive support and feedback collection
-- Early wins documented and validated
+- Early wins documented and validated — pilot users became organic advocates
 
 **Phase 3: Company-Wide Rollout**
 - Applied learnings from pilot to refine training and policies
@@ -86,14 +110,30 @@ Established dedicated **AI Enablement Team** to manage governance, intake, prior
 - Ensure responsible AI deployment
 - Drive adoption through training and support
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 1.0
+chunk_id: gemini-004
+```
 ## Results & Impact
 
-- Highest adoption rate of any internal launch
+- **~60% adoption rate** across eligible workforce — highest adoption of any internal tool launch at DECIEM
 - AI seen as productivity tool, not threat
 - Increased experimentation and learning
 - Teams sharing best practices organically
 - Pride in being "AI-forward" organization
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.6
+chunk_id: gemini-005
+```
 ## Challenges & Learnings
 
 ### What Worked Well
@@ -120,6 +160,14 @@ Established dedicated **AI Enablement Team** to manage governance, intake, prior
 - Solution: Rewrote training with concrete examples per department and activated AI Enablemnet Team to collaborate with teams to identify use cases
 - Result: Practical application improved
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.5
+chunk_id: gemini-006
+```
 ## Skills Demonstrated
 
 **Change Management**: Designed and executed multi-phase adoption strategy balancing speed with governance, training, and support
@@ -135,6 +183,8 @@ Established dedicated **AI Enablement Team** to manage governance, intake, prior
 **Communication**: Crafted messaging addressing fears and highlighting opportunities, created internal content
 
 **Metrics & Measurement**: Defined KPIs, tracked adoption and impact, demonstrated ROI, iterated based on data
+
+<!--chunk:end-->
 
 ---
 

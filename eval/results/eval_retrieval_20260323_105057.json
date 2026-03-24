@@ -1,0 +1,1369 @@
+{
+  "timestamp": "2026-03-23T10:50:57.791614",
+  "mode": "retrieval",
+  "summary": {
+    "passed": 11,
+    "total": 12,
+    "percentage": 91.7
+  },
+  "category_stats": {
+    "background": {
+      "passed": 3,
+      "total": 4
+    },
+    "ai_innovation": {
+      "passed": 3,
+      "total": 3
+    },
+    "leadership": {
+      "passed": 1,
+      "total": 1
+    },
+    "projects": {
+      "passed": 4,
+      "total": 4
+    },
+    "problem_solving": {
+      "passed": 0,
+      "total": 0
+    },
+    "differentiation": {
+      "passed": 0,
+      "total": 0
+    },
+    "data_strategy": {
+      "passed": 0,
+      "total": 0
+    },
+    "innovation": {
+      "passed": 0,
+      "total": 0
+    },
+    "edge_case": {
+      "passed": 0,
+      "total": 0
+    }
+  },
+  "cases": [
+    {
+      "id": "bg-01",
+      "query": "Tell me about Jordanne's background and expertise",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "bg-02",
+      "query": "Who is Jordanne Dyck?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "ai-01",
+      "query": "Tell me about Jordanne's AI experience",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "ai-02",
+      "query": "What AI projects has Jordanne built?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "ai-03",
+      "query": "Does Jordanne have experience with agentic AI systems?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "lead-01",
+      "query": "What's Jordanne's leadership style?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "lead-02",
+      "query": "How does Jordanne manage teams?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "proj-01",
+      "query": "What projects has Jordanne led?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "proj-02",
+      "query": "Tell me about the Salesforce digital transformation",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "prob-01",
+      "query": "How does Jordanne approach complex problems?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "diff-01",
+      "query": "What makes Jordanne unique compared to other candidates?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "diff-02",
+      "query": "Why should we hire Jordanne?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "data-01",
+      "query": "Tell me about Jordanne's data strategy experience",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "innov-01",
+      "query": "How has Jordanne enabled innovation within teams?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "tiktok-01",
+      "query": "Tell me about the TikTok Shop work",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "edge-01",
+      "query": "Does Jordanne have experience with healthcare technology?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "edge-02",
+      "query": "What are Jordanne's weaknesses?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "edge-03",
+      "query": "What's Jordanne's email address?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "edge-04",
+      "query": "Can Jordanne code? Is she technical?",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "gemini-01",
+      "query": "Tell me about the Google Gemini Enterprise deployment",
+      "checks": [
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Director'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Digital Product Management'",
+          "passed": false
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Agentic Personal Shopper'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'agent'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'leadership'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'DECIEM'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Salesforce'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'TikTok'",
+          "passed": true
+        },
+        {
+          "type": "retrieval",
+          "criterion": "Retrieved content contains 'Gemini'",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

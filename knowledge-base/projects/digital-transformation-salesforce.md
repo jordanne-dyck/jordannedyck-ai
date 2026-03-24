@@ -11,6 +11,12 @@ context_type: "project_detail"
 context_priority: "critical"
 ---
 
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 1.0
+chunk_id: dtx-001
+```
 # Digital Transformation Salesforce
 
 ## Executive Summary
@@ -19,6 +25,14 @@ Led DECIEM's digital transformation from DIY custom-built e-commerce platform to
 
 **Key Achievement**: Strategic buy vs. build decision enabled team to focus on innovation rather than infrastructure, providing scalable foundation for AI capabilities and rapid growth.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: dtx-002
+```
 ## The Problem
 
 ### DIY Platform Couldn't Scale
@@ -34,6 +48,14 @@ Led DECIEM's digital transformation from DIY custom-built e-commerce platform to
 **Strategic Choice:**
 Instead of spending years building everything from scratch to catch up, invest in proven enterprise platform. Focus engineering team on innovation and differentiation, not commodity infrastructure.
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.7
+chunk_id: dtx-003
+```
 ## Solution Design
 
 ### Buy vs. Build Decision
@@ -58,6 +80,14 @@ Instead of spending years building everything from scratch to catch up, invest i
 - Team upskilling and change management
 - 8-month transformation timeline
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: high
+embedding_weight: 0.9
+chunk_id: dtx-004
+```
 ## Results & Impact
 
 - $150M+ annual revenue supported across 150+ countries
@@ -66,6 +96,14 @@ Instead of spending years building everything from scratch to catch up, invest i
 - Engineering focus: 30% innovation → 70% innovation
 - Centralized global DTC operations (150+ countries, unified data, customer profiles)
 
+<!--chunk:end-->
+
+<!--chunk:start-->
+```yaml
+context_priority: medium
+embedding_weight: 0.6
+chunk_id: dtx-005
+```
 ## Challenges & Learnings
 
 ### What Worked Well
@@ -103,6 +141,8 @@ Instead of spending years building everything from scratch to catch up, invest i
 **Change Management**: Drove adoption through training, communication, demonstrated value
 
 **Global Operations**: Deployed unified platform supporting 150+ countries with regional compliance
+
+<!--chunk:end-->
 
 ---
 

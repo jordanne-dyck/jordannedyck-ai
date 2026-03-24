@@ -16,7 +16,7 @@ chunk_id: personality-001
 ```
 # Work Style Summary
 
-I thrive in **fast-paced, ambiguous environments** where we're figuring things out as we go. Give me complex problems, data access, customers, and a talented team—I'll find innovative paths forward through pattern recognition and creative problem-solving.
+I thrive in **fast-paced, ambiguous environments** where we're figuring things out as we go. Give me complex problems, data access, customers, and a talented team—I'll find innovative paths forward through creative problem-solving.
 
 **My Ideal Environment:**
 - High-growth tech companies (startup or mid-size)
@@ -52,8 +52,8 @@ chunk_id: personality-002
 **Inspiring & Influential Leadership:**
 I lead through energy, ideas, and genuine care for people. I'm known for inspiring teams to think bigger, move faster, and believe in what we're building. My influence comes from demonstrating what's possible, not from authority. I energize people around a vision and make them excited to be part of something meaningful.
 
-**Entrepreneurial Operator:**
-I identify opportunities through pattern recognition, test hypotheses rapidly, scale what works, and kill what doesn't. Focus on disruption and finding white space for innovation.
+**How I Operate:**
+I identify opportunities, test hypotheses rapidly, scale what works, and kill what doesn't. Focus on finding white space for innovation.
 
 **People-First Philosophy:**
 Great people make great products. I prioritize:
@@ -114,20 +114,14 @@ chunk_id: personality-004
 ```
 # Problem-Solving Approach
 
-**Pattern Recognition:**
-I connect disparate signals—customer behavior, market trends, competitive moves, technology shifts—to spot opportunities before others. I see patterns where others see noise.
-
-**Creative & Entrepreneurial:**
-I approach challenges from multiple angles and combine ideas from different domains in novel ways. Identify opportunities, test hypotheses, iterate rapidly, scale winners. Challenge conventions, take calculated risks.
+**Creative:**
+I approach challenges from multiple angles and combine ideas from different domains in novel ways. Challenge conventions, take calculated risks.
 
 **Customer-First:**
 Every decision connects to customer value. If it doesn't help customers, why are we building it?
 
 **Data-Driven:**
 I leverage analytics, user research, and testing to inform strategy, but balance data with intuition and move forward even with imperfect information.
-
-**Disruptive Mindset:**
-I look for ways to challenge industry norms and reimagine what's possible. Transformation over incremental improvement.
 
 **AI-Native Thinking:**
 I consider how AI can fundamentally transform experiences, not just optimize existing processes.
@@ -147,9 +141,7 @@ chunk_id: personality-005
 # What Energizes & Drains Me
 
 **Energizes Me:**
-- **Disruption & Innovation**: Challenging norms, reimagining what's possible
 - **Building**: Taking ideas from concept to reality, seeing people use what I've created
-- **Pattern Recognition**: Connecting dots others don't see across customer data, market trends, technology evolution
 - **Rapid Learning**: Constantly learning in quickly shifting landscapes—new technologies, changing behaviors, emerging business models
 - **Complex Problems**: At the intersection of technology, business strategy, and customer experience
 - **Measurable Impact**: 30% YoY growth, significant cost savings, improved customer experiences
@@ -244,16 +236,15 @@ chunk_id: personality-008
 These activities translate into how I approach work: always looking for new paths, not afraid of difficult terrain, finding rhythm in chaos, creating something tangible.
 
 **Culture Fit - I Thrive In Organizations That:**
-Value shipping over perfection • Trust their people • Are open to new ideas • Move quickly and make decisions • Give direct feedback • Embrace entrepreneurial thinking • Focus on disruption and innovation • Measure what matters • **Prioritize equality and fairness** • **Create belonging for everyone** • **Care about people's health and wellbeing** • **Value collaboration and kindness** • **Are fun to work at** • **Attract passionate people**
+Value shipping over perfection • Trust their people • Are open to new ideas • Move quickly and make decisions • Give direct feedback • Measure what matters • **Prioritize equality and fairness** • **Create belonging for everyone** • **Care about people's health and wellbeing** • **Value collaboration and kindness** • **Are fun to work at** • **Attract passionate people**
 
 **Culture Fit - I Struggle In Organizations That:**
 Move slowly due to bureaucracy • Prioritize politics over merit • Don't empower individuals • Avoid difficult conversations • Value consensus over clarity • Resist change • Focus only on incremental improvement • **Have toxic or cutthroat cultures** • **Don't care about work-life balance** • **Treat people as resources, not humans** • **Have unfair or inequitable practices**
 
 **What I'm Looking For Next:**
 I'm seeking opportunities that combine:
-- **Disruption & innovation** as core mission, not just buzzwords
 - **Rapid evolution** where I'm constantly learning
-- **Entrepreneurial team** that moves fast and thinks creatively
+- **A team** that moves fast and thinks creatively
 - **Passionate, collaborative people** who care deeply about their work
 - **Human-centered culture** valuing equality, belonging, health, flexibility, and kindness
 - **AI transformation** in meaningful, impactful ways
@@ -261,6 +252,6 @@ I'm seeking opportunities that combine:
 - **Impact-driven culture** measuring outcomes over activity
 - **Fun environment** where people enjoy working together
 
-I want my entrepreneurial mindset, pattern recognition abilities, and comfort with chaos to be assets that drive the mission forward—not liabilities to be managed. And I want to do it with people I genuinely enjoy working with, in an environment that values both high performance and human wellbeing.
+I want my comfort with chaos and bias toward action to be assets that drive the mission forward—not liabilities to be managed. And I want to do it with people I genuinely enjoy working with, in an environment that values both high performance and human wellbeing.
 
 <!--chunk:end-->

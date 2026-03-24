@@ -157,6 +157,12 @@ chunk_id: proj-ai-resume-004
 - Included metadata for each chunk (priority, scope, weight)
 - Maintained relationships between related content
 
+**Eval-Driven Development**
+- Built evaluation sets with retrieval and response quality criteria
+- Used eval-driven iteration: define expected outcomes, measure, improve, re-measure
+- Automated scoring across retrieval accuracy, response inclusion, and LLM-judged qualitative criteria
+- Context engineering: designed knowledge base structure, chunking strategies, and metatag enrichment that directly shape AI output quality
+
 <!--chunk:end-->
 
 <!--chunk:start-->
