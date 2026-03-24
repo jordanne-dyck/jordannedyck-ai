@@ -1,12 +1,12 @@
-# Stage 1: builder — installs gcc and compiles Python packages
+# Stage 1: builder — installs gcc and compiles Python packages into a venv
 FROM registry.access.redhat.com/ubi9/python-311 AS builder
 
 USER root
 RUN dnf install -y gcc python3-devel && dnf clean all
 
-WORKDIR /install
 COPY requirements.txt .
-RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
+RUN python3 -m venv /venv && \
+    /venv/bin/pip install --no-cache-dir -r requirements.txt
 
 
 # Stage 2: runtime — lean image with no build tools
@@ -14,8 +14,8 @@ FROM registry.access.redhat.com/ubi9/python-311
 
 WORKDIR /opt/app-root/src
 
-# Copy installed packages from builder
-COPY --from=builder /install /usr/local
+# Copy the entire venv from builder
+COPY --from=builder /venv /venv
 
 # Copy only the application entrypoint
 COPY api_server.py .
@@ -25,4 +25,4 @@ COPY api_server.py .
 
 EXPOSE 5000
 
-CMD ["python3", "api_server.py"]
+CMD ["/venv/bin/python3", "api_server.py"]
