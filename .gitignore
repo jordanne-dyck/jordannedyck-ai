@@ -16,3 +16,6 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+# Knowledge base (personal content)
+knowledge-base/
