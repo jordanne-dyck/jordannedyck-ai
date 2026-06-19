@@ -27,20 +27,14 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
-        with:
-          python-version: '3.11'
-
-      - name: Build scan venv from lockfile
-        run: |
-          uv venv /tmp/trivy-venv
-          uv pip install -q --python /tmp/trivy-venv/bin/python -r requirements-lock.txt
+      - name: Expose lockfile to Trivy
+        run: mkdir /tmp/trivy-scan && cp requirements-lock.txt /tmp/trivy-scan/requirements.txt
 
       - name: Trivy scan (all severities → Security tab)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           scan-type: fs
-          scan-ref: /tmp/trivy-venv
+          scan-ref: /tmp/trivy-scan
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
           exit-code: '0'
           format: sarif
@@ -56,7 +50,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           scan-type: fs
-          scan-ref: /tmp/trivy-venv
+          scan-ref: /tmp/trivy-scan
           severity: HIGH,CRITICAL
           exit-code: '1'
           format: table
