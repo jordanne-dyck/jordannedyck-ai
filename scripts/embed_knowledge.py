@@ -27,7 +27,7 @@ try:
     collection = client.get_collection("resume_knowledge")
     client.delete_collection("resume_knowledge")
     print("Deleted existing collection")
-except:
+except Exception:
     pass
 
 collection = client.create_collection("resume_knowledge")

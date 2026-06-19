@@ -225,4 +225,4 @@ with open("faiss_db/metadatas.pkl", "wb") as f:
     pickle.dump(metadatas, f)
 
 print(f"\nSuccessfully embedded {len(documents)} chunks from {file_count} files ({skipped_count} skipped)")
-print(f"Index saved to faiss_db/")
+print("Index saved to faiss_db/")

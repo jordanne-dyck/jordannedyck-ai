@@ -80,7 +80,7 @@ async def handle_call_tool(
     """Handle tool execution requests."""
     
     try:
-        print(f"=== Starting tool call ===", file=sys.stderr)
+        print("=== Starting tool call ===", file=sys.stderr)
         sys.stderr.flush()
         
         if name != "search_experience":
@@ -99,7 +99,7 @@ async def handle_call_tool(
         query_embedding = get_embedding(query)
         query_vector = np.array([query_embedding]).astype('float32')
         
-        print(f"Got embedding, searching index...", file=sys.stderr)
+        print("Got embedding, searching index...", file=sys.stderr)
         sys.stderr.flush()
         
         # Search FAISS index - over-fetch for re-ranking (min 30 candidates)
