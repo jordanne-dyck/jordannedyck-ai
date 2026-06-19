@@ -28,13 +28,13 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Expose lockfile to Trivy
-        run: cp requirements-lock.txt /tmp/pip-requirements.txt
+        run: mkdir /tmp/trivy-scan && cp requirements-lock.txt /tmp/trivy-scan/requirements.txt
 
       - name: Trivy scan (all severities → Security tab)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           scan-type: fs
-          scan-ref: /tmp/pip-requirements.txt
+          scan-ref: /tmp/trivy-scan
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
           exit-code: '0'
           format: sarif
@@ -50,7 +50,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           scan-type: fs
-          scan-ref: /tmp/pip-requirements.txt
+          scan-ref: /tmp/trivy-scan
           severity: HIGH,CRITICAL
           exit-code: '1'
           format: table
