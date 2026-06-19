@@ -276,7 +276,7 @@ def run_eval(args):
     print(f"{C.BOLD}  SUMMARY{C.END}")
     print(f"{'-' * 60}")
     print(f"  Overall: {total_passed}/{total_checks} checks passed ({pct:.0f}%)")
-    print(f"\n  By category:")
+    print("\n  By category:")
     for cat, stats in sorted(category_stats.items()):
         cat_pct = (stats["passed"] / stats["total"] * 100) if stats["total"] else 0
         bar = f"{C.GREEN}{'#' * int(cat_pct // 10)}{C.DIM}{'.' * (10 - int(cat_pct // 10))}{C.END}"

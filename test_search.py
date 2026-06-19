@@ -2,7 +2,6 @@ import chromadb
 from chromadb.utils import embedding_functions
 import os
 from dotenv import load_dotenv
-import asyncio
 
 load_dotenv()
 
@@ -20,14 +19,6 @@ collection = client.get_collection('resume_knowledge', embedding_function=ef)
 
 print("Searching (with 30 second timeout)...")
 try:
-    import signal
-    
-    def timeout_handler(signum, frame):
-        raise TimeoutError("Search took too long")
-    
-    # Set alarm for 30 seconds (Unix only)
-    # For Windows, we'll just wait and see
-    
     results = collection.query(
         query_texts=['AI projects'],
         n_results=3

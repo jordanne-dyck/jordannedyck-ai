@@ -1,7 +1,7 @@
 import asyncio
 import sys
 import os
-from typing import Any
+
 import chromadb
 from openai import OpenAI
 from mcp.server.models import InitializationOptions
@@ -34,7 +34,7 @@ def get_embedding(text):
 # Get the collection
 try:
     collection = client.get_collection("resume_knowledge")
-    print(f"Collection loaded successfully", file=sys.stderr)
+    print("Collection loaded successfully", file=sys.stderr)
 except Exception as e:
     print(f"Error: resume_knowledge collection not found: {e}", file=sys.stderr)
     print("Run embed_knowledge.py first.", file=sys.stderr)
@@ -75,8 +75,8 @@ async def handle_call_tool(
     """Handle tool execution requests."""
     
     try:
-        print(f"=== Starting tool call ===", file=sys.stderr)
-        
+        print("=== Starting tool call ===", file=sys.stderr)
+
         if name != "search_experience":
             raise ValueError(f"Unknown tool: {name}")
         
@@ -87,13 +87,13 @@ async def handle_call_tool(
         n_results = arguments.get("n_results", 5)
         
         print(f"Searching for: {query}", file=sys.stderr)
-        print(f"Getting embedding...", file=sys.stderr)
+        print("Getting embedding...", file=sys.stderr)
         sys.stderr.flush()
         
         # Get embedding for query
         query_embedding = get_embedding(query)
         
-        print(f"Got embedding, querying collection...", file=sys.stderr)
+        print("Got embedding, querying collection...", file=sys.stderr)
         sys.stderr.flush()
         
         # Search the collection  
@@ -108,7 +108,7 @@ async def handle_call_tool(
             raise
         
         print(f"Found {len(results['documents'][0]) if results['documents'] else 0} results", file=sys.stderr)
-        print(f"Formatting results...", file=sys.stderr)
+        print("Formatting results...", file=sys.stderr)
         sys.stderr.flush()
         
         # Format results
