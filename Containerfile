@@ -4,9 +4,11 @@ FROM registry.access.redhat.com/ubi9/python-311 AS builder
 USER root
 RUN dnf install -y gcc python3-devel && dnf clean all
 
-COPY requirements.txt .
-RUN python3 -m venv /venv && \
-    /venv/bin/pip install --no-cache-dir -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+COPY pyproject.toml uv.lock ./
+RUN UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen --no-dev --no-install-project \
+    --python python3.11 --compile-bytecode
 
 
 # Stage 2: runtime — lean image with no build tools
