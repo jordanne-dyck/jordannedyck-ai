@@ -165,7 +165,7 @@ skipped_count = 0
 
 for md_file in sorted(knowledge_base_path.rglob("*.md")):
     # Skip index files
-    if md_file.name == "PROJECT-FILES-INDEX":
+    if md_file.stem == "PROJECT-FILES-INDEX":
         continue
 
     with open(md_file, 'r', encoding='utf-8') as f:
