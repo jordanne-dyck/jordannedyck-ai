@@ -48,7 +48,7 @@ def search():
     # Score with metadata boost: similarity * priority_boost * embedding_weight
     candidates = []
     for idx, distance in zip(indices[0], distances[0]):
-        if idx < len(documents):
+        if 0 <= idx < len(documents):
             meta = metadatas[idx]
             base_similarity = float(1 / (1 + distance))
             priority = meta.get("context_priority", "medium")
