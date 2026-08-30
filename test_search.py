@@ -11,7 +11,7 @@ client = chromadb.PersistentClient(path='./chroma_db')
 print("Setting up OpenAI embeddings...")
 ef = embedding_functions.OpenAIEmbeddingFunction(
     api_key=os.getenv('OPENAI_API_KEY'),
-    model_name='text-embedding-3-small'
+    model_name='text-embedding-ada-002'
 )
 
 print("Getting collection...")
