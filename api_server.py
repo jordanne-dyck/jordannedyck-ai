@@ -34,9 +34,17 @@ PRIORITY_BOOST = {"critical": 1.4, "high": 1.2, "medium": 1.0, "low": 0.8}
 
 @app.route('/search', methods=['POST'])
 def search():
-    data = request.json
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'Request body must be a JSON object'}), 400
+
     query = data.get('query', '')
+    if not isinstance(query, str) or not query.strip():
+        return jsonify({'error': 'query must be a non-empty string'}), 400
+
     n_results = data.get('n_results', 5)
+    if isinstance(n_results, bool) or not isinstance(n_results, int) or n_results < 1:
+        return jsonify({'error': 'n_results must be a positive integer'}), 400
 
     # Get embedding and search - over-fetch for re-ranking (min 30 candidates)
     query_embedding = get_embedding(query)
