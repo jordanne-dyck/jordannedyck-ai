@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024  # search queries are short text; 16KB is generous
 CORS(app)
 
 # Initialize OpenAI
