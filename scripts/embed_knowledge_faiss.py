@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import pickle
 import yaml
 from pathlib import Path
@@ -205,6 +206,10 @@ for md_file in sorted(knowledge_base_path.rglob("*.md")):
 
     print(f"  [{strategy}] {md_file.name}: {len(chunks)} chunks")
     file_count += 1
+
+if not embeddings_list:
+    print("\nNo documents found in knowledge-base/ -- nothing to embed.")
+    sys.exit(1)
 
 # Convert embeddings to numpy array
 embeddings_array = np.array(embeddings_list).astype('float32')
