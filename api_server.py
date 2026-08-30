@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import pickle
+import time
+from collections import defaultdict, deque
+from threading import Lock
 import faiss
 import numpy as np
 from openai import OpenAI
@@ -10,7 +13,40 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# Restrict cross-origin browser access. The frontend calls this API
+# server-to-server (not from browser JS), so the default is to allow no
+# origins; set ALLOWED_ORIGINS (comma-separated) to opt specific origins in.
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+CORS(app, resources={r"/search": {"origins": ALLOWED_ORIGINS}})
+
+# Optional shared-secret auth. Unset by default so existing deployments keep
+# working; set BACKEND_API_KEY to require a matching X-API-Key header.
+BACKEND_API_KEY = os.getenv("BACKEND_API_KEY")
+
+# In-process per-IP rate limit (sliding window) to cap billed OpenAI calls.
+RATE_LIMIT_MAX_REQUESTS = 20
+RATE_LIMIT_WINDOW_SECONDS = 60
+_rate_limit_lock = Lock()
+_request_log = defaultdict(deque)
+
+
+def _is_authorized(req):
+    if not BACKEND_API_KEY:
+        return True
+    return req.headers.get('X-API-Key') == BACKEND_API_KEY
+
+
+def _is_rate_limited(client_ip):
+    now = time.monotonic()
+    with _rate_limit_lock:
+        window = _request_log[client_ip]
+        while window and now - window[0] > RATE_LIMIT_WINDOW_SECONDS:
+            window.popleft()
+        if len(window) >= RATE_LIMIT_MAX_REQUESTS:
+            return True
+        window.append(now)
+        return False
 
 # Initialize OpenAI
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -34,6 +70,12 @@ PRIORITY_BOOST = {"critical": 1.4, "high": 1.2, "medium": 1.0, "low": 0.8}
 
 @app.route('/search', methods=['POST'])
 def search():
+    if not _is_authorized(request):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    if _is_rate_limited(request.remote_addr or 'unknown'):
+        return jsonify({'error': 'Too many requests'}), 429
+
     data = request.json
     query = data.get('query', '')
     n_results = data.get('n_results', 5)
