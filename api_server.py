@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-import pickle
+import json
 import faiss
 import numpy as np
 from openai import OpenAI
@@ -17,10 +17,10 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Load FAISS index
 index = faiss.read_index("faiss_db/resume.index")
-with open("faiss_db/documents.pkl", "rb") as f:
-    documents = pickle.load(f)
-with open("faiss_db/metadatas.pkl", "rb") as f:
-    metadatas = pickle.load(f)
+with open("faiss_db/documents.json", "r", encoding="utf-8") as f:
+    documents = json.load(f)
+with open("faiss_db/metadatas.json", "r", encoding="utf-8") as f:
+    metadatas = json.load(f)
 
 def get_embedding(text):
     response = openai_client.embeddings.create(
