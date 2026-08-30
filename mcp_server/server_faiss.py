@@ -126,12 +126,12 @@ async def handle_call_tool(
         top = []
         source_counts = {}
         for c in candidates:
+            if len(top) >= int(n_results):
+                break
             source = metadatas[c[0]].get('filename', '')
             source_counts[source] = source_counts.get(source, 0) + 1
             if source_counts[source] <= 3:
                 top.append(c)
-            if len(top) >= int(n_results):
-                break
 
         # Format results
         formatted_results = []
