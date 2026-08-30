@@ -113,7 +113,7 @@ async def handle_call_tool(
         priority_boost = {"critical": 1.4, "high": 1.2, "medium": 1.0, "low": 0.8}
         candidates = []
         for idx, distance in zip(indices[0], distances[0]):
-            if idx < len(documents):
+            if 0 <= idx < len(documents):
                 meta = metadatas[idx]
                 similarity = 1 / (1 + distance)
                 priority = meta.get("context_priority", "medium")
