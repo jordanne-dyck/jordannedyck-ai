@@ -1,7 +1,7 @@
 import asyncio
 import sys
 import os
-import pickle
+import json
 import faiss
 import numpy as np
 from openai import OpenAI
@@ -33,11 +33,11 @@ def get_embedding(text):
 try:
     index = faiss.read_index(os.path.join(PROJECT_ROOT, "faiss_db", "resume.index"))
     
-    with open(os.path.join(PROJECT_ROOT, "faiss_db", "documents.pkl"), "rb") as f:
-        documents = pickle.load(f)
-    
-    with open(os.path.join(PROJECT_ROOT, "faiss_db", "metadatas.pkl"), "rb") as f:
-        metadatas = pickle.load(f)
+    with open(os.path.join(PROJECT_ROOT, "faiss_db", "documents.json"), "r", encoding="utf-8") as f:
+        documents = json.load(f)
+
+    with open(os.path.join(PROJECT_ROOT, "faiss_db", "metadatas.json"), "r", encoding="utf-8") as f:
+        metadatas = json.load(f)
     
     print(f"Loaded {len(documents)} documents", file=sys.stderr)
 except Exception as e:
