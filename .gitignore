@@ -19,3 +19,7 @@ __pycache__/
 
 # Knowledge base (personal content)
 knowledge-base/
+
+# Large regenerable measurement caches
+prefix_test_cache.json
+candidate_dump.json
