@@ -102,27 +102,34 @@ async def handle_call_tool(
         print("Got embedding, searching index...", file=sys.stderr)
         sys.stderr.flush()
         
-        # Search FAISS index - over-fetch for re-ranking (min 30 candidates)
-        fetch_count = min(max(int(n_results) * 5, 30), len(documents))
+        # Rank the FULL corpus. The old cap was min(max(n_results*5, 30), N) = 30;
+        # over a 123-vector IndexFlatL2 that saved microseconds and cost reach.
+        # See the note in api_server.py.
+        fetch_count = len(documents)
         distances, indices = index.search(query_vector, fetch_count)
 
         print(f"Found {len(indices[0])} candidates, re-ranking...", file=sys.stderr)
         sys.stderr.flush()
 
-        # Re-rank with metadata boost
-        priority_boost = {"critical": 1.4, "high": 1.2, "medium": 1.0, "low": 0.8}
+        # Rank by raw similarity. No priority boost.
+        # MUST STAY IN SYNC WITH api_server.py - this is a second, independent copy
+        # of the same scorer. api_server.py serves the website's chat route; this
+        # serves the jordan-resume MCP tool. If they diverge, the MCP tool stops
+        # being a valid diagnostic for what the site actually returns.
+        #
+        # The priority boost was retired 2026-09-10 after measurement showed the
+        # tag was still the sort key (rank 1 flipped on 41% of eval questions),
+        # because the real within-list similarity spread is 3.6%, not the 6-9%
+        # the compression had been sized against. Full note in api_server.py.
         candidates = []
         for idx, distance in zip(indices[0], distances[0]):
             if idx < len(documents):
-                meta = metadatas[idx]
                 similarity = 1 / (1 + distance)
-                priority = meta.get("context_priority", "medium")
-                weight = meta.get("embedding_weight", 1.0)
-                score = similarity * priority_boost.get(priority, 1.0) * weight
-                candidates.append((idx, similarity, score))
+                candidates.append((idx, similarity, similarity))
 
         candidates.sort(key=lambda x: x[2], reverse=True)
-        # Source diversity: max 3 chunks per file
+        # Source diversity: max 3 chunks per file. Kept at 3 on evidence -
+        # removing it surfaced 0 otherwise-dark chunks, tightening to 2 surfaced 1.
         top = []
         source_counts = {}
         for c in candidates:
@@ -145,7 +152,7 @@ async def handle_call_tool(
 **Source**: {metadata.get('filename', 'Unknown')}
 **Category**: {metadata.get('category', 'Unknown')}
 
-{doc[:500]}...
+{doc}
 
 ---
 """
