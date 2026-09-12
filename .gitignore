@@ -19,3 +19,11 @@ __pycache__/
 
 # Knowledge base (personal content)
 knowledge-base/
+
+# Large regenerable measurement caches
+prefix_test_cache.json
+candidate_dump.json
+
+# Generated eval run outputs (regenerable via run_eval.py / run_e2e.py; keep eval_set.json input only)
+eval_results*.json
+eval_e2e_*.json
