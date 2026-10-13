@@ -29,7 +29,6 @@ api_server.py   mcp_server/server_faiss.py
 - **FAISS** — Vector similarity search
 - **OpenAI API** — Embeddings (`text-embedding-ada-002`)
 - **MCP** — Claude Model Context Protocol integration
-- **ChromaDB** — Alternative vector store (development)
 
 ## Setup
 
@@ -78,10 +77,11 @@ This exposes a `search_experience` tool that Claude can call to look up informat
 
 ## Evaluation
 
-The `eval/` directory contains an evaluation suite with 20+ test cases that validate retrieval quality and response accuracy:
+`eval_set.json` holds the eval questions. `run_eval.py` scores retrieval against the local `/search` endpoint, and `run_e2e.py` scores full answers end to end:
 
 ```bash
-python eval/run_eval.py
+python run_eval.py
+python run_e2e.py
 ```
 
 ## Related
