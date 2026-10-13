@@ -148,7 +148,7 @@ PHONE_RE = re.compile(r"(?:\(?647\)?[\s.\-]*454[\s.\-]*2244)|(?:6474542244)")
 FIRST_PERSON_RE = re.compile(
     r"\bI (?:built|led|owned|shipped|launched|designed|managed|ran|architected)\b"
     r"|\bmy (?:team|role|experience|work|time) at\b",
-    re.I,
+    re.IGNORECASE,
 )
 GAP_PHRASES = [
     "don't have", "do not have", "doesn't have specific", "not covered",
