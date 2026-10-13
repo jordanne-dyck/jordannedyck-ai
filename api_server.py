@@ -1,12 +1,21 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 import os
 import pickle
+import threading
+import time
 from pathlib import Path
+
 import faiss
 import numpy as np
-from openai import OpenAI
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    AuthenticationError,
+    OpenAI,
+    PermissionDeniedError,
+)
 
 load_dotenv()
 
@@ -32,6 +41,32 @@ with open(FAISS_DB / "documents.pkl", "rb") as f:
 with open(FAISS_DB / "metadatas.pkl", "rb") as f:
     metadatas = pickle.load(f)
 print(f"[api_server] loaded {len(documents)} chunks from {FAISS_DB}", flush=True)
+# Size of the index this process loaded, not whatever is on disk now. A reindex
+# is not a deployment: this only changes on restart.
+INDEX_BYTES = (FAISS_DB / "resume.index").stat().st_size
+
+# /health key check. GET /v1/models is a list call, so it costs no tokens.
+# Cached for 60 seconds so a monitor polling /health cannot hammer OpenAI.
+OPENAI_CHECK_TTL = 60
+_openai_check = {"status": None, "at": 0.0}
+_openai_check_lock = threading.Lock()
+
+def check_openai():
+    with _openai_check_lock:
+        now = time.monotonic()
+        if _openai_check["status"] and now - _openai_check["at"] < OPENAI_CHECK_TTL:
+            return _openai_check["status"]
+        try:
+            openai_client.with_options(timeout=5, max_retries=0).models.list()
+            status = "ok"
+        except (AuthenticationError, PermissionDeniedError):
+            status = "auth_failed"
+        except (APIConnectionError, APIStatusError):
+            # Network error, timeout (a subclass of APIConnectionError), or any
+            # other non-auth HTTP failure such as 429 or 5xx.
+            status = "unreachable"
+        _openai_check.update(status=status, at=now)
+        return status
 
 def get_embedding(text):
     response = openai_client.embeddings.create(
@@ -121,6 +156,19 @@ def search():
             break
 
     return jsonify({'results': results})
+
+@app.route('/health', methods=['GET'])
+def health():
+    # Always 200 while the process is up; the web side reads 'ok', and a 404
+    # means this endpoint does not exist yet. 'ok' is false whenever /search
+    # would fail: an empty index or an OpenAI key that does not work.
+    openai_status = check_openai()
+    return jsonify({
+        'ok': len(documents) > 0 and openai_status == 'ok',
+        'chunks': len(documents),
+        'index_bytes': INDEX_BYTES,
+        'openai': openai_status,
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

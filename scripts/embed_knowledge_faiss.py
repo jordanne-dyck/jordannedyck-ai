@@ -1,12 +1,13 @@
 import os
-import re
 import pickle
-import yaml
+import re
 from pathlib import Path
+
 import faiss
 import numpy as np
-from openai import OpenAI
+import yaml
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()

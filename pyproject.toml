@@ -11,3 +11,13 @@ dependencies = [
     "python-dotenv>=0.19",
     "pyyaml>=6.0",
 ]
+
+[tool.ruff]
+# One-off probe and test scripts, plus the dead ChromaDB readers. Not maintained, so not linted.
+extend-exclude = [
+    "mcp_server/",
+    "scripts/embed_knowledge.py",
+    "test_*.py",
+    "dump_candidates.py",
+    "selftest.py",
+]
