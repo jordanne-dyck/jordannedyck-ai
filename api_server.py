@@ -1,14 +1,21 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 import os
 import pickle
 import threading
 import time
 from pathlib import Path
+
 import faiss
 import numpy as np
-from openai import OpenAI, AuthenticationError, PermissionDeniedError
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    AuthenticationError,
+    OpenAI,
+    PermissionDeniedError,
+)
 
 load_dotenv()
 
@@ -54,8 +61,9 @@ def check_openai():
             status = "ok"
         except (AuthenticationError, PermissionDeniedError):
             status = "auth_failed"
-        except Exception:
-            # Network error, timeout, or any other non-auth failure (429, 5xx).
+        except (APIConnectionError, APIStatusError):
+            # Network error, timeout (a subclass of APIConnectionError), or any
+            # other non-auth HTTP failure such as 429 or 5xx.
             status = "unreachable"
         _openai_check.update(status=status, at=now)
         return status
