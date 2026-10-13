@@ -84,7 +84,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -111,8 +111,8 @@ PART_RE = re.compile(r"^([0-9a-z]):(.*)$", re.DOTALL)
 def load_harness_checkers():
     sys.path.insert(0, str(HERE))
     try:
-        import run_eval  # noqa: PLC0415
-    except Exception as exc:  # pragma: no cover
+        import run_eval
+    except Exception as exc:  # pragma: no cover  # noqa: BLE001
         return None, f"could not import run_eval.py ({exc.__class__.__name__}: {exc})"
     missing = [
         n for n in ("PHONE_RE", "FIRST_PERSON_RE", "GAP_RE", "GAP_PHRASES", "JD_NGRAMS",
@@ -226,7 +226,7 @@ def build_stamp(args, source_system):
     stamp = {
         "source_system": source_system,
         "base_url": args.base_url,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "runner": "run_e2e.py",
         "transport": "http-datastream-v4",
         "turn_shape": "single-turn",  # divergence: the real UI posts full history
@@ -282,7 +282,7 @@ def run_preflights(args, source_system, harness, stamp):
         fatal = fatal or local
     else:
         route_text = ROUTE_TS.read_text(encoding="utf-8", errors="replace")
-        route_md5, harness_md5, drift = prompt_drift_check(harness, route_text, args.show_prompt_diff)
+        route_md5, _harness_md5, drift = prompt_drift_check(harness, route_text, args.show_prompt_diff)
         cfg = extract_route_config(route_text)
         if local:
             stamp.update(cfg)
@@ -351,7 +351,7 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
         if e.code == 429:
             out["error"] = f"HTTP 429 rate limited: {payload}"
         return out
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         out["error"] = f"{e.__class__.__name__}: {e}"
         out["total_ms"] = round((time.perf_counter() - t0) * 1000)
         return out
@@ -364,7 +364,7 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
         while True:
             try:
                 line = resp.readline()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 out["stream_error"] = f"read failed: {e.__class__.__name__}: {e}"
                 break
             if not line:
@@ -523,7 +523,7 @@ def main():
     # midnight cannot split across two files and a file's name can never disagree with
     # the timestamp inside it. Probe output is named separately: it is a one-question
     # protocol check, not a run, and must never be mistaken for — or overwrite — one.
-    utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    utc_date = datetime.now(UTC).strftime("%Y-%m-%d")
     prefix = "eval_e2e_probe_" if args.probe else "eval_e2e_"
     out_path = Path(args.out) if args.out else HERE / f"{prefix}{source_system}_{utc_date}.json"
     existing, done = [], set()
@@ -551,7 +551,7 @@ def main():
     results, stopped = list(existing), None
     raw_path = HERE / (
         f"e2e_raw_probe_{source_system}_"
-        f"{datetime.now(timezone.utc).strftime('%Y-%m-%d_%H%M%SZ')}.txt"
+        f"{datetime.now(UTC).strftime('%Y-%m-%d_%H%M%SZ')}.txt"
     )
     raw_sink = raw_path.open("wb") if args.probe else None
 

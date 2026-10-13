@@ -8,14 +8,15 @@ Usage:
   python eval/run_eval.py --id ai-01         # Run a single test case
 """
 
-import json
-import re
 import argparse
-import requests
-import sys
+import json
 import os
+import re
+import sys
 from datetime import datetime
 from pathlib import Path
+
+import requests
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -54,7 +55,7 @@ def test_retrieval(query: str, n_results: int = 5) -> dict:
             "results": data.get("results", []),
             "content": "\n".join(r["content"] for r in data.get("results", [])),
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return {"success": False, "error": str(e), "results": [], "content": ""}
 
 
@@ -69,7 +70,7 @@ def test_chat(query: str) -> dict:
         )
         resp.raise_for_status()
         return {"success": True, "response": resp.text}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return {"success": False, "error": str(e), "response": ""}
 
 
@@ -177,7 +178,7 @@ Return ONLY the JSON array, no other text."""
                 "reason": score.get("reason", ""),
             })
         return results
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return [{"type": "llm_eval", "criterion": "LLM evaluation", "passed": False, "reason": f"Eval error: {e}"}]
 
 
@@ -189,7 +190,7 @@ def safe_print(text):
         print(text.encode('ascii', 'replace').decode('ascii'))
 
 
-def print_case_result(case: dict, checks: list, response_text: str = None, verbose: bool = False):
+def print_case_result(case: dict, checks: list, response_text: str | None = None, verbose: bool = False):
     """Print results for a single eval case."""
     passed = sum(1 for c in checks if c["passed"])
     total = len(checks)
