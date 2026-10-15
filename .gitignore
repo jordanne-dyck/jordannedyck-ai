@@ -27,3 +27,12 @@ candidate_dump.json
 # Generated eval run outputs (regenerable via run_eval.py / run_e2e.py; keep eval_set.json input only)
 eval_results*.json
 eval_e2e_*.json
+
+# Local working files: knowledge-base snapshots, saved indexes, probe scripts and notes
+knowledge-base-archive/
+Claude outputs/
+3b-content-worklist.md
+
+# Local eval run outputs, moved out of the root
+eval_runs/
+e2e_raw_*.txt

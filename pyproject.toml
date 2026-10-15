@@ -13,10 +13,9 @@ dependencies = [
 ]
 
 [tool.ruff]
-# One-off probe and test scripts, plus the dead ChromaDB readers. Not maintained, so not linted.
+# One-off probe and test scripts, plus the MCP server. Not maintained, so not linted.
 extend-exclude = [
     "mcp_server/",
-    "scripts/embed_knowledge.py",
     "test_*.py",
     "dump_candidates.py",
     "selftest.py",

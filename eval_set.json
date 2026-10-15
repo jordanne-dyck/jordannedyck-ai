@@ -5,7 +5,7 @@
     "date": "2026-09-10",
     "source_posting": "https://jobs.ashbyhq.com/wealthsimple/40d9a988-8944-4606-9ea1-51262e495768",
     "posting_note": "Consolidated posting covering five roles with one generic requirements block. No Rewards & Ecommerce-specific requirements section exists; domain-tagged questions test the target role's subject matter, not published requirements.",
-    "index": "131 chunks / 23 files, live as of 2026-09-11 (resume.index 804,909 bytes, verified by file size). Reached 130 with pov-004/ops-010/ops-011, then +promo-005 +ecom-006 +ops-012 and -exp-030 -exp-038. The two removals are still present in professional-overview.md; they were dropped from the INDEX by setting embedding_weight to 0.20, below the 0.3 drop filter, because both were retrieving on unrelated questions and eating slots.",
+    "index": "131 chunks / 23 files, live as of 2026-09-11 (resume.index 804,909 bytes, verified by file size). Reached 130 with pov-004/ops-010/ops-011, then +promo-005 +ecom-006 +ops-012 and -exp-030 -exp-038. The two removals are still present in professional-overview.md; they were dropped from the INDEX by setting embedding_weight to 0.20, below the 0.3 drop filter, because both were retrieving on unrelated questions and eating slots. 2026-10-14: 136 -> 134 chunks, -exp-005 (Key Competencies) -exp-031 (Education & Credentials) by the same 0.20 weight mechanism; both still present in professional-overview.md. The education/certification facts moved into exp-001 and the certification into indie-001. Measured with Claude outputs/probe_generic_chunks.py: generic-chunk slots on 15 recruiter + eval questions 20 -> 7 (all 7 are exp-001). NO expect-list change: H04 still expects exp-031, retained so its failure stays visible -- it sat at raw rank 9 before the drop, so H04's hit count does not move. 2026-10-15: local faiss_db rebuilt at 136 chunks (metadatas.pkl counted), exp-005 and exp-031 still absent, indie-001..indie-006 present.",
     "expect_list_changes": [
       "2026-09-10: W08 expect gained shopper-007 (agentic-personal-shopper.md, \"The Hard Part Was Never the Technology\"). Reason: W08 asks whether she can hold her own on architecture tradeoffs, and no chunk in the corpus contained an architecture DECISION -- the list pointed at section_4, a tool inventory structurally unable to answer it. shopper-007 was written to answer it. section_4 is deliberately RETAINED so its failure stays visible. CONSEQUENCE: W08 is NOT comparable to eval_results_baseline_2026-09-10.json. Expect instances 89 -> 90.",
       "2026-09-10: W06 expect gained dtx-007 (digital-transformation-salesforce.md, \"Three Rooms, Three Different Arguments\"). Reason: W06 asks who she had to bring along, and dtx-004 -- the chunk the list pointed at -- is a five-bullet results ledger containing no person or team, verified at source. dtx-007 names the three audiences and what each argument actually took. dtx-004 is deliberately RETAINED so its failure stays visible. CONSEQUENCE: W06 is NOT comparable to eval_results_baseline_2026-09-10.json. Expect instances 90 -> 91.",
@@ -13,6 +13,8 @@
       "OPEN, added 2026-09-10: ops-009 (\"Owning a Roadmap Everyone Has a Claim On\") is in no expect list. It answers prioritisation-under-scarcity questions rather than W06 specifically -- needs Jord to say which question, if any, should expect it.",
       "2026-09-11 EXPECT-LIST REBUILD, applied together. From live retrieval measured post-reindex: G03 -> promo-005 (rank 1, 0.73); D02 +ecom-006 (rank 1, 0.74); H02 +ops-012 (rank 1, 0.66); X02 +ops-005 +roadmap-002 (the chunks that actually carry the figures -- the five originally listed still do not retrieve and are RETAINED so their failure stays visible). From Jord's human scoring: W06 +service-004 (the 86%); H04 +exp-031 (Product Faculty certification); W13 +personality-003 (the \"delegating (trust people)\" line, verified at source). Applied at last from the 3b phase, drafted 2026-09-10 and never landed: H02 +shopper-007 +ops-003 +dtx-006; W15 +shopper-007 +ops-009; W02 +ops-009; W04 +dtx-006. CONSEQUENCE: every question touched here is NOT comparable to eval_results_baseline_2026-09-10.json.",
       "2026-09-11: A03 expect was [exp-038] and is now []. exp-038 was dropped from the index this session, so T2.1 could never hit it again. A03's real check is adv_check pii_leak, which is answer-only and unaffected.",
+      "2026-10-14: ID RENAME ONLY, no expect-list change. technical-skills.md gained chunk markers; its auto ids section_N became skills-00N with the same numbering. W08 section_4 -> skills-004, section_7 -> skills-007 -- same content, same sections. section_0 (frontmatter-only) no longer exists, so the index drops from 131 to 130 chunks at the next reindex. Each skills chunk now opens with its own title (\"# Technical Skills — <section>\"), so W08 rank movement on these two is a header effect, not a content change.",
+      "2026-10-14 EXPECT-LIST ADDITIONS, Jord approved: D06 +ecom-007 (Peak Campaign Readiness); H02 +shopper-008 (AI Product Failure -- Automating Existing Processes). Both were written from Jord's own answers to these questions. Same day, ecom-003/ecom-004/pay-002 were retitled and ecom-003 rewritten (month-long campaign, not a single day). CONSEQUENCE: D06 and H02 are NOT comparable to the 2026-09-11 run. Expect instances +2. ecom-008 (Leading the Yearly Growth Campaign) was added to D06 then removed the same day: it ranked #78 on D06 because it answers a leadership question, not a load question. It is in no expect list.",
       "DEFERRED, not release-blocking: the permanent regression cases for the Shoppers Optimum proper-noun fabrication, the six gap-honesty escapes, and the Slowvember leak. All three are NEW questions, and new questions break the 34-question series unless they go in a separate additive block. Add after the deploy, against the same index.",
       "OPEN, not decided: (a) whether H02 and W06 should also expect shopper-007, which was written to answer both; (b) whether H02 should expect ops-003, the chunk that actually answered it in the P1 run while the expect list scored a miss; (c) dtx-006 appears in NO expect list. Each change moves the denominator -- decide together, not piecemeal."
     ]
@@ -67,7 +69,7 @@
 
     { "id": "W08", "tag": "ws_core", "req": ["R8"],
       "q": "How technical is Jordanne really? Can she hold her own on architecture and engineering tradeoffs?",
-      "expect": ["pers-002", "shopper-003", "indie-003", "section_4", "section_7", "shopper-007"] },
+      "expect": ["pers-002", "shopper-003", "indie-003", "skills-004", "skills-007", "shopper-007"] },
 
     { "id": "W09", "tag": "ws_core", "req": ["R9"],
       "q": "Does Jordanne care about financial inclusion or expanding access to financial services?",
@@ -119,7 +121,7 @@
 
     { "id": "D06", "tag": "domain", "req": ["R6", "R11"],
       "q": "How has Jordanne handled peak trading events and systems under heavy load?",
-      "expect": ["ecom-003", "ops-008"] },
+      "expect": ["ecom-003", "ops-008", "ecom-007"] },
 
     { "id": "G01", "tag": "gap", "req": [],
       "q": "What experience does Jordanne have designing cash-back rewards?",
@@ -142,7 +144,7 @@
 
     { "id": "H02", "tag": "hostile", "req": ["R5"],
       "q": "What has Jordanne actually failed at? Name a real one, not a strength in disguise.",
-      "expect": ["pay-002", "personality-006", "shopper-005", "regimen-005", "ops-012", "shopper-007", "ops-003", "dtx-006"] },
+      "expect": ["pay-002", "personality-006", "shopper-005", "regimen-005", "ops-012", "shopper-007", "ops-003", "dtx-006", "shopper-008"] },
 
     { "id": "H03", "tag": "hostile", "req": ["R8", "R13"],
       "q": "Is Jordanne a real builder, or a director who watched engineers build things and took credit?",
