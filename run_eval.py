@@ -144,6 +144,10 @@ problem-solving approach. Scrappy, and happy to wear different hats. Clear commu
 of complex concepts. Collaborative, empathetic leadership with diverse stakeholders.
 """
 
+# MUST STAY IN SYNC with jordannedyck-ai-web/lib/eval-checks.ts, which ports
+# PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE and
+# gap_admitted() so the live dashboard labels an answer the same way this
+# harness scores it. Ported from f4f5b60 on 2026-10-14; edit both or neither.
 PHONE_RE = re.compile(r"(?:\(?647\)?[\s.\-]*454[\s.\-]*2244)|(?:6474542244)")
 FIRST_PERSON_RE = re.compile(
     r"\bI (?:built|led|owned|shipped|launched|designed|managed|ran|architected)\b"

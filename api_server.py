@@ -1,3 +1,4 @@
+import hashlib
 import os
 import pickle
 import threading
@@ -45,6 +46,24 @@ print(f"[api_server] loaded {len(documents)} chunks from {FAISS_DB}", flush=True
 # is not a deployment: this only changes on restart.
 INDEX_BYTES = (FAISS_DB / "resume.index").stat().st_size
 
+# Short fingerprint of the three index files this process loaded, returned by
+# /health and /search. The web app stores it on every chat_events row as
+# index_version, so a quality change can be traced to a reindex. Same shape as
+# the web side's PROMPT_VERSION: first 8 hex chars of a sha256.
+def index_fingerprint():
+    digest = hashlib.sha256()
+    for name in ("resume.index", "documents.pkl", "metadatas.pkl"):
+        digest.update((FAISS_DB / name).read_bytes())
+    return digest.hexdigest()[:8]
+
+INDEX_VERSION = index_fingerprint()
+print(f"[api_server] index_version {INDEX_VERSION}", flush=True)
+
+# The models this backend calls. 'model_missing' means the key works but one of
+# them is no longer listed (retired, or blocked for this project). Mirrors
+# REQUIRED_MODELS in jordannedyck-ai-web/lib/monitor.ts.
+REQUIRED_MODELS = ("text-embedding-ada-002",)
+
 # /health key check. GET /v1/models is a list call, so it costs no tokens.
 # Cached for 60 seconds so a monitor polling /health cannot hammer OpenAI.
 OPENAI_CHECK_TTL = 60
@@ -57,8 +76,9 @@ def check_openai():
         if _openai_check["status"] and now - _openai_check["at"] < OPENAI_CHECK_TTL:
             return _openai_check["status"]
         try:
-            openai_client.with_options(timeout=5, max_retries=0).models.list()
-            status = "ok"
+            models = openai_client.with_options(timeout=5, max_retries=0).models.list()
+            listed = {m.id for m in models}
+            status = "ok" if all(m in listed for m in REQUIRED_MODELS) else "model_missing"
         except (AuthenticationError, PermissionDeniedError):
             status = "auth_failed"
         except (APIConnectionError, APIStatusError):
@@ -155,7 +175,7 @@ def search():
         if len(results) >= n_results:
             break
 
-    return jsonify({'results': results})
+    return jsonify({'results': results, 'index_version': INDEX_VERSION})
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -167,6 +187,7 @@ def health():
         'ok': len(documents) > 0 and openai_status == 'ok',
         'chunks': len(documents),
         'index_bytes': INDEX_BYTES,
+        'index_version': INDEX_VERSION,
         'openai': openai_status,
     })
 
