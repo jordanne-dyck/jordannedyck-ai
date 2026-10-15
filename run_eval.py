@@ -26,6 +26,7 @@ question/arm/run combinations are skipped unless --fresh is passed.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -49,10 +50,11 @@ HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 RESULTS = HERE / "eval_results.json"
 
-# ── verbatim from app/api/chat/route.ts, with ${context} as {context} ──────────
-# MUST STAY IN SYNC with systemPrompt in jordannedyck-ai-web/app/api/chat/route.ts.
-# This is a verbatim copy of that prompt; any drift silently invalidates every eval
-# result. Verified byte-identical 2026-09-10.
+# ── verbatim from lib/system-prompt.ts, with ${context} as {context} ───────────
+# MUST STAY IN SYNC with buildSystemPrompt() in jordannedyck-ai-web/lib/system-prompt.ts
+# (moved there from app/api/chat/route.ts on 2026-10-13). This is a verbatim copy of
+# that prompt; any drift silently invalidates every eval result. Verified
+# byte-identical 2026-10-15, including the "Cite every claim" instruction added that day.
 SYSTEM_PROMPT = """You are an AI assistant answering questions about Jordanne Dyck for product leaders assessing her for a role. Represent her record accurately. A reader should finish an answer able to do something with it — advance her, ask a sharper follow-up, or resolve a specific doubt.
 
 # CORE POSITIONING
@@ -76,6 +78,8 @@ Carry these through what she DID and what followed from it. Never state one as a
 Your primary knowledge source is the KNOWLEDGE BASE CONTEXT below.
 
 **Ground every claim.** No number, date, employer, product name, programme name, job title or outcome may appear unless it is in the context. Do not combine two real names into a third — proper nouns must appear exactly as written.
+
+**Cite every claim.** Each result in the context has a Chunk id. End every sentence or bullet that states something from the context with the id of the chunk that says it, in square brackets, like this. [ops-009] Cite two chunks as [ops-009, exp-031]. Use only ids that appear in the context, and cite the chunk that actually says it, not one that is merely related. A sentence that only says the context does not cover something has no citation. Citations are removed before the reader sees the answer, so never refer to them.
 
 **Name the mechanism.** Every answer should name something she did and what followed from it. An answer that asserts a quality — "systems thinker", "innovative", "end-to-end owner" — without the action that demonstrates it has failed, even if it is true.
 
@@ -125,6 +129,20 @@ Third person, professional, direct. Concrete examples over generic statements. C
 - Do not substitute adjacent material as though it were responsive. Offering something related is fine only when the answer says plainly that it is related rather than the thing asked for.
 - Never fabricate to fill a gap.
 - Weaknesses and failures: answer directly when asked. Do not reframe a failure as a strength."""
+
+
+def site_prompt_version(template):
+    """The fingerprint the site stores in chat_events.prompt_version.
+
+    Mirrors lib/prompt-version.ts in jordannedyck-ai-web: sha256 of the prompt
+    built with an empty context, first 8 hex chars. `template` uses {context}, as
+    SYSTEM_PROMPT does. Stamping eval records with the same id lets an eval result
+    be lined up against the prod rows that ran the same prompt.
+    """
+    return hashlib.sha256(template.replace("{context}", "").encode("utf-8")).hexdigest()[:8]
+
+
+PROMPT_VERSION = site_prompt_version(SYSTEM_PROMPT)
 
 # Wealthsimple posting language, for the JD-echo check (T1.5)
 JD_TEXT = """
@@ -221,6 +239,7 @@ def search_experience(query, n_results, truncate):
         tail = "..." if truncate else ""
         parts.append(
             f"### Result {i + 1} (Relevance: {r['similarity']:.2f})\n"
+            f"**Chunk**: {r['metadata'].get('chunk_id')}\n"
             f"**Source**: {r['metadata']['filename']}\n"
             f"**Category**: {r['metadata']['category']}\n\n"
             f"{shown}{tail}\n\n---\n"
@@ -261,7 +280,10 @@ def generate(client, question, context):
     u = resp.usage
     cost = (u.prompt_tokens / 1e6) * COST_PER_1M_IN + (u.completion_tokens / 1e6) * COST_PER_1M_OUT
     return {
-        "answer": resp.choices[0].message.content,
+        # The checks score what a visitor sees, which has no citations; the
+        # cited text is kept so citations can be checked against their chunks.
+        "answer": strip_citations(resp.choices[0].message.content or ""),
+        "answer_cited": resp.choices[0].message.content,
         "latency_s": round(time.time() - t0, 2),
         "prompt_tokens": u.prompt_tokens,
         "completion_tokens": u.completion_tokens,
@@ -274,6 +296,18 @@ def generate(client, question, context):
 # after run_e2e.py's copy of C10 was found to use GAP_RE only, dropping
 # GAP_PHRASES, and to run the regex on raw text while this file lowercased —
 # so prod G02 scored False in the runner and True under the harness rule.
+
+# MUST STAY IN SYNC with CITE_RE and stripCitations() in
+# jordannedyck-ai-web/lib/citations.ts, which removes the same markers from the
+# site's stream. Added 2026-10-15 with the "Cite every claim" instruction.
+_CITE_ID = r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+"
+CITE_RE = re.compile(rf"[ \t]*\[{_CITE_ID}(?:\s*,\s*{_CITE_ID})*\]")
+
+
+def strip_citations(ans):
+    """The answer as a site visitor sees it: [ops-009] citation markers removed."""
+    return CITE_RE.sub("", ans)
+
 
 def gap_admitted(ans):
     """C10 / T2.3 — did the answer explicitly admit the corpus does not cover this?"""
@@ -422,6 +456,7 @@ def main():
 
     total_cost = sum(r["gen"]["cost_usd"] for r in results)
     planned = sum(len(arms) * q.get("runs", 1) for q in questions)
+    print(f"prompt_version {PROMPT_VERSION} (same id as chat_events.prompt_version)")
     print(f"{len(questions)} questions x {len(arms)} arm(s) = {planned} calls\n")
 
     for arm_id, arm in arms.items():
@@ -450,6 +485,7 @@ def main():
                     "id": q["id"], "tag": q["tag"], "req": q.get("req", []),
                     "arm": arm_id, "run": run, "question": q["q"],
                     "expect": q.get("expect", []),
+                    "prompt_version": PROMPT_VERSION,
                     "retrieved": retrieved, "gen": gen, "checks": checks,
                     "context_chars": len(context),
                 })
