@@ -92,6 +92,9 @@ EVAL_SET = HERE / "eval_set.json"
 INDEX_FILE = HERE / "faiss_db" / "resume.index"
 EMBEDDER = HERE / "scripts" / "embed_knowledge_faiss.py"
 ROUTE_TS = HERE.parent / "jordannedyck-ai-web" / "app" / "api" / "chat" / "route.ts"
+# The prompt moved out of route.ts into buildSystemPrompt() on 2026-10-13. route.ts
+# still holds the model, temperature and n_results config read by extract_route_config.
+PROMPT_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "system-prompt.ts"
 
 # resume.index is IndexFlatL2 over 1536-dim float32 vectors with a 45-byte header.
 INDEX_HEADER_BYTES = 45
@@ -141,33 +144,41 @@ def chunk_count_from_index():
     return payload // INDEX_BYTES_PER_VECTOR, size, None
 
 
-def extract_route_prompt(route_text):
-    """Pull the systemPrompt template literal out of route.ts."""
-    marker = "const systemPrompt = `"
-    start = route_text.find(marker)
+def extract_site_prompt(prompt_text):
+    """Pull the template literal returned by buildSystemPrompt() out of system-prompt.ts."""
+    marker = "return `"
+    start = prompt_text.find(marker)
     if start == -1:
-        return None, "no `const systemPrompt = ` template literal found in route.ts"
+        return None, "no `return ` template literal found in lib/system-prompt.ts"
     start += len(marker)
-    end = route_text.find("`;", start)
+    end = prompt_text.find("`;", start)
     if end == -1:
-        return None, "systemPrompt template literal is not terminated with a backtick"
-    return route_text[start:end], None
+        return None, "buildSystemPrompt template literal is not terminated with a backtick"
+    return prompt_text[start:end], None
 
 
 def normalise_prompt(text):
     return text.replace("${context}", "{context}").replace("\r\n", "\n").strip()
 
 
-def prompt_drift_check(harness, route_text, show_diff):
+def site_prompt_version(site_prompt):
+    """
+    The id the site writes to chat_events.prompt_version (lib/prompt-version.ts):
+    sha256 of buildSystemPrompt(''), first 8 hex chars. Not stripped — the site hashes
+    the literal as JS evaluates it, and JS normalises CRLF to LF inside template literals.
+    """
+    built = site_prompt.replace("${context}", "").replace("\r\n", "\n")
+    return hashlib.sha256(built.encode("utf-8")).hexdigest()[:8]
+
+
+def prompt_drift_check(harness, site_prompt, show_diff):
     """
     C22 — prompt drift. The registry in Part 6 of the definition-of-good does not exist
     yet, so this checks the thing the registry is meant to prevent: the two live copies
-    of the prompt disagreeing. route.ts is the source of truth; run_eval.py is the copy.
+    of the prompt disagreeing. lib/system-prompt.ts is the source of truth; run_eval.py
+    is the copy.
     """
-    route_prompt, err = extract_route_prompt(route_text)
-    if err:
-        return None, None, err
-    route_norm = normalise_prompt(route_prompt)
+    route_norm = normalise_prompt(site_prompt)
     route_md5 = hashlib.md5(route_norm.encode()).hexdigest()
     if harness is None:
         return route_md5, None, "run_eval.py unavailable — drift not checked"
@@ -176,13 +187,13 @@ def prompt_drift_check(harness, route_text, show_diff):
     if route_md5 == harness_md5:
         return route_md5, harness_md5, None
     detail = (
-        f"route.ts prompt md5 {route_md5} != run_eval.py SYSTEM_PROMPT md5 {harness_md5} "
+        f"system-prompt.ts md5 {route_md5} != run_eval.py SYSTEM_PROMPT md5 {harness_md5} "
         f"({len(route_norm)} vs {len(harness_norm)} chars)"
     )
     if show_diff:
         diff = difflib.unified_diff(
             harness_norm.splitlines(), route_norm.splitlines(),
-            fromfile="run_eval.py SYSTEM_PROMPT", tofile="route.ts systemPrompt", lineterm="",
+            fromfile="run_eval.py SYSTEM_PROMPT", tofile="system-prompt.ts", lineterm="",
         )
         detail += "\n" + "\n".join(list(diff)[:80])
     return route_md5, harness_md5, detail
@@ -232,6 +243,10 @@ def build_stamp(args, source_system):
         "turn_shape": "single-turn",  # divergence: the real UI posts full history
         "prompt_version": None,
         "prompt_md5": None,
+        # Same id as chat_events.prompt_version, so a run joins to prod rows. Added
+        # 2026-10-15; prompt_version above keeps its route-<md5> form so records from
+        # earlier runs stay comparable.
+        "site_prompt_version": None,
         "model": None,
         "temperature": None,
         "n_results": None,
@@ -248,6 +263,7 @@ def build_stamp(args, source_system):
         # claim about the deployed bundle that nothing on this machine supports.
         stamp.update({
             "prompt_version": "unknown-prod-bundle",
+            "site_prompt_version": "unknown",
             "vintage": "pre-2026-09-10 bundle",
             "kb_provenance": "unknown",
             "model": "unknown", "temperature": "unknown", "n_results": "unknown",
@@ -277,17 +293,24 @@ def run_preflights(args, source_system, harness, stamp):
         lines.append("                      NB prod's index is not on this machine; "
                      "the count above describes the LOCAL index only, and is NOT stamped")
 
-    if not ROUTE_TS.exists():
-        lines.append(f"  C22 prompt drift  : {'FAIL' if local else 'warn'} — {ROUTE_TS} not found")
+    missing_src = [p for p in (ROUTE_TS, PROMPT_TS) if not p.exists()]
+    site_prompt, prompt_err = (None, None)
+    if not missing_src:
+        site_prompt, prompt_err = extract_site_prompt(
+            PROMPT_TS.read_text(encoding="utf-8", errors="replace"))
+    if missing_src or prompt_err:
+        why = prompt_err or f"{', '.join(str(p) for p in missing_src)} not found"
+        lines.append(f"  C22 prompt drift  : {'FAIL' if local else 'warn'} — {why}")
         fatal = fatal or local
     else:
         route_text = ROUTE_TS.read_text(encoding="utf-8", errors="replace")
-        route_md5, _harness_md5, drift = prompt_drift_check(harness, route_text, args.show_prompt_diff)
+        route_md5, _harness_md5, drift = prompt_drift_check(harness, site_prompt, args.show_prompt_diff)
         cfg = extract_route_config(route_text)
         if local:
             stamp.update(cfg)
             stamp["prompt_md5"] = route_md5
             stamp["prompt_version"] = f"route-{route_md5[:8]}" if route_md5 else None
+            stamp["site_prompt_version"] = site_prompt_version(site_prompt)
             stamp["embedding_model"] = embedding_model_from_embedder()
             missing = [k for k, v in cfg.items() if v is None and k != "truncate"]
             if missing:
@@ -302,7 +325,8 @@ def run_preflights(args, source_system, harness, stamp):
             lines.append(f"  C22 prompt drift  : {'FAIL' if local else 'warn'} — {drift}")
             fatal = fatal or local
         else:
-            lines.append(f"  C22 prompt drift  : ok — route.ts and run_eval.py agree ({route_md5[:8]})")
+            lines.append(f"  C22 prompt drift  : ok — system-prompt.ts and run_eval.py agree "
+                         f"({route_md5[:8]}; site id {site_prompt_version(site_prompt)})")
 
     if harness is None:
         lines.append("  checkers          : warn — answer-only checks degraded")
