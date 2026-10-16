@@ -185,6 +185,14 @@
       "regression_note": "Figure fidelity check. Every numeric claim in the answer must appear in the retrieved context." }
   ],
 
+  "additive_cases_note": "Cases held OUTSIDE the 34-question series so the series stays comparable. run_eval.py and run_e2e.py read only 'questions', so nothing here runs until a deliberate decision moves it in. Per the DEFERRED entry in meta.expect_list_changes: add after the deploy, against the same index.",
+  "additive_cases": [
+    { "id": "X03", "tag": "domain", "req": ["R1"],
+      "q": "How does Jordanne approach growth and customer acquisition?",
+      "expect": ["growth-001"],
+      "regression_note": "Added 2026-10-16 with growth-001 (experience/growth-and-acquisition.md), the first chunk built around this question. Measured on the local 138-chunk index the same day: growth-001 rank 1 at 0.777, next personality-004 at 0.755; ecom-006 and ecom-003 not in the top 8. Expect is growth-001 only, the chunk that answers it -- not the chunks the plan predicted would surface. FAILURE if the answer says she ran the Black Friday shutdown or the Slowvember campaign itself: the campaign was the brand's, her part was the digital side." }
+  ],
+
   "checks": {
     "tier1": {
       "T1.1": { "name": "Response returned",        "type": "A", "pass": "Non-empty response, no API error" },
