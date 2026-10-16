@@ -9,6 +9,11 @@ WHAT THIS IS
 
         --base-url http://localhost:3000   -> source_system "local-route"
         --base-url https://jordannedyck.com -> source_system "prod"
+        --base-url https://jordbot-dev-jordbot-dev.apps.ocp-centralis.nekohouse.ca
+                                            -> source_system "dev"
+
+    Any other host is refused unless --source-system names it. Until 2026-10-16 every
+    non-localhost URL was silently stamped "prod".
 
     This satisfies the 2026-09-10 binding rule that evals must exercise the full RAG
     system end to end. run_eval.py does NOT — it calls /search and the model directly
@@ -84,6 +89,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -256,7 +262,20 @@ def build_stamp(args, source_system):
         "embedding_model": None,
         "context_visible": False,
     }
-    if source_system == "prod":
+    if source_system == "dev":
+        # jordbot-dev serves the :dev image, which every dev build overwrites, and reads
+        # the dev PVC's index. Neither is described by this machine's files, so dev is
+        # stamped like prod: unknown, not borrowed from the local checkout.
+        stamp.update({
+            "prompt_version": "unknown-dev-bundle",
+            "site_prompt_version": "unknown",
+            "vintage": "jordbot-dev :dev image (overwritten by every dev build)",
+            "kb_provenance": "jordbot-dev PVC, unknown",
+            "model": "unknown", "temperature": "unknown", "n_results": "unknown",
+            "truncate": "unknown", "embedding_model": "unknown",
+            "chunk_count": "unknown", "index_bytes": "unknown",
+        })
+    elif source_system == "prod":
         # The deployed bundle is pre-2026-09-10 and its KB provenance is unknown.
         # Nothing on this machine describes what prod is running. Stamped, not guessed.
         # "unknown", not None: a null truncate would read as "no truncation", which is a
@@ -276,7 +295,8 @@ def build_stamp(args, source_system):
 def run_preflights(args, source_system, harness, stamp):
     """Returns (ok, lines). C20 and C22 abort before the first paid call."""
     lines, fatal = [], False
-    local = source_system != "prod"
+    # Only the local route is described by files on this machine. dev and prod are not.
+    local = source_system == "local-route"
 
     count, size, err = chunk_count_from_index()
     if local:
@@ -290,7 +310,7 @@ def run_preflights(args, source_system, harness, stamp):
             lines.append(f"                      FAIL — expected {args.expect_chunks} chunks")
             fatal = True
     if not local:
-        lines.append("                      NB prod's index is not on this machine; "
+        lines.append(f"                      NB {source_system}'s index is not on this machine; "
                      "the count above describes the LOCAL index only, and is NOT stamped")
 
     missing_src = [p for p in (ROUTE_TS, PROMPT_TS) if not p.exists()]
@@ -488,10 +508,23 @@ def expand_questions(eval_set):
     return out
 
 
+def infer_source_system(base_url):
+    """Exact hostname match. A substring test is what stamped dev runs as prod."""
+    host = (urlparse(base_url).hostname or "").lower()
+    if host in ("localhost", "127.0.0.1"):
+        return "local-route"
+    if host in ("jordannedyck.com", "www.jordannedyck.com"):
+        return "prod"
+    if host == "jordbot-dev-jordbot-dev.apps.ocp-centralis.nekohouse.ca":
+        return "dev"
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser(description="End-to-end eval runner against the real chat route.")
-    ap.add_argument("--base-url", required=True, help="http://localhost:3000 or https://jordannedyck.com")
-    ap.add_argument("--source-system", choices=["local-route", "prod"],
+    ap.add_argument("--base-url", required=True,
+                    help="http://localhost:3000, the jordbot-dev route, or https://jordannedyck.com")
+    ap.add_argument("--source-system", choices=["local-route", "dev", "prod"],
                     help="override the stamp; inferred from --base-url otherwise")
     ap.add_argument("--probe", action="store_true",
                     help="send ONE question, dump the raw stream, verify the protocol, spend ~$0.01")
@@ -515,9 +548,10 @@ def main():
     if args.limit > 18 and not args.force_rate:
         sys.exit("--limit above 18 risks the hourly cap of 20. Pass --force-rate to mean it.")
 
-    source_system = args.source_system or (
-        "local-route" if "localhost" in args.base_url or "127.0.0.1" in args.base_url else "prod"
-    )
+    source_system = args.source_system or infer_source_system(args.base_url)
+    if source_system is None:
+        sys.exit(f"Cannot tell which system {args.base_url} is. Pass --source-system "
+                 f"local-route, dev or prod. Unknown hosts are no longer stamped prod.")
     harness, harness_err = load_harness_checkers()
     eval_set = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     stamp = build_stamp(args, source_system)
