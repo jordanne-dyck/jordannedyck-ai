@@ -27,3 +27,6 @@ candidate_dump.json
 # Generated eval run outputs (regenerable via run_eval.py / run_e2e.py; keep eval_set.json input only)
 eval_results*.json
 eval_e2e_*.json
+
+# Editor-local plan folder
+nimbalyst-local/
