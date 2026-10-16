@@ -219,16 +219,24 @@ NO_COVERAGE_RE = re.compile(
 
 # ── route.ts equivalents ──────────────────────────────────────────────────────
 
-def search_experience(query, n_results, truncate):
-    """Mirrors searchExperience() in route.ts. `truncate=None` disables the cut."""
+def fetch_results(query, n_results):
+    """The raw /search results, before the route formats them."""
     body = json.dumps({"query": query, "n_results": n_results}).encode()
     req = urllib.request.Request(
         SEARCH_URL, data=body, headers={"Content-Type": "application/json"}
     )
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode())
+    return data.get("results") or []
 
-    results = data.get("results") or []
+
+def search_experience(query, n_results, truncate, results=None):
+    """Mirrors searchExperience() in route.ts. `truncate=None` disables the cut.
+
+    Pass `results` from fetch_results() to format results already fetched.
+    """
+    if results is None:
+        results = fetch_results(query, n_results)
     if not results:
         return "No relevant information found.", []
 
