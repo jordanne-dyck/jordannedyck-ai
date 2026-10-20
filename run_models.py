@@ -60,12 +60,15 @@ from citation_checks import (
 from run_eval import (
     EVAL_SET,
     HERE,
+    conversation_checks,
     PROMPT_VERSION,
     SEARCH_URL,
     SYSTEM_PROMPT,
     fetch_results,
+    lead_chunk,
     run_checks,
     search_experience,
+    search_query,
     strip_citations,
 )
 
@@ -101,12 +104,12 @@ EST_JUDGE = 0.001
 # Each streams one answer and returns the same dict. Thinking/reasoning tokens
 # are billed as output by all three providers, so output_tokens includes them.
 
-def _openai(client, model, settings, system, question):
+def _openai(client, model, settings, system, messages):
     # No max_tokens: run_eval.py and route.ts send none, so gpt-4o runs as it does there.
     t0, ttft, parts, usage = time.time(), None, [], None
     stream = client.chat.completions.create(
         model=model, stream=True, stream_options={"include_usage": True},
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": question}],
+        messages=[{"role": "system", "content": system}, *messages],
         **settings,
     )
     finish = None
@@ -126,13 +129,13 @@ def _openai(client, model, settings, system, question):
     }
 
 
-def _anthropic(client, model, settings, system, question):
+def _anthropic(client, model, settings, system, messages):
     # No fallbacks parameter: a refusal rescued by another model would put a
     # different model's answer under this one's name. A refusal is recorded.
     t0, ttft, parts = time.time(), None, []
     with client.messages.stream(
         model=model, max_tokens=MAX_TOKENS, system=system,
-        messages=[{"role": "user", "content": question}],
+        messages=messages,
         output_config={"effort": settings["effort"]},
     ) as stream:
         for text in stream.text_stream:
@@ -147,14 +150,16 @@ def _anthropic(client, model, settings, system, question):
     }
 
 
-def _google(client, model, settings, system, question):
+def _google(client, model, settings, system, messages):
     from google.genai import types
     config = types.GenerateContentConfig(
         system_instruction=system, max_output_tokens=MAX_TOKENS,
         thinking_config=types.ThinkingConfig(thinking_level=settings["thinking_level"]),
     )
+    contents = [types.Content(role="user" if m["role"] == "user" else "model",
+                              parts=[types.Part(text=m["content"])]) for m in messages]
     t0, ttft, parts, usage, finish = time.time(), None, [], None, None
-    for chunk in client.models.generate_content_stream(model=model, contents=question, config=config):
+    for chunk in client.models.generate_content_stream(model=model, contents=contents, config=config):
         if chunk.usage_metadata:
             usage = chunk.usage_metadata
         if chunk.candidates and chunk.candidates[0].finish_reason:
@@ -188,12 +193,15 @@ def make_clients(providers):
     return clients
 
 
-def generate(clients, model, question, context):
+def generate(clients, model, question, context, history=()):
+    """`history`: earlier user/assistant turns, assistant text citation-stripped,
+    as the site's client resends them."""
     spec = MODELS[model]
     system = SYSTEM_PROMPT.format(context=context)
+    messages = [*history, {"role": "user", "content": question}]
     for attempt in range(4):
         try:
-            out = ADAPTERS[spec["provider"]](clients[spec["provider"]], model, spec["settings"], system, question)
+            out = ADAPTERS[spec["provider"]](clients[spec["provider"]], model, spec["settings"], system, messages)
             break
         except Exception as e:
             if attempt == 3:
@@ -295,6 +303,106 @@ def report(results):
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
+def estimate_multiturn(cases, models, reps):
+    """Each turn resends every earlier turn, so input grows by one Q&A per turn."""
+    lo = hi = 0.0
+    for m in models:
+        p_in, p_out = MODELS[m]["price"]
+        thinks = m != "gpt-4o"
+        for c in cases:
+            for i in range(len(c["turns"])):
+                t_in = EST_IN + i * (EST_OUT + 50)
+                lo += reps * ((t_in * p_in + EST_OUT * p_out) / 1e6 + EST_JUDGE)
+                hi += reps * ((t_in * 1.35 * p_in + (EST_OUT + (EST_THINK_HIGH if thinks else 0)) * p_out) / 1e6
+                              + EST_JUDGE)
+    return lo, hi
+
+
+def main_multiturn(args, spec, models):
+    """The multiturn cases, every model, each model replaying its OWN earlier answers."""
+    out = args.out if args.out != DEFAULT_OUT else HERE / "eval_results_models_multiturn.json"
+    cases = spec["multiturn"]["cases"]
+    if args.only:
+        want = {s.strip().upper() for s in args.only.split(",")}
+        cases = [c for c in cases if c["id"] in want]
+    arm = spec["arms"][ARM]
+    existing = json.loads(out.read_text(encoding="utf-8")) if out.exists() else []
+    done = {(r["id"], r["model"], r["run"]) for r in existing}
+    todo = [(c, m, run) for m in models for c in cases for run in range(1, args.reps + 1)
+            if (c["id"], m, run) not in done]
+    lo = hi = 0.0
+    for c, m, _run in todo:
+        a, b = estimate_multiturn([c], [m], 1)
+        lo, hi = lo + a, hi + b
+    print(f"prompt_version {PROMPT_VERSION}, {len(cases)} conversations x {len(models)} models, "
+          f"reps {args.reps}: {len(todo)} to run ({len(done)} recorded), "
+          f"{sum(len(c['turns']) for c, _m, _r in todo)} turns, estimated ${lo:.2f}-${hi:.2f}")
+    if args.estimate:
+        return
+
+    providers = {MODELS[m]["provider"] for m in models} | ({"openai"} if not args.no_judge else set())
+    missing = [KEY_ENV[p] for p in providers if not os.getenv(KEY_ENV[p])]
+    if missing:
+        sys.exit(f"FAILED: {', '.join(missing)} not set. Add to .env in {HERE}")
+    try:
+        fetch_results("preflight connectivity check", 1)
+    except urllib.error.URLError as e:
+        sys.exit(f"FAILED: cannot reach {SEARCH_URL} ({e.reason}).\n"
+                 f"Start it first:  venv\\Scripts\\python.exe api_server.py")
+    clients = make_clients(providers)
+
+    results, spent, cache = list(existing), 0.0, {}
+    for case, model, run in todo:
+        if args.max_cost is not None and spent >= args.max_cost:
+            print(f"\nSTOPPED: spend ${spent:.2f} reached --max-cost {args.max_cost}")
+            break
+        print(f"[{model}] {case['id']} run{run} {case['name']}", flush=True)
+        history, turns = [], []
+        for i, t in enumerate(case["turns"], 1):
+            q = {"tag": case["tag"], **t}
+            query = search_query(history, q["q"])
+            if query not in cache:
+                raw = fetch_results(query, arm["n_results"])
+                cache[query] = (raw, *search_experience(query, arm["n_results"], arm["truncate"], raw))
+            raw, context, retrieved = cache[query]
+            chunks = [{"chunk_id": r["metadata"].get("chunk_id"), "similarity": r["similarity"],
+                       "content": r["content"]} for r in raw]
+            gen = generate(clients, model, q["q"], context, history)
+            checks = run_checks(q, ARM, context, retrieved, gen)
+            segments, _cited = parse_citations(gen["answer_cited"] or "")
+            cites = citation_labels(segments, chunks)
+            cites["leaked"] = leaked_citations(gen["answer"], chunks)
+            judge = None
+            if not args.no_judge and chunks:
+                try:
+                    judge = judge_grounding(clients["openai"], q["q"], gen["answer"], segments, chunks)
+                except (OpenAIError, ValueError, KeyError) as e:
+                    judge = {"error": f"{type(e).__name__}: {str(e)[:200]}"}
+            spent += gen["cost_usd"] + ((judge or {}).get("cost_usd") or 0)
+            fails = [k for k, v in checks.items() if not k.startswith("_") and v is False]
+            print(f"  t{i} {'ok' if not fails else 'FAIL ' + ','.join(f.split('_')[0] for f in fails):<22}"
+                  f"{gen['latency_s']}s (first token {gen['ttft_s']}s)  lead={lead_chunk(gen['answer_cited'])}",
+                  flush=True)
+            turns.append({"turn": i, "question": q["q"], "search_query": query,
+                          "retrieved": retrieved, "gen": gen, "checks": checks,
+                          "citations": cites, "judge": judge,
+                          "lead_chunk": lead_chunk(gen["answer_cited"])})
+            history += [{"role": "user", "content": q["q"]},
+                        {"role": "assistant", "content": gen["answer"]}]
+
+        case_checks = conversation_checks(case, turns)
+        print(f"  " + "  ".join(f"{k} {v}" for k, v in case_checks.items() if not k.startswith("_"))
+              + f"  leads={case_checks['_leads']}  uncited={case_checks['_uncited_turns']}")
+        results.append({"id": case["id"], "name": case["name"], "tag": case["tag"],
+                        "model": model, "provider": MODELS[model]["provider"],
+                        "settings": MODELS[model]["settings"], "run": run,
+                        "prompt_version": PROMPT_VERSION, "turns": turns,
+                        "case_checks": case_checks})
+        out.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    print(f"\n${spent:.2f} spent this invocation, {len(results)} conversations in {out}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", default=",".join(MODELS), help="comma-separated model ids")
@@ -305,7 +413,16 @@ def main():
     ap.add_argument("--estimate", action="store_true", help="print the plan and cost estimate, call nothing")
     ap.add_argument("--report", action="store_true", help="summarise the results file, call nothing")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    ap.add_argument("--multiturn", action="store_true",
+                    help="run the multiturn cases (default out: eval_results_models_multiturn.json)")
     args = ap.parse_args()
+
+    if args.multiturn:
+        models = [m.strip() for m in args.models.split(",")]
+        unknown = [m for m in models if m not in MODELS]
+        if unknown:
+            sys.exit(f"unknown model(s): {', '.join(unknown)}. Known: {', '.join(MODELS)}")
+        return main_multiturn(args, json.loads(EVAL_SET.read_text(encoding="utf-8")), models)
 
     existing = json.loads(args.out.read_text(encoding="utf-8")) if args.out.exists() else []
     if args.report:

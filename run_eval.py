@@ -265,7 +265,9 @@ def search_experience(query, n_results, truncate, results=None):
     return "\n".join(parts), meta
 
 
-def generate(client, question, context):
+def generate(client, question, context, history=()):
+    """`history` is the earlier turns as the site resends them: user and
+    assistant messages, assistant text with citations already stripped."""
     t0 = time.time()
     for attempt in range(4):
         try:
@@ -274,6 +276,7 @@ def generate(client, question, context):
                 temperature=TEMPERATURE,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT.format(context=context)},
+                    *history,
                     {"role": "user", "content": question},
                 ],
             )
@@ -359,6 +362,37 @@ def injection_resisted(ans, kind):
     return None
 
 
+# T1.6 — voice. Added 2026-10-19 from Jord's blind scoring of the 10-16 sample:
+# answers named their source, coached the reader, and used UK spelling. Each
+# pattern is a phrase she marked down, not a phrase the prompt emits. Ordinary
+# uses are excluded where they collide: "track record", "on the record",
+# "in the context of", "rate limits".
+VOICE_RE = {
+    "names_source": re.compile(
+        r"(?<!track )(?<!on )\bthe record\b"
+        r"|\bthe context\b(?! of)"
+        r"|\bknowledge base\b|\bretrieved material\b|\bher own account\b"
+        r"|\bfor assessment purposes\b",
+        re.IGNORECASE),
+    "coaches_reader": re.compile(
+        r"\bworth (?:probing|asking|exploring)\b|\bfollow-up questions?\b"
+        r"|\byou (?:might|could|may) (?:want to )?ask\b|\bdid not land\b|\bdidn't land\b"
+        r"|^\W*(?:limits|limitations|gaps)\W*$",
+        re.IGNORECASE | re.MULTILINE),
+    "uk_spelling": re.compile(r"\bprogrammes?\b", re.IGNORECASE),
+}
+
+
+def voice_violations(ans):
+    """T1.6 — the matched spans, by kind, so a false positive is visible."""
+    out = {}
+    for kind, rx in VOICE_RE.items():
+        hits = [m.group(0).strip() for m in rx.finditer(ans)]
+        if hits:
+            out[kind] = hits
+    return out
+
+
 # ── automated checks ──────────────────────────────────────────────────────────
 
 def ngrams(text, n=8):
@@ -399,6 +433,10 @@ def run_checks(q, arm, context, retrieved, gen):
     checks["T1.5_no_jd_echo"] = not echo
     checks["_jd_echo_spans"] = echo
 
+    voice = voice_violations(ans)
+    checks["T1.6_voice"] = not voice
+    checks["_voice_spans"] = voice
+
     expected = q.get("expect") or []
     checks["T2.1_retrieval_hit"] = (bool(set(expected) & set(ids)) if expected else None)
     checks["_expected_hit"] = sorted(set(expected) & set(ids))
@@ -418,12 +456,114 @@ def run_checks(q, arm, context, retrieved, gen):
     else:
         checks["T2.3_gap_honesty"] = None
 
-    if q["tag"] == "adversarial":
+    if q["tag"] == "adversarial" or q.get("adv_check"):
         checks["T2.4_injection_resistance"] = injection_resisted(ans, q.get("adv_check"))
     else:
         checks["T2.4_injection_resistance"] = None
 
     return checks
+
+
+# ── multi-turn ────────────────────────────────────────────────────────────────
+
+RESULTS_MULTITURN = HERE / "eval_results_multiturn.json"
+_LEAD_ID = re.compile(_CITE_ID)
+
+
+def search_query(history, question):
+    """The text a turn is retrieved on.
+
+    MUST MIRROR route.ts, which searches on input.lastUserContent alone
+    (route.ts:141, :191, read 2026-10-19). When route.ts gains the history-aware
+    query rewrite, this changes in the same step, or every multi-turn result
+    measures a retrieval the site does not do.
+    """
+    return question
+
+
+def lead_chunk(answer_cited):
+    """The first chunk an answer cites: the example it opened with."""
+    m = CITE_RE.search(answer_cited or "")
+    return _LEAD_ID.search(m.group(0)).group(0) if m else None
+
+
+def run_conversation(client, case, arm):
+    """One conversation, turn by turn, replaying the model's own earlier answers
+    the way the site does: the visitor's client sends back citation-stripped text."""
+    history, turns = [], []
+    for i, t in enumerate(case["turns"], 1):
+        q = {"tag": case["tag"], **t}
+        query = search_query(history, q["q"])
+        context, retrieved = search_experience(query, arm["n_results"], arm["truncate"])
+        gen = generate(client, q["q"], context, history)
+        checks = run_checks(q, "B", context, retrieved, gen)
+        turns.append({"turn": i, "question": q["q"], "search_query": query,
+                      "retrieved": retrieved, "gen": gen, "checks": checks,
+                      "lead_chunk": lead_chunk(gen["answer_cited"])})
+        history += [{"role": "user", "content": q["q"]},
+                    {"role": "assistant", "content": gen["answer"]}]
+    return turns, conversation_checks(case, turns)
+
+
+def conversation_checks(case, turns):
+    """Case-level checks, shared with run_models.py.
+
+    T2.7 added 2026-10-19 after the gpt-4o baseline: 5 of 10 non-injection
+    follow-up turns cited nothing (M01 t2, M04 t2, M05 t4, M06 t3, M06 t4).
+    M01 t2 elaborated from its own earlier answer, not from turn 2's context.
+    T2.6 is None when a turn has no lead chunk: in that baseline M05 "passed"
+    only because turn 4 cited nothing, which is not evidence of no repetition.
+    """
+    leads = [t["lead_chunk"] for t in turns]
+    uncited = [t["turn"] for t in turns[1:]
+               if t["lead_chunk"] is None and not case["turns"][t["turn"] - 1].get("adv_check")]
+    out = {"T2.7_followups_cited": not uncited, "_uncited_turns": uncited, "_leads": leads}
+    if case.get("check") == "no_repeated_lead":
+        cited = [c for c in leads if c]
+        repeats = sorted({c for c in cited if cited.count(c) > 1})
+        out["T2.6_no_repeated_lead"] = None if None in leads else not repeats
+        out["_repeated"] = repeats
+    return out
+
+
+def main_multiturn(args, spec, client):
+    arm = spec["arms"]["B"]  # n_results 5, no truncation: what route.ts does
+    cases = spec["multiturn"]["cases"]
+    if args.only:
+        want = {s.strip().upper() for s in args.only.split(",")}
+        cases = [c for c in cases if c["id"] in want]
+
+    results = []
+    if RESULTS_MULTITURN.exists():
+        results = json.loads(RESULTS_MULTITURN.read_text(encoding="utf-8"))
+        print(f"resuming — {len(results)} conversations already recorded")
+    done = {r["id"] for r in results}
+
+    print(f"prompt_version {PROMPT_VERSION}")
+    print(f"{len(cases)} conversations, {sum(len(c['turns']) for c in cases)} turns\n")
+    for case in cases:
+        if case["id"] in done:
+            continue
+        print(f"{case['id']:<6} {case['name']}", flush=True)
+        turns, case_checks = run_conversation(client, case, arm)
+        for t in turns:
+            fails = [k for k, v in t["checks"].items() if not k.startswith("_") and v is False]
+            status = "ok" if not fails else "FAIL " + ",".join(f.split("_")[0] for f in fails)
+            print(f"  t{t['turn']} {status:<24} {t['gen']['latency_s']}s  lead={t['lead_chunk']}  "
+                  f"chunks={','.join(str(r['chunk_id']) for r in t['retrieved'])}", flush=True)
+        for k, v in case_checks.items():
+            if not k.startswith("_"):
+                print(f"  {k}: {v}  leads={case_checks['_leads']}  uncited={case_checks['_uncited_turns']}")
+        results.append({"id": case["id"], "name": case["name"], "tag": case["tag"],
+                        "prompt_version": PROMPT_VERSION, "turns": turns,
+                        "case_checks": case_checks,
+                        "cost_usd": round(sum(t["gen"]["cost_usd"] for t in turns), 5)})
+        RESULTS_MULTITURN.write_text(json.dumps(results, indent=2, ensure_ascii=False),
+                                     encoding="utf-8")
+
+    total = sum(r["cost_usd"] for r in results)
+    print(f"\ndone — {len(results)} conversations, ${total:.2f} total")
+    print(f"written to {RESULTS_MULTITURN}")
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
@@ -433,6 +573,8 @@ def main():
     ap.add_argument("--arm", choices=["A", "B"], help="run one arm only")
     ap.add_argument("--only", help="comma-separated question ids")
     ap.add_argument("--fresh", action="store_true", help="ignore existing results")
+    ap.add_argument("--multiturn", action="store_true",
+                    help="run the multiturn cases (arm B) instead of the 34-question series")
     args = ap.parse_args()
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
@@ -454,6 +596,9 @@ def main():
         sys.exit("FAILED: OPENAI_API_KEY not set. Run from the folder containing .env")
 
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    if args.multiturn:
+        return main_multiturn(args, spec, client)
 
     existing = []
     if RESULTS.exists() and not args.fresh:
