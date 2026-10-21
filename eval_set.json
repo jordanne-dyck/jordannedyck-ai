@@ -190,7 +190,52 @@
     { "id": "X03", "tag": "domain", "req": ["R1"],
       "q": "How does Jordanne approach growth and customer acquisition?",
       "expect": ["growth-001"],
-      "regression_note": "Added 2026-10-16 with growth-001 (experience/growth-and-acquisition.md), the first chunk built around this question. Measured on the local 138-chunk index the same day: growth-001 rank 1 at 0.777, next personality-004 at 0.755; ecom-006 and ecom-003 not in the top 8. Expect is growth-001 only, the chunk that answers it -- not the chunks the plan predicted would surface. FAILURE if the answer says she ran the Black Friday shutdown or the Slowvember campaign itself: the campaign was the brand's, her part was the digital side." }
+      "regression_note": "Added 2026-10-16 with growth-001 (experience/growth-and-acquisition.md), the first chunk built around this question. Measured on the local 138-chunk index the same day: growth-001 rank 1 at 0.777, next personality-004 at 0.755; ecom-006 and ecom-003 not in the top 8. Expect is growth-001 only, the chunk that answers it -- not the chunks the plan predicted would surface. FAILURE if the answer says she ran the Black Friday shutdown or the Slowvember campaign itself: the campaign was the brand's, her part was the digital side." },
+    { "id": "X04", "tag": "narrative", "req": ["R1", "R6"],
+      "q": "What kind of product leader is Jordanne?",
+      "expect": ["exp-001", "ops-015"],
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. FAILURE if the answer leads with 'AI Builder' as the headline identity or uses 'connect the dots, redefine what's possible, architect the vision' (retired 2026-10-21). Correct lead: product growth leader who builds with AI."
+    },
+    { "id": "X05", "tag": "hostile", "req": ["R10"],
+      "q": "Isn't Jordanne just a generalist? Where does she actually have depth?",
+      "expect": ["ops-016", "ops-001", "ops-015"],
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct behaviour: range explained as a result of systems thinking, with depth shown in product growth (acquisition, personalization, retention, loyalty). FAILURE if the answer concedes 'generalist' without the depth evidence, or invents a learning-speed figure."
+    },
+    { "id": "X06", "tag": "narrative", "req": [],
+      "q": "How is Jordanne creative?",
+      "expect": ["ops-017"],
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. FAILURE if the answer says she ran the Black Friday shutdown campaign itself: the campaign was the brand's, her part was the digital side. FAILURE if it says she designed the theordinary.com / deciem.com / niod.com front end personally: she led the team and the strategy behind it."
+    },
+    { "id": "X07", "tag": "narrative", "req": ["R13"],
+      "q": "How quickly does Jordanne get up to speed in a new industry?",
+      "expect": ["ops-016"],
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. The only timeframe in the corpus is the Salesforce transformation, eight months from kickoff to launch. FAILURE on any other learning-speed figure -- a fabrication (T2.2)."
+    },
+    { "id": "X08", "tag": "domain", "req": [],
+      "q": "Has Jordanne launched a tiered membership program?",
+      "expect": ["ops-015", "promo-005", "promo-007"],
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct answer is NO, stated plainly: she worked PC Optimum tier mechanics from the growth side and evaluated the tier-based platform DECIEM had bought, then recommended against it. FAILURE if the answer says or implies she owned or launched a tiered program."
+    },
+    { "id": "X09", "tag": "domain", "req": ["R9"],
+      "q": "What fintech or financial services experience does Jordanne have?",
+      "expect": ["promo-003", "pay-002"],
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct answer is limited: a smaller amount of demand generation work on PC Financial, and the PC Optimum credit card as part of the landscape she worked in. FAILURE if overstated as owning a financial product. A pivot to payments (pay-001) and FundLocal is acceptable."
+    },
+    { "id": "X10", "tag": "domain", "req": ["R2"],
+      "q": "What does Jordanne think makes a tier program work?",
+      "expect": ["promo-007"],
+      "regression_note": "Added 2026-10-21, round 2 (hiring-manager review). Answer from promo-007: fair, attainable effort vs reward; transparent rewards; the Shoppers Drug Mart finding of two redeemer types (save to the top tier vs redeem at the lowest threshold). FAILURE if it cites a share or count for either type -- none exists (T2.2). FAILURE if it says she launched a tier program."
+    },
+    { "id": "X11", "tag": "hostile", "req": ["R4"],
+      "q": "How was Regimen Builder's 35% conversion lift measured? Is that causal?",
+      "expect": ["regimen-004", "pers-003"],
+      "regression_note": "Added 2026-10-21, round 2 (hiring-manager review). Correct basis: Regimen Builder users against non-users. Conversion (+35%) and AOV (+40%) showed from launch; 2x likelihood to buy again is from a one-year cohort. FAILURE if the answer claims a controlled test or A/B result, or states a before/after baseline: Jord cannot share from-what-to-what figures. Acknowledging that users self-select is correct behaviour, not a failure."
+    },
+    { "id": "X12", "tag": "domain", "req": ["R1", "R4"],
+      "q": "Walk me through a funnel Jordanne owned. Where was the leak and how did she find it?",
+      "expect": ["ops-018"],
+      "regression_note": "Added 2026-10-21 with ops-018, from Jord's funnel facts. Correct shape: stages (arrive, leak, why this stage, fix, stay), leak at homepage and product pages, cause = choice confusion, fix = Regimen Builder. FAILURE if it states a drop-off percentage or traffic figure for any stage -- none exists (T2.2). FAILURE if it presents the users-vs-non-users figures as a controlled test."
+    }
   ],
 
   "checks": {
