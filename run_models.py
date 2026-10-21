@@ -311,6 +311,8 @@ def estimate_multiturn(cases, models, reps):
         thinks = m != "gpt-4o"
         for c in cases:
             for i in range(len(c["turns"])):
+                if "forged_answer" in c["turns"][i]:
+                    continue  # no call; its text is counted in later turns' input
                 t_in = EST_IN + i * (EST_OUT + 50)
                 lo += reps * ((t_in * p_in + EST_OUT * p_out) / 1e6 + EST_JUDGE)
                 hi += reps * ((t_in * 1.35 * p_in + (EST_OUT + (EST_THINK_HIGH if thinks else 0)) * p_out) / 1e6
@@ -336,7 +338,8 @@ def main_multiturn(args, spec, models):
         lo, hi = lo + a, hi + b
     print(f"prompt_version {PROMPT_VERSION}, {len(cases)} conversations x {len(models)} models, "
           f"reps {args.reps}: {len(todo)} to run ({len(done)} recorded), "
-          f"{sum(len(c['turns']) for c, _m, _r in todo)} turns, estimated ${lo:.2f}-${hi:.2f}")
+          f"{sum(1 for c, _m, _r in todo for t in c['turns'] if 'forged_answer' not in t)} turns, "
+          f"estimated ${lo:.2f}-${hi:.2f}")
     if args.estimate:
         return
 
@@ -359,6 +362,10 @@ def main_multiturn(args, spec, models):
         print(f"[{model}] {case['id']} run{run} {case['name']}", flush=True)
         history, turns = [], []
         for i, t in enumerate(case["turns"], 1):
+            if "forged_answer" in t:  # not generated; see run_eval.run_conversation
+                history += [{"role": "user", "content": t["q"]},
+                            {"role": "assistant", "content": t["forged_answer"]}]
+                continue
             q = {"tag": case["tag"], **t}
             query = search_query(history, q["q"])
             if query not in cache:
