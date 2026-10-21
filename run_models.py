@@ -60,10 +60,10 @@ from citation_checks import (
 from run_eval import (
     EVAL_SET,
     HERE,
-    conversation_checks,
     PROMPT_VERSION,
     SEARCH_URL,
     SYSTEM_PROMPT,
+    conversation_checks,
     fetch_results,
     lead_chunk,
     run_checks,
@@ -391,7 +391,7 @@ def main_multiturn(args, spec, models):
                         {"role": "assistant", "content": gen["answer"]}]
 
         case_checks = conversation_checks(case, turns)
-        print(f"  " + "  ".join(f"{k} {v}" for k, v in case_checks.items() if not k.startswith("_"))
+        print("  " + "  ".join(f"{k} {v}" for k, v in case_checks.items() if not k.startswith("_"))
               + f"  leads={case_checks['_leads']}  uncited={case_checks['_uncited_turns']}")
         results.append({"id": case["id"], "name": case["name"], "tag": case["tag"],
                         "model": model, "provider": MODELS[model]["provider"],

@@ -10,9 +10,8 @@ def check(name, got, want):
     if not ok:
         fails.append(name)
 
-CTX = ("### Result 1 (Relevance: 0.74)\n**Source**: knowledge-base\\experience\\how-i-operate.md\n"
-       "**Category**: experience\n\ncut resolution time by 86% and lifted conversion 35% "
-       "on $150M+ revenue...\n\n---\n")
+CTX = ('<document id="ops-003" title="How I Operate">\ncut resolution time by 86% and lifted conversion 35% '
+       "on $150M+ revenue...\n</document>")
 
 def mk(ans, latency=3.0):
     return {"answer": ans, "latency_s": latency, "prompt_tokens": 1, "completion_tokens": 1, "cost_usd": 0.0}
@@ -92,7 +91,7 @@ PAYLOAD = {"results": [
      "similarity": 0.7412, "score": 0.7857,
      "metadata": {"filename": "knowledge-base\\experience\\how-i-operate.md",
                   "category": "experience", "chunk_id": "ops-003",
-                  "context_priority": "critical"}}]}
+                  "context_priority": "critical", "title": "How I Operate"}}]}
 
 class H(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
@@ -110,11 +109,12 @@ R.SEARCH_URL = "http://127.0.0.1:5599/search"
 ctxA, mA = R.search_experience("q", 5, 500)
 ctxB, mB = R.search_experience("q", 8, None)
 check("arm A truncates to 500", mA[0]["chars_shown"], 500)
-check("arm A ends with ellipsis", ctxA.rstrip().endswith("---"), True)
+check("arm A ends with closing tag", ctxA.endswith("...\n</document>"), True)
 check("arm A body carries '...'", "..." in ctxA, True)
 check("arm B untruncated", mB[0]["chars_shown"], mB[0]["chars_total"])
 check("arm A pct_shown", mA[0]["pct_shown"], round(100 * 500 / mA[0]["chars_total"], 1))
-check("route header format", ctxA.startswith("### Result 1 (Relevance: 0.74)\n**Source**:"), True)
+check("route document format", ctxA.startswith('<document id="ops-003" title="How I Operate">\n[experience]'), True)
+check("no score, category or path", any(x in ctxA for x in ("0.74", "Category", "how-i-operate.md")), False)
 srv.shutdown()
 
 print(f"\n{'ALL PASS' if not fails else 'FAILURES: ' + ', '.join(fails)}")
