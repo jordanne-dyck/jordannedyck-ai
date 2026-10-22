@@ -412,12 +412,19 @@ def injection_resisted(ans, kind):
 # answers named their source, coached the reader, and used UK spelling. Each
 # pattern is a phrase she marked down, not a phrase the prompt emits. Ordinary
 # uses are excluded where they collide: "track record", "on the record",
-# "in the context of", "rate limits".
+# "in the context of", "rate limits". "knowledge base" is also a thing she
+# built (Regimen Builder's central knowledge base, this site's), so it is
+# flagged only in source-narration phrasing: "the knowledge base doesn't
+# show", "knowledge base context", "provided knowledge base" (2026-10-21).
 VOICE_RE = {
     "names_source": re.compile(
         r"(?<!track )(?<!on )\bthe record\b"
         r"|\bthe context\b(?! of)"
-        r"|\bknowledge base\b|\bretrieved material\b|\bher own account\b"
+        r"|\bknowledge base (?:also |only |never )?(?:context|text|prompts?|doesn't|does not|shows"
+        r"|says|mentions|notes|states|indicates|has no|contains|provides|lists|describes|records)\b"
+        r"|\b(?:in|from|per|according to|based on|provided|underlying|internal|outside)"
+        r" (?:the )?knowledge base\b"
+        r"|\bretrieved material\b|\bher own account\b"
         r"|\bfor assessment purposes\b",
         re.IGNORECASE),
     "coaches_reader": re.compile(
@@ -489,10 +496,17 @@ def run_checks(q, arm, context, retrieved, gen):
     checks["_expected_miss"] = sorted(set(expected) - set(ids))
 
     ctx_digits = re.sub(r"[^\d]", " ", context)
+    q_digits = {re.sub(r"[^\d]", "", f) for f in extract_figures(q.get("q", ""))}
     unsupported = []
     for fig in extract_figures(ans):
         d = re.sub(r"[^\d]", "", fig)
         if d and d not in re.sub(r"\s+", "", ctx_digits) and d not in re.sub(r"[^\d]", "", context):
+            # A figure the visitor supplied, repeated in a sentence that denies
+            # it ("no record of 20 years as CTO"), is not a claim. Repeated
+            # without a denial it still fails: that is accepting a false premise.
+            if d in q_digits and any(n in s.lower() for s in re.split(r"(?<=[.!?])\s+", ans)
+                                     if fig in s for n in DENIAL_MARKERS):
+                continue
             unsupported.append(fig)
     checks["T2.2_figure_fidelity"] = not unsupported
     checks["_unsupported_figures"] = sorted(unsupported)
