@@ -50,6 +50,12 @@ HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 RESULTS = HERE / "eval_results.json"
 
+# How each retrieved chunk is laid out in the sources. "document" is what
+# route.ts sends. "labelled" is a test layout only (--source-format labelled):
+# the same id and title as labelled lines, the shape the pre-ab60e8aa runner
+# used, to test whether the <document> layout causes the citation drop.
+SOURCE_FORMAT = "document"
+
 # ── verbatim from lib/system-prompt.ts, with ${context} as {context} ───────────
 # MUST STAY IN SYNC with buildSystemPrompt() in jordannedyck-ai-web/lib/system-prompt.ts
 # (moved there from app/api/chat/route.ts on 2026-10-13). This is a verbatim copy of
@@ -268,16 +274,24 @@ def search_experience(query, n_results, truncate, results=None):
         return "No relevant information found.", []
 
     parts, meta = [], []
-    for r in results:
+    for i, r in enumerate(results):
         content = r["content"]
         shown = content[:truncate] if truncate else content
         tail = "..." if truncate else ""
-        parts.append(
-            f'<document id="{r["metadata"].get("chunk_id")}" '
-            f'title="{r["metadata"].get("title")}">\n'
-            f"{shown}{tail}\n"
-            f"</document>"
-        )
+        if SOURCE_FORMAT == "labelled":
+            parts.append(
+                f"### Result {i + 1}\n"
+                f"**Id**: {r['metadata'].get('chunk_id')}\n"
+                f"**Title**: {r['metadata'].get('title')}\n\n"
+                f"{shown}{tail}\n\n---"
+            )
+        else:
+            parts.append(
+                f'<document id="{r["metadata"].get("chunk_id")}" '
+                f'title="{r["metadata"].get("title")}">\n'
+                f"{shown}{tail}\n"
+                f"</document>"
+            )
         meta.append({
             "chunk_id": r["metadata"].get("chunk_id"),
             "filename": r["metadata"].get("filename"),
@@ -623,7 +637,8 @@ def main_multiturn(args, spec, client):
             if not k.startswith("_"):
                 print(f"  {k}: {v}  leads={case_checks['_leads']}  uncited={case_checks['_uncited_turns']}")
         results.append({"id": case["id"], "name": case["name"], "tag": case["tag"],
-                        "prompt_version": PROMPT_VERSION, "turns": turns,
+                        "prompt_version": PROMPT_VERSION, "source_format": SOURCE_FORMAT,
+                        "turns": turns,
                         "case_checks": case_checks,
                         "cost_usd": round(sum(t["gen"]["cost_usd"] for t in turns), 5)})
         RESULTS_MULTITURN.write_text(json.dumps(results, indent=2, ensure_ascii=False),
@@ -643,7 +658,12 @@ def main():
     ap.add_argument("--fresh", action="store_true", help="ignore existing results")
     ap.add_argument("--multiturn", action="store_true",
                     help="run the multiturn cases (arm B) instead of the 34-question series")
+    ap.add_argument("--source-format", choices=["document", "labelled"], default="document",
+                    help="source layout; 'labelled' is the citation-drop test, not what route.ts sends")
     args = ap.parse_args()
+    global SOURCE_FORMAT
+    SOURCE_FORMAT = args.source_format
+    print(f"source_format {SOURCE_FORMAT}")
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     questions = spec["questions"]
@@ -706,7 +726,7 @@ def main():
                     "id": q["id"], "tag": q["tag"], "req": q.get("req", []),
                     "arm": arm_id, "run": run, "question": q["q"],
                     "expect": q.get("expect", []),
-                    "prompt_version": PROMPT_VERSION,
+                    "prompt_version": PROMPT_VERSION, "source_format": SOURCE_FORMAT,
                     "retrieved": retrieved, "gen": gen, "checks": checks,
                     "context_chars": len(context),
                 })
