@@ -50,11 +50,20 @@ HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 RESULTS = HERE / "eval_results.json"
 
-# How each retrieved chunk is laid out in the sources. "document" is what
-# route.ts sends. "labelled" is a test layout only (--source-format labelled):
-# the same id and title as labelled lines, the shape the pre-ab60e8aa runner
-# used, to test whether the <document> layout causes the citation drop.
-SOURCE_FORMAT = "document"
+# How each retrieved chunk is laid out in the sources. "labelled" is the
+# layout to land in route.ts: id and title as labelled lines, with no relevance,
+# file path or category. On the same prompt text it cited better than
+# "document" (layout tests 2026-10-21/22, nimbalyst-local/prompt-draft-2026-10-21-notes.md).
+# "document" is the <document> layout from the ab60e8aa draft, kept for
+# comparison runs (--source-format document).
+# Until the web session lands it, route.ts still sends its old layout
+# (### Result N (Relevance), Chunk, Source, Category).
+SOURCE_FORMAT = "labelled"
+
+# Answer length cap, sent as max_tokens. Mirrors maxTokens in route.ts's
+# streamText call once the web session lands it (security review item 2).
+# Longest stored gpt-4o answer, 978 answers checked 2026-10-22: 550 tokens (D02).
+ANSWER_MAX_TOKENS = 1000
 
 # ── verbatim from lib/system-prompt.ts, with ${context} as {context} ───────────
 # MUST STAY IN SYNC with buildSystemPrompt() in jordannedyck-ai-web/lib/system-prompt.ts
@@ -263,9 +272,9 @@ def search_experience(query, n_results, truncate, results=None):
 
     Pass `results` from fetch_results() to format results already fetched.
 
-    Each result is a <document> carrying only id and title, inside the
-    <sources> wrapper the prompt provides. No relevance score, category or file
-    path: they do not help the model and the path can leak into answers.
+    Each result carries only id and title, in the SOURCE_FORMAT layout. No
+    relevance score, category or file path: they do not help the model and
+    the path can leak into answers.
     MUST MATCH route.ts exactly: the same template, joined with "\\n\\n".
     """
     if results is None:
@@ -314,6 +323,7 @@ def generate(client, question, context, history=()):
             resp = client.chat.completions.create(
                 model=MODEL,
                 temperature=TEMPERATURE,
+                max_tokens=ANSWER_MAX_TOKENS,
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT.format(context=context)},
                     *history,
@@ -336,6 +346,8 @@ def generate(client, question, context, history=()):
         "answer": strip_citations(resp.choices[0].message.content or ""),
         "answer_cited": resp.choices[0].message.content,
         "latency_s": round(time.time() - t0, 2),
+        # "length" means the answer hit ANSWER_MAX_TOKENS and was cut off.
+        "finish_reason": resp.choices[0].finish_reason,
         "prompt_tokens": u.prompt_tokens,
         "completion_tokens": u.completion_tokens,
         "cost_usd": round(cost, 5),
@@ -665,8 +677,9 @@ def main():
     ap.add_argument("--fresh", action="store_true", help="ignore existing results")
     ap.add_argument("--multiturn", action="store_true",
                     help="run the multiturn cases (arm B) instead of the 34-question series")
-    ap.add_argument("--source-format", choices=["document", "labelled"], default="document",
-                    help="source layout; 'labelled' is the citation-drop test, not what route.ts sends")
+    ap.add_argument("--source-format", choices=["document", "labelled"], default="labelled",
+                    help="source layout; 'labelled' is the layout to land in route.ts, "
+                         "'document' is the ab60e8aa comparison layout")
     ap.add_argument("--prompt-file",
                     help="test only: use this prompt text (with {context}) instead of SYSTEM_PROMPT; "
                          "not what route.ts sends")

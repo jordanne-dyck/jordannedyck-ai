@@ -58,6 +58,7 @@ from citation_checks import (
     parse_citations,
 )
 from run_eval import (
+    ANSWER_MAX_TOKENS,
     EVAL_SET,
     HERE,
     PROMPT_VERSION,
@@ -83,7 +84,7 @@ MAX_TOKENS = 16000
 # gemini-4-argon rises to 4.00 / 20.00 on 2026-12-01; gemini-3.8-flash to
 # 1.50 / 7.50 on 2027-01-01.
 MODELS = {
-    "gpt-4o":            {"provider": "openai",    "price": (2.50, 10.00), "settings": {"temperature": 0.7}},
+    "gpt-4o":            {"provider": "openai",    "price": (2.50, 10.00), "settings": {"temperature": 0.7, "max_tokens": ANSWER_MAX_TOKENS}},
     "gpt-6.1-sol":       {"provider": "openai",    "price": (2.00, 10.00), "settings": {"reasoning_effort": "low"}},
     "claude-opus-5-5":   {"provider": "anthropic", "price": (4.00, 20.00), "settings": {"effort": "low"}},
     "claude-sonnet-5-5": {"provider": "anthropic", "price": (2.00, 10.00), "settings": {"effort": "low"}},
@@ -105,7 +106,9 @@ EST_JUDGE = 0.001
 # are billed as output by all three providers, so output_tokens includes them.
 
 def _openai(client, model, settings, system, messages):
-    # No max_tokens: run_eval.py and route.ts send none, so gpt-4o runs as it does there.
+    # gpt-4o's settings carry the same answer cap as run_eval.py and route.ts, so it
+    # runs as it does there. Other models keep their own limits: a site cap for a
+    # new model is set when it is chosen.
     t0, ttft, parts, usage = time.time(), None, [], None
     stream = client.chat.completions.create(
         model=model, stream=True, stream_options={"include_usage": True},
