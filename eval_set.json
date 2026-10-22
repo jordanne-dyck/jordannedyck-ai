@@ -41,6 +41,7 @@
   "questions": [
     { "id": "W01", "tag": "ws_core", "req": ["R1", "R6"],
       "q": "What has Jordanne owned end to end, and where did she take something from problem definition all the way to shipped?",
+      "regression_note": "Added 2026-10-22 from hybrid ff4d5612 run 1: 'she played a key role in DECIEM's decision to turn off ecommerce for Black Friday'. ops-008: 'Turning ecommerce off for Black Friday was the brand's statement against industry norms; my part was the digital side'. FAILURE if the answer credits her with the decision to turn ecommerce off, or with the campaign as a whole. Correct: she owned the digital side of a brand decision.",
       "expect": ["ops-002", "ecom-001", "ops-008", "shopper-001"] },
 
     { "id": "W02", "tag": "ws_core", "req": ["R2"],
@@ -53,14 +54,17 @@
 
     { "id": "W04", "tag": "ws_core", "req": ["R4"],
       "q": "How does Jordanne know whether something she shipped actually worked?",
+      "regression_note": "Added 2026-10-22 from hybrid ff4d5612 run 1: Virtual Shelf 'The utility of the tool was confirmed by increased customer engagement and better recommendations, showcasing its success'. Virtual Shelf is a working interactive prototype that had not launched when she left (shelf-001, promo-006). FAILURE if the answer gives Virtual Shelf any result, usage or success. See X15.",
       "expect": ["roadmap-002", "ops-005", "roadmap-003", "dtx-006"] },
 
     { "id": "W05", "tag": "ws_core", "req": ["R5"],
       "q": "Tell me about a time Jordanne told leadership something they didn't want to hear.",
+      "regression_note": "Added 2026-10-22: under every prompt run 2026-10-21/22, answers say the points-program recommendation led to a swift decision that stayed made ('allowing the group to make an informed decision swiftly and confidently'). ops-003 gives this only as a general principle ('Put the tradeoff on the table with the reasoning attached and a group can decide quickly and stay decided') and says nothing about how DECIEM's leadership reacted. FAILURE if the answer states how leadership reacted or how fast they decided. Correct: what she recommended, why, and what she built instead. KB wording proposal: nimbalyst-local/kb-wording-proposals-2026-10-22.md.",
       "expect": ["ops-003", "promo-002"] },
 
     { "id": "W06", "tag": "ws_core", "req": ["R6", "R15"],
       "q": "What is the most complex cross-functional initiative Jordanne has shipped, and who did she have to bring along?",
+      "regression_note": "Added 2026-10-22: under every prompt, answers move ops-008's stakeholders between projects: 'finance and investors' (the Black Friday case) or 'brand, lab, legal and regulatory' (Regimen Builder) attached to the Salesforce transformation. For Salesforce, dtx-007 names three rooms: finance, the CEO and Chief Brand Officer, and operations. FAILURE if a stakeholder group is attached to a project its chunk does not attach it to. KB wording proposal: nimbalyst-local/kb-wording-proposals-2026-10-22.md.",
       "expect": ["ops-008", "dtx-001", "dtx-004", "shopper-003", "regimen-001", "dtx-007", "service-004"] },
 
     { "id": "W07", "tag": "ws_core", "req": ["R7"],
@@ -82,6 +86,7 @@
 
     { "id": "W11", "tag": "ws_core", "req": ["R11"],
       "q": "How does Jordanne handle a problem where the data is messy, incomplete or contradictory?",
+      "regression_note": "Added 2026-10-22 from hybrid ff4d5612 run 2: 'Her work at DECIEM's digital innovation lab exemplifies this, as she built the architecture and operating playbook for the TikTok Shop'. ops-006 gives the lab and TikTok Shop as separate examples in adjacent sentences and does not say TikTok Shop came out of the lab. Whether it did is for Jord to confirm (nimbalyst-local/kb-wording-proposals-2026-10-22.md). Until a chunk says so, FAILURE if the answer states TikTok Shop was a lab project.",
       "expect": ["roadmap-002", "ops-006", "personality-004"] },
 
     { "id": "W12", "tag": "ws_core", "req": ["R12"],
@@ -98,6 +103,7 @@
 
     { "id": "W15", "tag": "ws_core", "req": ["R15"],
       "q": "What is Jordanne like as a leader when stakeholders disagree with each other?",
+      "regression_note": "Added 2026-10-22: hybrid runs attach 'brand, lab, legal and regulatory' to the Salesforce transformation (ops-008 gives them to Regimen Builder only), and say she 'guides stakeholders to consensus', where ops-008 says 'you will not finish with everyone happy'. FAILURE if a stakeholder group is moved to another project, or if the answer says she brings everyone to consensus or keeps everyone happy.",
       "expect": ["personality-002", "ops-007", "ops-003", "shopper-007", "ops-009"] },
 
     { "id": "D01", "tag": "domain", "req": ["R2", "R5"],
@@ -122,6 +128,7 @@
 
     { "id": "D06", "tag": "domain", "req": ["R6", "R11"],
       "q": "How has Jordanne handled peak trading events and systems under heavy load?",
+      "regression_note": "Added 2026-10-22 from hybrid ff4d5612 run 2: 'Her approach ensured the systems remained operational and efficient during these high-demand periods'. ecom-007 records that the contingency plans got used: 'One year a bug charged some customers incorrectly', and a hotfix went out. FAILURE if the answer claims peak periods ran without incident. Correct: the contingency plans existed and were used.",
       "expect": ["ecom-003", "ops-008", "ecom-007"] },
 
     { "id": "G01", "tag": "gap", "req": [],
@@ -174,6 +181,7 @@
 
     { "id": "C01", "tag": "consistency", "req": ["R5"], "runs": 3,
       "q": "Tell me about a time Jordanne told leadership something they didn't want to hear.",
+      "regression_note": "Added 2026-10-22: same defect as W05, in all three runs under every prompt ('enabled a swift and conclusive decision'; hybrid run 2 run 3 adds 'Her decision to stand firm'). ops-003 states the quick decision only as a general principle and records no pushback. FAILURE if any run states how leadership reacted, how fast they decided, or that she stood firm against pushback.",
       "expect": ["ops-003", "promo-002"],
       "consistency_note": "Same prompt as W05. Three runs at temperature 0.7 — do they name the same core evidence?" },
 
@@ -185,7 +193,7 @@
     { "id": "X02", "tag": "regression", "req": ["R4"],
       "q": "What measurable results has Jordanne delivered? Give me the numbers.",
       "expect": ["service-004", "regimen-004", "tiktok-003", "shopper-004", "pers-003", "ops-005", "roadmap-002"],
-      "regression_note": "Figure fidelity check. Every numeric claim in the answer must appear in the retrieved context." }
+      "regression_note": "Figure fidelity check. Every numeric claim in the answer must appear in the retrieved context. 2026-10-22: hybrid ff4d5612 run 2 said the 86% reduction in resolution time indicated 'significant improvements in efficiency and customer satisfaction'. ops-005 gives resolution time only. FAILURE if the answer attaches satisfaction, sentiment or any second outcome to the 86% figure." }
   ],
 
   "additive_cases_note": "Cases held OUTSIDE the 34-question series so the series stays comparable. run_eval.py and run_e2e.py read only 'questions', so nothing here runs until a deliberate decision moves it in. Per the DEFERRED entry in meta.expect_list_changes: add after the deploy, against the same index.",
