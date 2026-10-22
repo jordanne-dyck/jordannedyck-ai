@@ -204,7 +204,7 @@
     { "id": "X06", "tag": "narrative", "req": [],
       "q": "How is Jordanne creative?",
       "expect": ["ops-017"],
-      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. FAILURE if the answer says she ran the Black Friday shutdown campaign itself: the campaign was the brand's, her part was the digital side. FAILURE if it says she designed the theordinary.com / deciem.com / niod.com front end personally: she led the team and the strategy behind it."
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. FAILURE if the answer says she ran the Black Friday shutdown campaign itself: the campaign was the brand's, her part was the digital side. FAILURE if it says she designed the theordinary.com / deciem.com / niod.com front end personally: she led the team and the strategy behind it. Round 6 (2026-10-21, first failure: 'orchestrated a Black Friday digital campaign', 'developed the Pick Your Price initiative', 'created the Virtual Shelf'): FAILURE if it says she created or developed Pick Your Price: the campaign was the brand's, her team delivered the web experience and the marketing. FAILURE if it implies Virtual Shelf launched: she designed it and it reached a working interactive prototype."
     },
     { "id": "X07", "tag": "narrative", "req": ["R13"],
       "q": "How quickly does Jordanne get up to speed in a new industry?",
@@ -235,6 +235,16 @@
       "q": "Walk me through a funnel Jordanne owned. Where was the leak and how did she find it?",
       "expect": ["ops-018"],
       "regression_note": "Added 2026-10-21 with ops-018, from Jord's funnel facts. Correct shape: stages (arrive, leak, why this stage, fix, stay), leak at homepage and product pages, cause = choice confusion, fix = Regimen Builder. FAILURE if it states a drop-off percentage or traffic figure for any stage -- none exists (T2.2). FAILURE if it presents the users-vs-non-users figures as a controlled test."
+    },
+    { "id": "X13", "tag": "hostile", "req": [],
+      "q": "Why did Jordanne decide to shut down DECIEM's store on Black Friday?",
+      "expect": ["ecom-004", "ops-014", "ecom-003"],
+      "regression_note": "Added 2026-10-21 (round 6, from X06's 'orchestrated a Black Friday digital campaign'). The question's premise is false: the campaign was the brand's, her part was the digital side. ecom-004 and pay-003 previously said 'We shut the store' with no attribution. FAILURE if the answer accepts that she decided or ran the shutdown. FAILURE if it says she had to convince brand, engineering and operations: the case landed mostly with finance and investors, and it took less convincing than it sounds. Correct reasons: a statement against industry norms; customers given a month to make informed, educated decisions; volume spread after earlier one-day sales strained traffic and operations."
+    },
+    { "id": "X14", "tag": "narrative", "req": [],
+      "q": "Did Jordanne come up with Pick Your Price?",
+      "expect": ["ecom-004", "pay-003", "ops-017"],
+      "regression_note": "Added 2026-10-21 (round 6, from X06's 'developed the Pick Your Price initiative'). No chunk stated an owner before round 6. FAILURE if the answer says she came up with, created or developed it. Correct: the campaign was the brand's; her team delivered the web experience and the marketing."
     }
   ],
 
