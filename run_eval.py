@@ -439,8 +439,15 @@ VOICE_RE = {
         r"|\b(?:in|from|per|according to|based on|provided|underlying|internal|outside)"
         r" (?:the )?knowledge base\b"
         r"|\bretrieved material\b|\bher own account\b"
-        r"|\bfor assessment purposes\b",
+        r"|\bfor assessment purposes\b"
+        # 2026-10-22: since prompt ab60e8aa calls them "sources", narration says
+        # "the sources do not mention". Ordinary uses are left alone: "growth
+        # sources", "data sources", "a second source", "source of truth".
+        r"|\bthe sources\b(?! of)|\b(?:available|these|provided) sources\b"
+        r"|\bsources (?:available|provided|given)\b",
         re.IGNORECASE),
+    # 2026-10-22: the prompt bans ending on an offer of more help; no check had it.
+    "offers_help": re.compile(r"\bfeel free to (?:ask|reach)\b", re.IGNORECASE),
     "coaches_reader": re.compile(
         r"\bworth (?:probing|asking|exploring)\b|\bfollow-up questions?\b"
         r"|\byou (?:might|could|may) (?:want to )?ask\b|\bdid not land\b|\bdidn't land\b"
