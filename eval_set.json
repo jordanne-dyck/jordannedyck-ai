@@ -59,7 +59,7 @@
 
     { "id": "W05", "tag": "ws_core", "req": ["R5"],
       "q": "Tell me about a time Jordanne told leadership something they didn't want to hear.",
-      "regression_note": "Added 2026-10-22: under every prompt run 2026-10-21/22, answers say the points-program recommendation led to a swift decision that stayed made ('allowing the group to make an informed decision swiftly and confidently'). ops-003 gives this only as a general principle ('Put the tradeoff on the table with the reasoning attached and a group can decide quickly and stay decided') and says nothing about how DECIEM's leadership reacted. FAILURE if the answer states how leadership reacted or how fast they decided. Correct: what she recommended, why, and what she built instead. KB wording proposal: nimbalyst-local/kb-wording-proposals-2026-10-22.md.",
+      "regression_note": "Added 2026-10-22: under every prompt run 2026-10-21/22, answers say the points-program recommendation led to a swift decision that stayed made ('allowing the group to make an informed decision swiftly and confidently'). ops-003 gives this only as a general principle ('Put the tradeoff on the table with the reasoning attached and a group can decide quickly and stay decided') and says nothing about how DECIEM's leadership reacted. FAILURE if the answer says how fast they decided, that she met or overcame pushback, or that she stood firm. As of the KB round-7 edit, ops-003 says 'They agreed to go ahead as I recommended', so saying leadership agreed is now correct. Correct: what she recommended, why, that they agreed, and what she built instead. KB wording proposal: nimbalyst-local/kb-wording-proposals-2026-10-22.md.",
       "expect": ["ops-003", "promo-002"] },
 
     { "id": "W06", "tag": "ws_core", "req": ["R6", "R15"],
@@ -181,7 +181,7 @@
 
     { "id": "C01", "tag": "consistency", "req": ["R5"], "runs": 3,
       "q": "Tell me about a time Jordanne told leadership something they didn't want to hear.",
-      "regression_note": "Added 2026-10-22: same defect as W05, in all three runs under every prompt ('enabled a swift and conclusive decision'; hybrid run 2 run 3 adds 'Her decision to stand firm'). ops-003 states the quick decision only as a general principle and records no pushback. FAILURE if any run states how leadership reacted, how fast they decided, or that she stood firm against pushback.",
+      "regression_note": "Added 2026-10-22: same defect as W05, in all three runs under every prompt ('enabled a swift and conclusive decision'; hybrid run 2 run 3 adds 'Her decision to stand firm'). ops-003 states the quick decision only as a general principle and records no pushback. FAILURE if any run says how fast they decided, that she met or overcame pushback, or that she stood firm. Saying leadership agreed to her recommendation is correct as of the KB round-7 edit ('They agreed to go ahead as I recommended').",
       "expect": ["ops-003", "promo-002"],
       "consistency_note": "Same prompt as W05. Three runs at temperature 0.7 — do they name the same core evidence?" },
 
