@@ -660,10 +660,17 @@ def main():
                     help="run the multiturn cases (arm B) instead of the 34-question series")
     ap.add_argument("--source-format", choices=["document", "labelled"], default="document",
                     help="source layout; 'labelled' is the citation-drop test, not what route.ts sends")
+    ap.add_argument("--prompt-file",
+                    help="test only: use this prompt text (with {context}) instead of SYSTEM_PROMPT; "
+                         "not what route.ts sends")
     args = ap.parse_args()
-    global SOURCE_FORMAT
+    global SOURCE_FORMAT, SYSTEM_PROMPT, PROMPT_VERSION
     SOURCE_FORMAT = args.source_format
     print(f"source_format {SOURCE_FORMAT}")
+    if args.prompt_file:
+        SYSTEM_PROMPT = Path(args.prompt_file).read_text(encoding="utf-8")
+        PROMPT_VERSION = site_prompt_version(SYSTEM_PROMPT)
+        print(f"prompt_file {args.prompt_file}")
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     questions = spec["questions"]
