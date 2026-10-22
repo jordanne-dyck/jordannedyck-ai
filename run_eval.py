@@ -51,17 +51,17 @@ EVAL_SET = HERE / "eval_set.json"
 RESULTS = HERE / "eval_results.json"
 
 # How each retrieved chunk is laid out in the sources. "labelled" is the
-# layout to land in route.ts: id and title as labelled lines, with no relevance,
+# layout route.ts sends: id and title as labelled lines, with no relevance,
 # file path or category. On the same prompt text it cited better than
 # "document" (layout tests 2026-10-21/22, nimbalyst-local/prompt-draft-2026-10-21-notes.md).
 # "document" is the <document> layout from the ab60e8aa draft, kept for
 # comparison runs (--source-format document).
-# Until the web session lands it, route.ts still sends its old layout
-# (### Result N (Relevance), Chunk, Source, Category).
+# route.ts took this layout on 2026-10-22 (web branch feat/prompt-ff4d5612),
+# with prompt ff4d5612.
 SOURCE_FORMAT = "labelled"
 
-# Answer length cap, sent as max_tokens. Mirrors maxTokens in route.ts's
-# streamText call once the web session lands it (security review item 2).
+# Answer length cap, sent as max_tokens. Mirrors maxTokens: 1000 in route.ts's
+# streamText call (security review item 2, merged in web PR #25).
 # Longest stored gpt-4o answer, 978 answers checked 2026-10-22: 550 tokens (D02).
 ANSWER_MAX_TOKENS = 1000
 
@@ -73,8 +73,8 @@ ANSWER_MAX_TOKENS = 1000
 # ab60e8aa); lib/system-prompt.ts takes the same text in the web session.
 # Replaced 2026-10-22 with nimbalyst-local/prompt-hybrid-2026-10-22.txt verbatim
 # (version ff4d5612): f138f843's skeleton with ab60e8aa's decided content; it
-# restores citations (prompt-draft-2026-10-21-notes.md). Until the web session
-# lands it, lib/system-prompt.ts still holds f138f843.
+# restores citations (prompt-draft-2026-10-21-notes.md). lib/system-prompt.ts
+# took the same text on 2026-10-22 (web branch feat/prompt-ff4d5612).
 SYSTEM_PROMPT = """You are an AI assistant answering questions about Jordanne Dyck for product leaders assessing her for a role. Represent her record accurately. A reader should finish an answer knowing what she did and what followed from it.
 
 # CORE POSITIONING
