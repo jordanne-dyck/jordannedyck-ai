@@ -1,0 +1,18 @@
+#!/bin/sh
+# Post-commit hook for the local-only git repo in knowledge-base\.
+# Enabled with: git -C knowledge-base config core.hooksPath ../scripts/kb-hooks
+# Committing is the approval to reindex. Put [no-reindex] in the message to skip.
+# Add "expect: <phrase>" lines to the message to check new text reached the index.
+
+if git log -1 --format=%B | grep -q '\[no-reindex\]'; then
+  echo "[kb-hook] [no-reindex] in message, skipping reindex"
+  exit 0
+fi
+
+if ! git diff-tree --root --no-commit-id --name-only -r HEAD | grep -q '\.md$'; then
+  echo "[kb-hook] no .md files in this commit, skipping reindex"
+  exit 0
+fi
+
+commit=$(git rev-parse --short HEAD)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(git rev-parse --show-toplevel)/../scripts/reindex.ps1" -Commit "$commit"

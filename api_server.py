@@ -9,7 +9,6 @@ import faiss
 import numpy as np
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
-from flask_cors import CORS
 from openai import (
     APIConnectionError,
     APIStatusError,
@@ -21,7 +20,16 @@ from openai import (
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+# No CORS. Every caller of /search is server-side (route.ts, the eval runners,
+# eval-candidates.mjs), so no browser needs cross-origin access. CORS(app) was
+# open to all origins. Security review 2026-10-20, item 8.
+
+# Request bounds for /search. MAX_QUERY_CHARS matches MAX_USER_MESSAGE_CHARS in
+# jordannedyck-ai-web/lib/chat-input.ts. MAX_N_RESULTS leaves headroom over the
+# largest caller (eval-candidates.mjs asks for 10). Each query is one paid
+# embedding call, so an unbounded query is a cost path.
+MAX_QUERY_CHARS = 2000
+MAX_N_RESULTS = 20
 
 # Initialize OpenAI
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -118,9 +126,18 @@ PRIORITY_BOOST_RETIRED = {"critical": 1.06, "high": 1.03, "medium": 1.0, "low": 
 
 @app.route('/search', methods=['POST'])
 def search():
-    data = request.json
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'body must be a JSON object'}), 400
     query = data.get('query', '')
     n_results = data.get('n_results', 5)
+    if not isinstance(query, str) or not query.strip():
+        return jsonify({'error': 'query must be a non-empty string'}), 400
+    if len(query) > MAX_QUERY_CHARS:
+        return jsonify({'error': f'query longer than {MAX_QUERY_CHARS} characters'}), 400
+    # bool is a subclass of int, so True would otherwise pass as 1.
+    if isinstance(n_results, bool) or not isinstance(n_results, int) or not 1 <= n_results <= MAX_N_RESULTS:
+        return jsonify({'error': f'n_results must be an integer from 1 to {MAX_N_RESULTS}'}), 400
 
     # Get embedding and rank the FULL corpus.
     #

@@ -9,8 +9,15 @@ import yaml
 from dotenv import load_dotenv
 from openai import OpenAI
 
+# Paths resolve against THIS FILE, not the working directory, same as
+# api_server.py. The relative form wrote faiss_db/ into whatever folder the
+# script was launched from. metadata['filename'] stays relative to the repo
+# root, byte-identical to what the relative form wrote.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+FAISS_DB = PROJECT_ROOT / "faiss_db"
+
 # Load environment variables
-load_dotenv()
+load_dotenv(PROJECT_ROOT / ".env")
 
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -156,7 +163,7 @@ def chunk_file_without_markers(content, file_meta):
 
 # ─── Main ───
 
-knowledge_base_path = Path("knowledge-base")
+knowledge_base_path = PROJECT_ROOT / "knowledge-base"
 documents = []
 metadatas = []
 embeddings_list = []
@@ -180,7 +187,7 @@ for md_file in sorted(knowledge_base_path.rglob("*.md")):
     # Extract file-level metadata
     frontmatter = parse_file_frontmatter(content)
     file_meta = {
-        "filename": str(md_file),
+        "filename": str(md_file.relative_to(PROJECT_ROOT)),
         "category": md_file.parent.name,
         "title": frontmatter.get("title", md_file.stem),
     }
@@ -216,14 +223,14 @@ index = faiss.IndexFlatL2(dimension)
 index.add(embeddings_array)
 
 # Save everything
-os.makedirs("faiss_db", exist_ok=True)
-faiss.write_index(index, "faiss_db/resume.index")
+os.makedirs(FAISS_DB, exist_ok=True)
+faiss.write_index(index, str(FAISS_DB / "resume.index"))
 
-with open("faiss_db/documents.pkl", "wb") as f:
+with open(FAISS_DB / "documents.pkl", "wb") as f:
     pickle.dump(documents, f)
 
-with open("faiss_db/metadatas.pkl", "wb") as f:
+with open(FAISS_DB / "metadatas.pkl", "wb") as f:
     pickle.dump(metadatas, f)
 
 print(f"\nSuccessfully embedded {len(documents)} chunks from {file_count} files ({skipped_count} skipped)")
-print("Index saved to faiss_db/")
+print(f"Index saved to {FAISS_DB}")

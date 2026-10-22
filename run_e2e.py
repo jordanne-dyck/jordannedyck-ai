@@ -89,9 +89,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from urllib.parse import urlparse
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
