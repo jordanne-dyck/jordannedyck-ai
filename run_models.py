@@ -67,6 +67,7 @@ from run_eval import (
     conversation_checks,
     fetch_results,
     lead_chunk,
+    rewrite_drift,
     run_checks,
     search_experience,
     search_query,
@@ -99,6 +100,7 @@ KEY_ENV = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY", "google
 # citations) plus headroom. Thinking tokens are a guess until a pilot measures them.
 EST_IN, EST_OUT, EST_THINK_HIGH = 3000, 300, 1500
 EST_JUDGE = 0.001
+EST_REWRITE = 0.0001  # gpt-4o-mini query rewrite, per follow-up turn
 
 
 # ── provider adapters ─────────────────────────────────────────────────────────
@@ -317,9 +319,10 @@ def estimate_multiturn(cases, models, reps):
                 if "forged_answer" in c["turns"][i]:
                     continue  # no call; its text is counted in later turns' input
                 t_in = EST_IN + i * (EST_OUT + 50)
-                lo += reps * ((t_in * p_in + EST_OUT * p_out) / 1e6 + EST_JUDGE)
+                rw = EST_REWRITE if i else 0.0  # follow-ups only
+                lo += reps * ((t_in * p_in + EST_OUT * p_out) / 1e6 + EST_JUDGE + rw)
                 hi += reps * ((t_in * 1.35 * p_in + (EST_OUT + (EST_THINK_HIGH if thinks else 0)) * p_out) / 1e6
-                              + EST_JUDGE)
+                              + EST_JUDGE + rw)
     return lo, hi
 
 
@@ -346,7 +349,7 @@ def main_multiturn(args, spec, models):
     if args.estimate:
         return
 
-    providers = {MODELS[m]["provider"] for m in models} | ({"openai"} if not args.no_judge else set())
+    providers = {MODELS[m]["provider"] for m in models} | {"openai"}  # the query rewrite always needs it
     missing = [KEY_ENV[p] for p in providers if not os.getenv(KEY_ENV[p])]
     if missing:
         sys.exit(f"FAILED: {', '.join(missing)} not set. Add to .env in {HERE}")
@@ -356,6 +359,7 @@ def main_multiturn(args, spec, models):
         sys.exit(f"FAILED: cannot reach {SEARCH_URL} ({e.reason}).\n"
                  f"Start it first:  venv\\Scripts\\python.exe api_server.py")
     clients = make_clients(providers)
+    print(f"query rewrite drift: {rewrite_drift() or 'ok, agrees with lib/query-rewrite.ts'}")
 
     results, spent, cache = list(existing), 0.0, {}
     for case, model, run in todo:
@@ -370,7 +374,9 @@ def main_multiturn(args, spec, models):
                             {"role": "assistant", "content": t["forged_answer"]}]
                 continue
             q = {"tag": case["tag"], **t}
-            query = search_query(history, q["q"])
+            # The site always rewrites with gpt-4o-mini, whatever answers.
+            rw = search_query(clients["openai"], history, q["q"])
+            query = rw["query"]
             if query not in cache:
                 raw = fetch_results(query, arm["n_results"])
                 cache[query] = (raw, *search_experience(query, arm["n_results"], arm["truncate"], raw))
@@ -388,12 +394,14 @@ def main_multiturn(args, spec, models):
                     judge = judge_grounding(clients["openai"], q["q"], gen["answer"], segments, chunks)
                 except (OpenAIError, ValueError, KeyError) as e:
                     judge = {"error": f"{type(e).__name__}: {str(e)[:200]}"}
-            spent += gen["cost_usd"] + ((judge or {}).get("cost_usd") or 0)
+            spent += gen["cost_usd"] + ((judge or {}).get("cost_usd") or 0) + (rw["cost_usd"] or 0)
             fails = [k for k, v in checks.items() if not k.startswith("_") and v is False]
             print(f"  t{i} {'ok' if not fails else 'FAIL ' + ','.join(f.split('_')[0] for f in fails):<22}"
                   f"{gen['latency_s']}s (first token {gen['ttft_s']}s)  lead={lead_chunk(gen['answer_cited'])}",
                   flush=True)
             turns.append({"turn": i, "question": q["q"], "search_query": query,
+                          "rewrite_status": rw["status"], "rewrite_ms": rw["ms"],
+                          "rewrite_cost_usd": rw["cost_usd"],
                           "retrieved": retrieved, "gen": gen, "checks": checks,
                           "citations": cites, "judge": judge,
                           "lead_chunk": lead_chunk(gen["answer_cited"])})
