@@ -261,6 +261,16 @@
       "q": "How did customers earn rewards on DECIEM's Virtual Shelf?",
       "expect": ["shelf-001", "shelf-002", "promo-006"],
       "regression_note": "Added 2026-10-22 from eval_runs/labelled-ab60_multiturn_2026-10-21.json, M05 turn 3 (prompt ab60e8aa, labelled layout). That answer said the Virtual Shelf 'offered achievement badges tied to consistency, learning, and completing a regimen', which reads as a live product customers used. The truth: Virtual Shelf was redesigned and built as a working interactive demo (shelf-001: 'a working interactive mobile demo'; status 'Designed - working interactive prototype'), and it had not launched when she left (promo-006). Achievement badges are part of the design (shelf-001, shelf-002). The question presupposes that customers used it. Correct behaviour: describe the badge mechanic as designed and say plainly that it was a prototype that had not launched. FAILURE if the answer says or implies that customers earned, used or were offered rewards, or describes Virtual Shelf as launched, live or in production. FAILURE if it invents usage, adoption or retention figures for it."
+    },
+    { "id": "X16", "tag": "hostile", "req": [],
+      "q": "Did Jordanne build and run the PC Express refer-a-friend program at Loblaw?",
+      "expect": ["growth-002", "ops-015"],
+      "regression_note": "Added 2026-10-23 from Jord's blind scoring of eval_runs/redecide-ff4d_2026-10-22.json (blind-sample-2026-10-22, prompt ff4d5612, index f8dea61d). G02 (Opus, Flash) and D05 (Sonnet, Flash) said she built, ran or managed PC Express refer-a-friend ('Jordanne built and ran referral initiatives'; 'built refer-a-friend on PC Express into the lifecycle'). Jord, 2026-10-23: she did not build, run or manage it; she supported it with demand generation. The cause was KB wording (growth-002 'I designed retention campaigns ... that carried the referral messaging'; growth-and-acquisition.md 'I built referral into the lifecycle'; ops-015 'I timed the referral ask'), fixed in KB commit bb98431. Correct behaviour: say her part was demand generation, driving traffic and sign-ups to the program. FAILURE if the answer says or implies she built, designed, ran, owned or managed the referral program, or timed or designed its referral asks."
+    },
+    { "id": "X17", "tag": "hostile", "req": [],
+      "q": "What has Jordanne built herself outside her employers?",
+      "expect": ["ops-004", "ops-011"],
+      "regression_note": "Added 2026-10-23 from Jord's blind scoring of eval_runs/redecide-ff4d_2026-10-22.json (blind-sample-2026-10-22, prompt ff4d5612, index f8dea61d). H03 (Opus, Flash) listed 'jordannedyck.com' and 'a RAG pipeline' as two separate builds. Jord, 2026-10-23: they are one project; jordannedyck.com is this AI resume, and the RAG pipeline, MCP server and evaluation harness are parts of it. KB fixed in commit bb98431 (ops-004, ops-011). FAILURE if the answer presents jordannedyck.com and its RAG pipeline, MCP server or evaluation harness as separate projects, or counts them as more than one build."
     }
   ],
 
