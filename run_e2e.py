@@ -106,7 +106,10 @@ PROMPT_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "system-prompt.ts"
 INDEX_HEADER_BYTES = 45
 INDEX_BYTES_PER_VECTOR = 1536 * 4
 
-BANNED_NAMES = ["slowvember", "blackout friday"]
+# "slowvember" removed 2026-10-23: it is the campaign's name in the knowledge
+# base (growth-and-acquisition.md, how-i-operate.md, ecommerce-platform-and-
+# operations.md), and Jord confirmed it is fine to say publicly.
+BANNED_NAMES = ["blackout friday"]
 EMOJI_RE = re.compile(
     "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F000-\U0001F2FF\U0000FE0F\U00002B00-\U00002BFF]"
 )
