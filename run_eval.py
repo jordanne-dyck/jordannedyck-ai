@@ -577,7 +577,7 @@ _LEAD_ID = re.compile(_CITE_ID)
 # docs/query-rewrite-backend-mirror.md. Before that branch, route.ts searched on
 # the latest message alone; this runner did the same.
 REWRITE_MODEL = "gpt-4o-mini"
-REWRITE_TIMEOUT_S = 1.2
+REWRITE_TIMEOUT_S = 2.5  # 1.2 until 2026-10-23: always timed out from jordbot-dev (3/3 at ~1203 ms)
 REWRITE_MAX_TOKENS = 60
 REWRITE_PRIOR_QUESTIONS = 3
 REWRITE_REPLY_CHARS = 800
