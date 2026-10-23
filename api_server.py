@@ -42,8 +42,13 @@ openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # distinguishes the two - metadata['filename'] is a relative path baked in by
 # the embedder, so it is byte-identical in every copy of the index. The startup
 # line below is the only cheap way to see which index a running server holds.
+#
+# FAISS_DIR overrides the location. On the cluster it points at one immutable
+# version folder on the shared index volume, e.g. /faiss/kb-bb98431, and is
+# set in the deployment, so promoting an index is a PR. Unset, it is the repo's
+# own faiss_db/, as before.
 PROJECT_ROOT = Path(__file__).resolve().parent
-FAISS_DB = PROJECT_ROOT / "faiss_db"
+FAISS_DB = Path(os.getenv("FAISS_DIR") or PROJECT_ROOT / "faiss_db")
 index = faiss.read_index(str(FAISS_DB / "resume.index"))
 with open(FAISS_DB / "documents.pkl", "rb") as f:
     documents = pickle.load(f)
