@@ -41,16 +41,25 @@ WHAT THIS CANNOT DO — read before interpreting any output
     numbers are recorded; neither is labelled as a retrieval time.
 
 STREAM PROTOCOL
-    route.ts returns result.toDataStreamResponse() (ai ^4.3.19) — the AI SDK v4 data
-    stream protocol: newline-delimited `TYPE:JSON` parts. Text arrives as `0:"..."`,
-    finish metadata as `d:`/`e:` (carrying usage when sendUsage is on, which is the
-    library default), errors as `3:`.
+    Two protocols are read, because dev and prod change over at different times:
 
-    This runner's parser is written to that protocol, BUT the protocol has not been
-    observed on a real response from this route. Run --probe first. It sends ONE
-    question (~$0.01), writes the raw bytes to disk, prints the first lines, and
-    reports whether the parse produced text. Do not trust a full run's numbers until
-    a probe has confirmed the shape.
+    AI SDK v4 data stream (ai ^4.3.19, until the 2026-10-27 zod 4 / AI SDK migration):
+        newline-delimited `TYPE:JSON` parts. Text `0:"..."`, finish metadata `d:`/`e:`
+        (with usage), errors `3:`, message annotations `8:[...]`.
+    AI SDK UI message stream (ai ^7, after the migration): SSE, one
+        `data: {"type": ...}` event per line, ending `data: [DONE]`. Text
+        `text-delta`, errors `error` (errorText), `finish`. route.ts sends no usage
+        on this protocol, so tokens and cost exist only in chat_events.
+
+    Either way, requests with EMIT_RETRIEVAL or a monitor token also carry the
+    retrieval (v4 `8:` annotation type "retrieval"; UI stream `data-retrieval` part).
+    It is recorded when present. The checks below do not use it yet.
+
+    The protocol a record was parsed with is stored in stream.protocol. Run --probe
+    first on any target whose bundle changed. It sends ONE question (~$0.01), writes
+    the raw bytes to disk, prints the first lines, and reports whether the parse
+    produced text. Do not trust a full run's numbers until a probe has confirmed the
+    shape.
 
 PREREQUISITE FOR THE LOCAL TARGET
     route.ts calls checkRateLimit() -> pool.query() before generation and outside the
@@ -114,6 +123,9 @@ EMOJI_RE = re.compile(
     "[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F000-\U0001F2FF\U0000FE0F\U00002B00-\U00002BFF]"
 )
 PART_RE = re.compile(r"^([0-9a-z]):(.*)$", re.DOTALL)
+SSE_PREFIX = "data: "
+PROTOCOL_V4 = "data-stream-v4"
+PROTOCOL_UI = "ui-message-stream"
 
 
 # ----------------------------------------------------------------------------------
@@ -248,7 +260,9 @@ def build_stamp(args, source_system):
         "base_url": args.base_url,
         "timestamp": datetime.now(UTC).isoformat(),
         "runner": "run_e2e.py",
-        "transport": "http-datastream-v4",
+        # "http-datastream-v4" until 2026-10-27. The protocol actually parsed is
+        # per record, in stream.protocol.
+        "transport": "http-ai-sdk-stream",
         "turn_shape": "single-turn",  # divergence: the real UI posts full history
         "prompt_version": None,
         "prompt_md5": None,
@@ -366,9 +380,9 @@ def make_opener():
 
 def ask(opener, base_url, question, timeout, raw_sink=None):
     """
-    POST one question and read the data stream line by line.
+    POST one question and read the stream line by line.
 
-    readline() is deliberate: the AI SDK v4 protocol is newline-delimited, so a line
+    readline() is deliberate: both AI SDK protocols are newline-delimited, so a line
     boundary is the earliest point at which a text part can be timed. read(n) would
     block until n bytes and destroy the time-to-first-token measurement.
     """
@@ -386,7 +400,13 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
         "usage": None, "finish_reason": None,
         "ttfb_ms": None, "ttft_ms": None, "total_ms": None,
         "parts_seen": {}, "unparsed_lines": 0, "raw_bytes": 0,
+        "protocol": None, "retrieval": None,
     }
+
+    def text_part(value, now):
+        if out["ttft_ms"] is None:
+            out["ttft_ms"] = round((now - t0) * 1000)
+        out["answer"] += value
     t0 = time.perf_counter()
     try:
         resp = opener.open(req, timeout=timeout)
@@ -406,6 +426,7 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
     out["http_status"] = resp.status
     out["content_type"] = resp.headers.get("Content-Type")
     out["x_vercel_ai_data_stream"] = resp.headers.get("x-vercel-ai-data-stream")
+    out["x_vercel_ai_ui_message_stream"] = resp.headers.get("x-vercel-ai-ui-message-stream")
 
     with resp:
         while True:
@@ -422,9 +443,41 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
             out["raw_bytes"] += len(line)
             if raw_sink is not None:
                 raw_sink.write(line)
-            text = line.decode("utf-8", errors="replace").rstrip("\n")
+            text = line.decode("utf-8", errors="replace").rstrip("\r\n")
             if not text:
                 continue
+
+            # AI SDK UI message stream (SSE): data: {"type": ...}
+            if text.startswith(SSE_PREFIX):
+                payload = text[len(SSE_PREFIX):]
+                if payload == "[DONE]":
+                    continue
+                try:
+                    part = json.loads(payload)
+                except json.JSONDecodeError:
+                    out["unparsed_lines"] += 1
+                    continue
+                if not isinstance(part, dict):
+                    out["unparsed_lines"] += 1
+                    continue
+                out["protocol"] = out["protocol"] or PROTOCOL_UI
+                kind = str(part.get("type"))
+                out["parts_seen"][kind] = out["parts_seen"].get(kind, 0) + 1
+                if kind == "text-delta" and isinstance(part.get("delta"), str):
+                    text_part(part["delta"], now)
+                elif kind == "error":
+                    out["stream_error"] = str(part.get("errorText"))
+                elif kind == "data-retrieval" and isinstance(part.get("data"), dict):
+                    out["retrieval"] = part["data"]
+                elif kind == "finish":
+                    if part.get("finishReason"):
+                        out["finish_reason"] = part["finishReason"]
+                    meta = part.get("messageMetadata")
+                    if isinstance(meta, dict) and meta.get("usage"):
+                        out["usage"] = meta["usage"]
+                continue
+
+            # AI SDK v4 data stream: TYPE:JSON
             m = PART_RE.match(text)
             if not m:
                 out["unparsed_lines"] += 1
@@ -436,12 +489,15 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
             except json.JSONDecodeError:
                 out["unparsed_lines"] += 1
                 continue
+            out["protocol"] = out["protocol"] or PROTOCOL_V4
             if kind == "0" and isinstance(value, str):
-                if out["ttft_ms"] is None:
-                    out["ttft_ms"] = round((now - t0) * 1000)
-                out["answer"] += value
+                text_part(value, now)
             elif kind == "3":
                 out["stream_error"] = str(value)
+            elif kind == "8" and isinstance(value, list):
+                for a in value:
+                    if isinstance(a, dict) and a.get("type") == "retrieval":
+                        out["retrieval"] = {k: v for k, v in a.items() if k != "type"}
             elif kind in ("d", "e") and isinstance(value, dict):
                 if value.get("usage"):
                     out["usage"] = value["usage"]
@@ -636,11 +692,15 @@ def main():
                 "usage": res["usage"],
                 "finish_reason": res["finish_reason"],
                 "stream": {
+                    "protocol": res["protocol"],
                     "parts_seen": res["parts_seen"], "unparsed_lines": res["unparsed_lines"],
                     "raw_bytes": res["raw_bytes"],
                     "content_type": res.get("content_type"),
                     "x_vercel_ai_data_stream": res.get("x_vercel_ai_data_stream"),
+                    "x_vercel_ai_ui_message_stream": res.get("x_vercel_ai_ui_message_stream"),
                 },
+                # Only sent with EMIT_RETRIEVAL or a monitor token; None otherwise.
+                "retrieval": res["retrieval"],
                 "checks": check_answer(harness, q, res),
                 "stamp": stamp,
             }
@@ -696,9 +756,12 @@ def main():
         print(f"raw stream    : {raw_path}")
         r = results[-1]
         print("\nPROBE VERDICT")
+        protocol = r["stream"]["protocol"]
         print(f"  http status            : {r['http_status']}")
         print(f"  content-type           : {r['stream']['content_type']}")
+        print(f"  protocol               : {protocol or 'NONE RECOGNISED'}")
         print(f"  x-vercel-ai-data-stream: {r['stream']['x_vercel_ai_data_stream']}")
+        print(f"  x-vercel-ai-ui-message-stream: {r['stream']['x_vercel_ai_ui_message_stream']}")
         print(f"  parts seen             : {r['stream']['parts_seen'] or 'NONE'}")
         print(f"  unparsed lines         : {r['stream']['unparsed_lines']}")
         print(f"  answer chars           : {len(r['answer'])}")
@@ -711,14 +774,21 @@ def main():
                   "text comes back.")
         else:
             caveats = []
-            if not any(k in parts for k in ("d", "e")):
+            if protocol == PROTOCOL_UI:
+                if "finish" not in parts:
+                    caveats.append(
+                        "No finish event arrived, so a truncated stream is indistinguishable "
+                        "from a\n    complete answer. Read short answers rather than trusting "
+                        "the character count."
+                    )
+            elif not any(k in parts for k in ("d", "e")):
                 caveats.append(
                     "No finish part (d:/e:) arrived. This target streams an OLDER protocol than the "
                     "local\n    bundle's ai ^4.3.19 produces. Consequences: no token counts, no cost, "
                     "and no\n    finishReason — so a truncated stream is indistinguishable from a "
                     "complete answer.\n    Read short answers rather than trusting the character count."
                 )
-            if r["stream"]["x_vercel_ai_data_stream"] is None:
+            if protocol == PROTOCOL_V4 and r["stream"]["x_vercel_ai_data_stream"] is None:
                 caveats.append(
                     "No x-vercel-ai-data-stream header. Same root cause as above; recorded in the "
                     "result\n    so the stream's shape stands as evidence of which bundle answered."

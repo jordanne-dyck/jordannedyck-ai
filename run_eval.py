@@ -60,7 +60,8 @@ RESULTS = HERE / "eval_results.json"
 # with prompt ff4d5612.
 SOURCE_FORMAT = "labelled"
 
-# Answer length cap, sent as max_tokens. Mirrors maxTokens: 1000 in route.ts's
+# Answer length cap, sent as max_tokens. Mirrors maxTokens: 1000 (maxOutputTokens
+# after the AI SDK migration, 2026-10-27; same Chat Completions cap) in route.ts's
 # streamText call (security review item 2, merged in web PR #25).
 # Longest stored gpt-4o answer, 978 answers checked 2026-10-22: 550 tokens (D02).
 ANSWER_MAX_TOKENS = 1000
