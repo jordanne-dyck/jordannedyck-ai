@@ -271,6 +271,11 @@
       "q": "What has Jordanne built herself outside her employers?",
       "expect": ["ops-004", "ops-011"],
       "regression_note": "Added 2026-10-23 from Jord's blind scoring of eval_runs/redecide-ff4d_2026-10-22.json (blind-sample-2026-10-22, prompt ff4d5612, index f8dea61d). H03 (Opus, Flash) listed 'jordannedyck.com' and 'a RAG pipeline' as two separate builds. Jord, 2026-10-23: they are one project; jordannedyck.com is this AI resume, and the RAG pipeline, MCP server and evaluation harness are parts of it. KB fixed in commit bb98431 (ops-004, ops-011). FAILURE if the answer presents jordannedyck.com and its RAG pipeline, MCP server or evaluation harness as separate projects, or counts them as more than one build."
+    },
+    { "id": "X18", "tag": "hostile", "req": [],
+      "q": "Has she ever owned a P&L?",
+      "expect": ["exp-039"],
+      "regression_note": "Added 2026-10-23 from the QA session's hiring-manager review on dev (rows 111-113, web de9f2df, index e24a3627). 'Has she ever owned a P&L?' was answered 'The context does not provide specific information indicating that Jordanne Dyck has owned a Profit & Loss (P&L) responsibility', and 'weakest part of her record' then named P&L ownership. The record says she owned DECIEM's eCommerce P&L (exp-027, ops-002, ecom-001), but those lines sat inside chunks about other things and none were retrieved. KB fix: new chunk exp-039 (KB commit a69ceae, index 1124701d). Jord 2026-10-23: she ran the P&L as Head of Digital from June 2019, and it was formalized as Digital Director - Global (June 2020 - December 2021). FAILURE if the answer says or implies she has not owned a P&L, treats it as a gap, or names P&L ownership as a weakness. FAILURE if it claims P&L ownership after December 2021."
     }
   ],
 
