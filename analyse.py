@@ -33,7 +33,6 @@ import json
 import os
 import re
 import sys
-from pathlib import Path
 
 import bootstrap_ci as B
 import retrieval_scores as RS
@@ -324,8 +323,8 @@ def _v(v):
 def render(rep):
     """The report as text. The narrative is checked against this text."""
     r, p = rep["run"], rep["previous"]
-    o = [f"analysis of {r['date']} {r['label']} ({r['kind']}, {r['model'] or '-'}, arm {r['arm'] or '-'}, "
-         f"prompt {r['prompt_version'] or 'not recorded'}, {r['scope']}; run {r['run_id']})"]
+    o = [(f"analysis of {r['date']} {r['label']} ({r['kind']}, {r['model'] or '-'}, arm {r['arm'] or '-'}, "
+         f"prompt {r['prompt_version'] or 'not recorded'}, {r['scope']}; run {r['run_id']})")]
     o.append(f"compared with: {p['date']} {p['label']} (run {p['run_id']})" if p else "compared with: nothing")
     o += [f"note: {n}" for n in rep["notes"]]
     o.append("headline: " + ", ".join(f"{k} {_v(v)}" for k, v in (rep.get("headline") or {}).items()))
@@ -389,12 +388,12 @@ def decided_items(state=STATE, plan=PLAN):
     Rejected sections. A missing file gives nothing from it."""
     out = []
     if state.exists():
-        m = re.search(r"^decided:\n(.*?)^[a-z-]+:", state.read_text(encoding="utf-8"), re.S | re.M)
+        m = re.search(r"^decided:\n(.*?)^[a-z-]+:", state.read_text(encoding="utf-8"), re.DOTALL | re.MULTILINE)
         out += [("STATE decided", t) for t in _bullets(m.group(1))] if m else []
     if plan.exists():
         text = plan.read_text(encoding="utf-8")
         for head in ("Decided", "Rejected"):
-            m = re.search(rf"^## {head}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+            m = re.search(rf"^## {head}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.DOTALL | re.MULTILINE)
             out += [(f"plan {head}", t) for t in _bullets(m.group(1))] if m else []
     return out
 
@@ -482,7 +481,7 @@ def render_narrative(n):
 
 def next_id(log_text, date):
     d = date.replace("-", "")
-    nums = [int(n) for n in re.findall(rf"^### R-{d}-(\d\d)\b", log_text, re.M)]
+    nums = [int(n) for n in re.findall(rf"^### R-{d}-(\d\d)\b", log_text, re.MULTILINE)]
     return f"R-{d}-{max(nums, default=0) + 1:02d}"
 
 
@@ -508,10 +507,10 @@ def log_entry(rep, report_text, narr, entry_id, date, analysis_file):
         f"\n### {entry_id} · {title}\n",
         f"- date: {date}",
         "- repo: ai",
-        f"- question: What moved in \"{r['label']}\" ({r['date']}) against the last comparable run, and what "
-        "should be optimised next?",
-        f"- method: `analyse.py` (G.3). Paired bootstrap by question, 95% ranges, "
-        f"{rep['setup']['resamples']:,} resamples, seed {rep['setup']['seed']}.{method_n}",
+        (f"- question: What moved in \"{r['label']}\" ({r['date']}) against the last comparable run, and what "
+        "should be optimised next?"),
+        (f"- method: `analyse.py` (G.3). Paired bootstrap by question, 95% ranges, "
+        f"{rep['setup']['resamples']:,} resamples, seed {rep['setup']['seed']}.{method_n}"),
         "- numbers: all of them **[read]** from the run files by `analyse.py`.",
         *numbers,
         f"- decision: {decision}",
