@@ -383,6 +383,53 @@ with tempfile.TemporaryDirectory() as td:
                   path=hp, chart=None, out=out.append)
     check("record_run prints the headline block", "first token, follow-ups (2)" in out[0], True)
 
+print("\n--- bootstrap ranges (bootstrap_ci.py, plan A.7) ---")
+import bootstrap_ci as B
+def ans(qid, ok, run=1, model="m", **extra):
+    return {"id": qid, "model": model, "arm": "B", "run": run, "gen": g(1.0, 0.5, 0.01),
+            "checks": {"T1.1_response": ok, **extra}}
+# 10 questions, each run 3 times, outcome fixed per question: 5 pass, 5 fail.
+rep3 = RM.answer_rows([ans(f"Q{i}", i < 5, run=k) for i in range(10) for k in (1, 2, 3)])
+by_q = B.for_check(B.question_cells(rep3), "T1.1_response")
+by_a = B.for_check(B.question_cells(rep3, key=lambda r: (r["id"], r["run"])), "T1.1_response")
+rq, ra = B.bootstrap(by_q, resamples=2000), B.bootstrap(by_a, resamples=2000)
+check("question unit: 10 questions, answer unit: 30 answers", (rq["n"], ra["n"]), (10, 30))
+check("repeats moving together give a wider range by question than by answer",
+      rq["hi"] - rq["lo"] > ra["hi"] - ra["lo"], True)
+check("same seed, same range", B.bootstrap(by_q, resamples=500, seed=7), B.bootstrap(by_q, resamples=500, seed=7))
+check("different seed, different draws", list(B._draws(10, 5, 7)) != list(B._draws(10, 5, 8)), True)
+allpass = B.for_check(B.question_cells(RM.answer_rows([ans(f"Q{i}", True) for i in range(8)])), "T1.1_response")
+r = B.bootstrap(allpass, resamples=500)
+check("all pass: range is exactly 100-100%", (r["value"], r["lo"], r["hi"]), (1.0, 1.0, 1.0))
+check("all pass on 8 questions: rule-of-three floor 62%", B.no_spread(r).endswith("as low as 62%"), True)
+g0 = B.paired_gap(by_q, by_q, resamples=500)
+check("identical runs: gap exactly 0, verdict no gap", (g0["gap"], g0["lo"], g0["hi"], g0["verdict"]),
+      (0.0, 0.0, 0.0, "no gap"))
+better = {q: (1, 1) for q in by_q}
+gb = B.paired_gap(by_q, better, resamples=2000)
+check("50% -> 100% on 10 questions is outside the noise", (gb["gap"], gb["verdict"]), (0.5, "outside the noise"))
+one_flip = dict(by_q, Q5=(1, 1))
+check("one question flipping is inside the noise", B.paired_gap(by_q, one_flip, resamples=2000)["verdict"],
+      "inside the noise")
+check("float dust at zero is a zero bound, not outside the noise", B.verdict(8.9e-16, 0.9), "inside the noise")
+check("gap uses only questions both sides have", B.paired_gap(by_q, {"Q0": (1, 1), "QX": (0, 1)},
+      resamples=100)["n"], 1)
+# The point value is the headline's rate: a check that does not apply stays out.
+mixed = RM.answer_rows([ans("Q0", True, T2_3=None), ans("Q1", False, T2_3=True), ans("Q1", True, run=2)])
+cells = B.question_cells(mixed)
+check("cells count per question via pass_counts; ALL matches summarise",
+      (cells["Q1"]["T1.1_response"], round(B.bootstrap(B.for_check(cells, B.ALL), resamples=100)["value"], 3)),
+      ([1, 2], RM.summarise(mixed)["all_checks_pass_rate"]))
+check("a check that does not apply to a question leaves it out", B.for_check(cells, "T2_3"), {"Q1": (1, 1)})
+scores = [{"model": "x", "q": "W01", "D1": 5, "D2": 4, "D3": 3, "D4": 5, "D5": 3, "ship": 1},
+          {"model": "x", "q": "W02", "D1": 4, "D2": 4, "D3": 4, "D4": 4, "D5": 4, "ship": 0},
+          {"model": "y", "qid": "W01", "D1": 5, "D2": 5, "D3": 5, "D4": 5, "D5": 5, "ship": True}]
+bc = B.blind_cells(scores)
+check("blind: per-item mean of D1-D5, both key shapes", (bc["x"]["score"], bc["y"]["score"]),
+      ({"W01": [4.0, 1], "W02": [4.0, 1]}, {"W01": [5.0, 1]}))
+check("blind: ship from 0/1 and from true/false",
+      B.bootstrap(bc["x"]["ship"], resamples=100)["value"], 0.5)
+
 print("\n--- run_eval.generate streams, times each attempt ---")
 class _D:  # stands in for the OpenAI SDK's chunk objects
     def __init__(self, **kw): self.__dict__.update(kw)
