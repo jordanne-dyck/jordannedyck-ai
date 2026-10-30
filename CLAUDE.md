@@ -3,7 +3,7 @@
 Flask backend for jordbot. Serves FAISS-powered RAG queries at `/search` (port 5000).
 
 **Full development and deployment instructions are in the companion repo:**
-`/home/peter/workdir/jordannedyck-ai-web/CLAUDE.md`
+`../jordannedyck-ai-web/CLAUDE.md` — the sibling checkout, next to this repo on every machine (`C:\Users\Jord\jordannedyck-ai-web\CLAUDE.md` on Jord's, `/home/peter/workdir/jordannedyck-ai-web/CLAUDE.md` on Peter's)
 
 Read that file before taking any action involving builds, cluster resources, or deployment.
 
