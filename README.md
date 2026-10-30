@@ -37,12 +37,12 @@ The harness answers one question before anything ships: is this version better, 
 
 ### The eval set
 
-[`eval_set.json`](eval_set.json) holds 72 cases:
+[`eval_set.json`](eval_set.json) holds 73 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
 | Core questions | 34 | The questions a hiring manager actually asks, each mapped to a requirement (R1–R15) from a real Staff PM posting at Wealthsimple |
-| Regression cases | 16 | One per defect found in testing, each with a note saying what went wrong and what a correct answer looks like |
+| Regression cases | 17 | One per defect found in testing, each with a note saying what went wrong and what a correct answer looks like |
 | Multi-turn conversations | 7 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
 | Role-theme cases | 15 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one. Two more extend the Wealthsimple track. Not scored yet |
 

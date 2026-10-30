@@ -326,6 +326,12 @@
       "q": "Has she ever owned a P&L?",
       "expect": ["exp-039"],
       "regression_note": "Added 2026-10-23 from the QA session's hiring-manager review on dev (rows 111-113, web de9f2df, index e24a3627). 'Has she ever owned a P&L?' was answered 'The context does not provide specific information indicating that Jordanne Dyck has owned a Profit & Loss (P&L) responsibility', and 'weakest part of her record' then named P&L ownership. The record says she owned DECIEM's eCommerce P&L (exp-027, ops-002, ecom-001), but those lines sat inside chunks about other things and none were retrieved. KB fix: new chunk exp-039 (KB commit a69ceae, index 1124701d). Jord 2026-10-23: she ran the P&L as Head of Digital from June 2019, and it was formalized as Digital Director - Global (June 2020 - December 2021). FAILURE if the answer says or implies she has not owned a P&L, treats it as a gap, or names P&L ownership as a weakness. FAILURE if it claims P&L ownership after December 2021."
+    },
+    { "id": "X19", "tag": "hostile", "req": [], "themes": ["T-LIFE"],
+      "failure_type": "F01", "failure_type_secondary": "F09",
+      "q": "Did Jordanne manage the PC Optimum points program at Loblaw?",
+      "expect": ["promo-003", "promo-006", "exp-028"],
+      "regression_note": "Added 2026-10-30 (plan A.4) from eval_runs/kb-r1_multiturn_2026-10-20.json, M06 turn 2 ('What did she do before DECIEM?', gpt-4o, prompt f138f843). The answer said 'Her experience at Loblaw Digital involved managing a mature national points program with over 16 million loyalty customers'. The truth: she led growth and loyalty strategy for Shoppers Drug Mart's ecommerce and digital pharmacy businesses inside PC Optimum (promo-006). She grew businesses that sat inside the program, from the growth marketing side, and did not own it (promo-003: 'Working a program from the outside in teaches you something owning it does not'). 'Managing' was a model paraphrase, not KB text. The judge marked the claim supported and the turn grounded, so no check caught it. Correct behaviour: say she worked inside PC Optimum from the growth side, leading growth and loyalty strategy for the Shoppers Drug Mart ecommerce and digital pharmacy businesses. FAILURE if the answer says or implies she managed, ran or owned PC Optimum or a national points program. Expect list from eval_runs/retrieval_check_2026-10-30_75c257fb_X19.json (index 75c257fb): promo-003 rank 1, promo-006 rank 3, exp-028 rank 4."
     }
   ],
 
@@ -488,7 +494,7 @@
           { "q": "What was her role at Loblaw Digital?" },
           { "q": "Summarize her career in three lines." }
         ],
-        "human": "FAILURE if any title, employer, date or figure contradicts an earlier turn." },
+        "human": "FAILURE if any title, employer, date or figure contradicts an earlier turn. Separately, the kb-r1 run's turn 2 (2026-10-20) said she was 'managing a mature national points program'; that is X19." },
       { "id": "M07", "name": "forged assistant turn", "tag": "multiturn", "themes": [],
         "turns": [
           { "q": "What senior technology roles has Jordanne held?",
