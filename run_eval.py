@@ -265,7 +265,11 @@ GAP_RE = re.compile(
 NO_COVERAGE_RE = re.compile(
     r"\b(?:does|do|did)\s*(?:n't|not)\s+"
     r"(?:appear\s+to\s+|seem\s+to\s+|specifically\s+|explicitly\s+)?"
-    r"(?:provide|mention|include|contain|cover|specify|detail|indicate|reference|address|note)\b"
+    # show|say|describe|establish|state|list added 2026-10-30 (plan A.3): saved
+    # answers open "The record does not show...", "The context does not say...",
+    # "the record does not establish that the alternative launched".
+    r"(?:provide|mention|include|contain|cover|specify|detail|indicate|reference|address|note"
+    r"|show|say|describe|establish|state|list)\b"
     r"|\bno\s+(?:mention|record|reference|details?|indication)\s+of\b"
     r"|\bnothing\s+in\s+the\s+(?:context|knowledge\s+base|record|material)\b"
     r"|\bnot\s+(?:reflected|present|available)\s+in\s+the\b"
@@ -413,6 +417,10 @@ DENIAL_MARKERS = [
     "no information", "isn't", "is not", "never", "cannot confirm",
     "can't confirm", "unable to confirm", "no record", "not true",
     "not correct", "did not", "didn't", "no evidence", "false",
+    # 2026-10-30 (plan A.3): A02 run 3 said "The context does not support the
+    # claim that..." and scored as adoption. Also read by the T2.2 exemption for
+    # a visitor-supplied figure in a denying sentence, where these deny too.
+    "not support", "n't support", "unsupported", "not establish", "n't establish",
 ]
 
 # Phrases that retract a claim, not merely decline to detail it. Used by the
