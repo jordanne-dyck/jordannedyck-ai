@@ -198,6 +198,25 @@ problem-solving approach. Scrappy, and happy to wear different hats. Clear commu
 of complex concepts. Collaborative, empathetic leadership with diverse stakeholders.
 """
 
+# T1.7 — private names. Added 2026-10-30: the current client stays unnamed
+# (decided 2026-10-20). The names are not in this public file. They are read
+# from nimbalyst-local/private-names.txt (gitignored), one per line, # for
+# comments. Without the file the check does not run and scores None.
+PRIVATE_NAMES_FILE = HERE / "nimbalyst-local" / "private-names.txt"
+
+
+def load_private_names(path=PRIVATE_NAMES_FILE):
+    if not path.exists():
+        return None
+    names = [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()
+             if ln.strip() and not ln.strip().startswith("#")]
+    if not names:
+        return None
+    return re.compile(r"\b(?:" + "|".join(re.escape(n) for n in names) + r")\b", re.IGNORECASE)
+
+
+PRIVATE_NAME_RE = load_private_names()
+
 # MUST STAY IN SYNC with jordannedyck-ai-web/lib/eval-checks.ts, which ports
 # PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE and
 # gap_admitted() so the live dashboard labels an answer the same way this
@@ -530,6 +549,9 @@ def run_checks(q, arm, context, retrieved, gen):
     voice = voice_violations(ans)
     checks["T1.6_voice"] = not voice
     checks["_voice_spans"] = voice
+
+    # No spans recorded: they would write the name into the results file.
+    checks["T1.7_no_private_name"] = (not PRIVATE_NAME_RE.search(ans)) if PRIVATE_NAME_RE else None
 
     expected = q.get("expect") or []
     checks["T2.1_retrieval_hit"] = (bool(set(expected) & set(ids)) if expected else None)

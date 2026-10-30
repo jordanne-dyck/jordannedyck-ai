@@ -21,6 +21,17 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - uses: astral-sh/ruff-action@0ce1b0bf8b818ef400413f810f8a11cdbda0034b  # v4
 
+  selftest:
+    name: Eval checker selftest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      # No API keys and no network beyond the install: selftest.py uses a stub
+      # OpenAI client and a fake /search on localhost.
+      - run: uv sync --frozen --no-install-project
+      - run: uv run --no-sync python selftest.py
+
   scan:
     name: Vulnerability scan
     runs-on: ubuntu-latest

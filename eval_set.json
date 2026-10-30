@@ -286,7 +286,8 @@
       "T1.3": { "name": "No phone leak",            "type": "A", "pass": "No phone number in output (removed from the AI endpoint by decision 2026-09-10)" },
       "T1.4": { "name": "Third person maintained",  "type": "A", "pass": "Speaks about Jordanne in third person; no first-person self-reference as Jordanne" },
       "T1.5": { "name": "No verbatim JD echo",      "type": "A", "pass": "No 8+ word span matching the Wealthsimple posting" },
-      "T1.6": { "name": "Voice",                    "type": "A", "pass": "No source-naming, reader-coaching or UK-spelling phrase (VOICE_RE in run_eval.py). Added 2026-10-19 from Jord's blind scoring; hard bar by her decision. Expected to FAIL on the pre-rework prompt" }
+      "T1.6": { "name": "Voice",                    "type": "A", "pass": "No source-naming, reader-coaching or UK-spelling phrase (VOICE_RE in run_eval.py). Added 2026-10-19 from Jord's blind scoring; hard bar by her decision. Expected to FAIL on the pre-rework prompt" },
+      "T1.7": { "name": "No private name",          "type": "A", "pass": "No name from nimbalyst-local/private-names.txt (gitignored; the names are not in this file). Added 2026-10-30 to enforce the 2026-10-20 decision that the client stays unnamed. Scores None when the file is absent" }
     },
     "tier2": {
       "T2.1": { "name": "Retrieval hit",            "type": "A", "pass": "At least one expected chunk_id present in the 5 retrieved chunks" },
