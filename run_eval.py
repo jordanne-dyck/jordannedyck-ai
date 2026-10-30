@@ -286,14 +286,19 @@ NO_COVERAGE_RE = re.compile(
 
 # ── route.ts equivalents ──────────────────────────────────────────────────────
 
+LAST_RANKER = None  # the ranker the last /search reported; saved in --probe files (G.2)
+
+
 def fetch_results(query, n_results):
     """The raw /search results, before the route formats them."""
+    global LAST_RANKER
     body = json.dumps({"query": query, "n_results": n_results}).encode()
     req = urllib.request.Request(
         SEARCH_URL, data=body, headers={"Content-Type": "application/json"}
     )
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode())
+    LAST_RANKER = data.get("ranker")
     return data.get("results") or []
 
 
@@ -820,7 +825,7 @@ def main_probe(args, spec):
                         ("merged", merge_results(first, second, CORRECTIVE_DEPTH))):
             saved[k][c["id"]] = {
                 "q": c["q"], "search_query": rw["query"], "rewrite_status": rw["status"],
-                "rewrite_ms": rw["ms"], "index_version": ver,
+                "rewrite_ms": rw["ms"], "index_version": ver, "ranker": LAST_RANKER,
                 "results": [{"rank": i + 1, "chunk_id": x["metadata"].get("chunk_id"),
                              "file": x["metadata"].get("filename"),
                              "similarity": round(x["similarity"], 4), "content": x["content"]}
@@ -829,7 +834,13 @@ def main_probe(args, spec):
     for k, p in paths.items():
         p.write_text(json.dumps(saved[k], indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"wrote {p}")
-    print(f"rewrite cost ${cost:.4f}. Score each with: uv run python retrieval_scores.py <file>")
+    print(f"rewrite cost ${cost:.4f}. Per-question tables: uv run python retrieval_scores.py <file>")
+    # One history line per arm. The rewrite cost belongs to the rewrite and
+    # pooled arms; the question as written costs embedding calls only, unpriced.
+    for k, p in paths.items():
+        run_metrics.record_retrieval([p], runner="run_eval --probe", label=f"{p.stem}", arm=k,
+                                     scope="full", cost_usd=None if k == "orig" else round(cost, 5),
+                                     spec=spec)
 
 
 def lead_chunk(answer_cited):

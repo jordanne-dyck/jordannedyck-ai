@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 """
 Headline metrics for an eval run, and the committed results history
-(plan A.6 and A.9, 2026-10-30). Pure: reads results files, calls no API.
+(plan A.6 and A.9, 2026-10-30; retrieval and judge-agreement lines, G.2).
+Pure: reads results files, calls no API.
 
 Reads every results shape the runners write:
   - run_eval.py and run_models.py, single-turn: a list of answer records;
   - the same two with --multiturn: a list of conversations with "turns";
-  - run_e2e.py: {"meta": ..., "results": [...]}.
+  - run_e2e.py: {"meta": ..., "results": [...]};
+  - retrieval checks and run_eval.py --probe files, scored as retrieval_scores.py
+    scores them (kind "retrieval": recall@5, MRR@5, index, ranker).
+judge_agreement.py writes its own lines (kind "judge_agreement") through
+record_lines. History lines of every kind share run_id, date, runner, kind,
+label, source, scope and missing.
 
 Per answer it keeps latency, time to first token (TTFT), cost and every check
 result, so A.7 (bootstrap ranges) can resample answers rather than aggregates.
@@ -15,6 +21,7 @@ A value a run did not record stays None. Nothing is estimated.
 Usage (from C:\\Users\\Jord\\jordannedyck-ai):
     uv run python run_metrics.py eval_results.json            # print the headline block
     uv run python run_metrics.py FILE --append --label NAME   # also add it to the history
+    uv run python run_metrics.py CHECK.json [CHECK2.json] --append --label NAME   # a retrieval check
     uv run python run_metrics.py --backfill                   # history from eval_runs/
     uv run python run_metrics.py --chart                      # redraw eval_history/trend.svg
 """
@@ -239,20 +246,119 @@ def append_history(lines, path=HISTORY):
     return len(new)
 
 
-def record_run(data, *, runner, source, label, scope, path=HISTORY, chart=TREND, out=print):
-    """What a runner calls at the end: print the headline block per model and
-    arm, append to the history, redraw the chart."""
-    date = datetime.now(UTC).strftime("%Y-%m-%d")
-    lines = history_lines(data, runner=runner, source=source, label=label, date=date, scope=scope)
-    for ln in lines:
-        title = " ".join(str(x) for x in (ln["model"], f"arm {ln['arm']}" if ln["arm"] else None) if x)
-        out(headline(ln, title))
+def today():
+    return datetime.now(UTC).strftime("%Y-%m-%d")
+
+
+def record_lines(lines, *, path=HISTORY, chart=TREND, out=print):
+    """Appends lines of any kind and redraws the chart. Returns how many were added."""
     added = append_history(lines, path)
     if chart:
         write_trend(read_history(path), chart)
+    off = sorted({ln["scope"] for ln in lines if ln["scope"] != "full"} |
+                 {ln["kind"] for ln in lines if ln["kind"] not in CHART_KINDS})
     out(f"\nhistory: {added} line(s) added to {path.relative_to(HERE) if path.is_relative_to(HERE) else path}"
-        + ("" if scope == "full" else f" (scope {scope}: not on the trend chart)"))
+        + (f" ({', '.join(off)}: not on the trend chart)" if off else ""))
+    return added
+
+
+def record_run(data, *, runner, source, label, scope, path=HISTORY, chart=TREND, out=print):
+    """What a runner calls at the end: print the headline block per model and
+    arm, append to the history, redraw the chart."""
+    lines = history_lines(data, runner=runner, source=source, label=label, date=today(), scope=scope)
+    for ln in lines:
+        title = " ".join(str(x) for x in (ln["model"], f"arm {ln['arm']}" if ln["arm"] else None) if x)
+        out(headline(ln, title))
+    record_lines(lines, path=path, chart=chart, out=out)
     return lines
+
+
+# ── retrieval records (plan G.2) ──────────────────────────────────────────────
+# One line per retrieval check, scored by retrieval_scores.py. Scores depend on
+# the expect lists as well as the check, and those lists change, so each line
+# carries a fingerprint of them: compare retrieval lines only when it matches.
+
+def is_retrieval_check(data):
+    """The three shapes retrieval_scores.load_check reads."""
+    if isinstance(data, list):
+        return bool(data) and isinstance(data[0], dict) and "ids" in data[0] and "sims" in data[0]
+    if isinstance(data, dict) and data and "results" not in data:
+        v = next(iter(data.values()))
+        return isinstance(v, list) or (isinstance(v, dict) and "results" in v)
+    return False
+
+
+def expect_version(spec):
+    """Fingerprint of the expect lists retrieval_scores.py scores against."""
+    import retrieval_scores as RS
+    ex = {c["id"]: c.get("expect") or [] for c in RS.cases(spec)}
+    return hashlib.sha256(json.dumps(ex, sort_keys=True).encode()).hexdigest()[:8]
+
+
+def check_ranker(data):
+    """The ranker a check file records (saved since 2026-10-30, G.2), or None."""
+    rankers = {v.get("ranker") for v in data.values() if isinstance(v, dict)} if isinstance(data, dict) else set()
+    rankers.discard(None)
+    if len(rankers) > 1:
+        raise ValueError(f"more than one ranker in one check: {sorted(rankers)}")
+    return rankers.pop() if rankers else None
+
+
+def retrieval_line(paths, *, spec, runner, label, date, scope=None, arm=None, cost_usd=None):
+    """One history line for a retrieval check (one file, or several taken on
+    the same index and scored together). Values the files do not hold, such as
+    the ranker before G.2 or the probe's rewrite cost, stay None."""
+    import retrieval_scores as RS
+    check, versions, rankers = {}, set(), set()
+    for p in paths:
+        part, v = RS.load_check(p)
+        overlap = set(check) & set(part)
+        if overlap:
+            raise ValueError(f"question ids in more than one check file: {sorted(overlap)}")
+        check.update(part)
+        versions.add(v)
+        rankers.add(check_ranker(json.loads(Path(p).read_text(encoding="utf-8"))))
+    if len(versions) > 1:
+        raise ValueError(f"check files come from different indexes: {sorted(map(str, versions))}")
+    if len(rankers) > 1:
+        raise ValueError(f"check files come from different rankers: {sorted(map(str, rankers))}")
+    agg = RS.report(spec, check, out=lambda *a: None)
+    ev = expect_version(spec)
+    if scope is None:
+        scope = "partial" if agg["not_in_check"] else "full"
+    ln = {"run_id": hashlib.sha256(json.dumps({"check": check, "expect": ev}, sort_keys=True)
+                                   .encode()).hexdigest()[:12],
+          "date": date, "runner": runner, "kind": "retrieval", "label": label,
+          "source": " + ".join(Path(p).name for p in paths), "model": None, "arm": arm,
+          "prompt_version": None, "scope": scope,
+          "index_version": versions.pop(), "ranker": rankers.pop(), "expect_version": ev,
+          "k": agg["k"], "questions": len(check), "cases_scored": agg["n_scored"],
+          "mean_recall_at_5": _r(agg["mean_recall"], 3), "micro_recall_at_5": _r(agg["micro_recall"], 3),
+          "mrr_at_5": _r(agg["mrr"], 3), "zero_hit": agg["zero_hit"],
+          "not_in_check": len(agg["not_in_check"]), "cost_usd": cost_usd}
+    ln["missing"] = [k for k in ("index_version", "ranker", "mean_recall_at_5") if ln[k] is None]
+    return ln
+
+
+def retrieval_headline(ln):
+    def f(v):
+        return "n/a" if v is None else f"{v:.3f}"
+    return (f"\nretrieval — {ln['label']}  (index {ln['index_version'] or 'not recorded'}, "
+            f"ranker {ln['ranker'] or 'not recorded'}, expect lists {ln['expect_version']})\n"
+            f"  {ln['cases_scored']} cases scored of {ln['questions']} questions: mean recall@5 "
+            f"{f(ln['mean_recall_at_5'])}  micro {f(ln['micro_recall_at_5'])}  MRR@5 {f(ln['mrr_at_5'])}")
+
+
+def record_retrieval(paths, *, runner, label, scope=None, arm=None, cost_usd=None, spec=None,
+                     path=HISTORY, chart=TREND, out=print):
+    """What a retrieval check or probe calls once its check file is saved."""
+    if spec is None:
+        spec = json.loads((HERE / "eval_set.json").read_text(encoding="utf-8"))
+    ln = retrieval_line(paths, spec=spec, runner=runner, label=label, date=today(), scope=scope,
+                        arm=arm, cost_usd=cost_usd)
+    out(retrieval_headline(ln))
+    record_lines([ln], path=path, chart=chart, out=out)
+    return ln
 
 
 # ── backfill ──────────────────────────────────────────────────────────────────
@@ -287,26 +393,99 @@ BACKFILL = [
     ("redecide-ff4d_2026-10-22.json", "run_models", "re-decide ff4d", "full"),
     ("redecide-ff4d_multiturn_2026-10-22.json", "run_models", "re-decide ff4d", "full"),
     ("e2e-dev-e24a3627_2026-10-23.json", "run_e2e", "e2e dev e24a3627", "partial"),
+    # G.2, 2026-10-30: runs from 2026-10-23 to 2026-10-30. A name starting "../"
+    # is in the repo root. The spot-check and hybrid-d1 files are copies of
+    # eval_results*.json files the next run would overwrite; the spot checks hold
+    # no date, so theirs is the file's modified time. The e2e probes are one
+    # protocol-check answer each. The e2e _parts/ folder is left out: its
+    # answers are the attempts behind the merged file.
+    ("../eval_e2e_probe_dev_2026-10-23.json", "run_e2e", "e2e probe dev", "probe"),
+    ("e2e-dev-e24a3627_2026-10-23_additive-X16-X17.json", "run_e2e", "e2e dev e24a3627 X16-X17", "partial"),
+    ("spot-check-before_2026-10-23.json", "run_eval", "spot check before (date: file time)", "partial"),
+    ("spot-check_2026-10-23.json", "run_eval", "spot check (date: file time)", "partial"),
+    ("../eval_e2e_probe_local-route_2026-10-28.json", "run_e2e", "e2e probe local-route", "probe"),
+    ("hybrid-d1_2026-10-30.json", "run_eval", "ff4d5612 labelled", "full"),
+    ("hybrid-d1_multiturn_2026-10-30.json", "run_eval", "multiturn ff4d5612", "full"),
+]
+
+# Retrieval checks and probes, 2026-10-23 to 2026-10-30, scored against the
+# expect lists in eval_set.json now. None of these files records the ranker.
+# D.1's vector/hybrid checks were in a removed worktree and are not here.
+# The 10-23 checks hold 36 of the 50 cases the eval set had then: partial.
+# (files, label, scope, arm)
+RETRIEVAL_BACKFILL = [
+    (("retrieval_check_2026-10-23_e24a3627.json",), "retrieval dev e24a3627", "partial", None),
+    (("retrieval_check_2026-10-23_1124701d.json",), "retrieval dev 1124701d", "partial", None),
+    (("retrieval_check_2026-10-30_75c257fb.json", "retrieval_check_2026-10-30_75c257fb_X19.json"),
+     "retrieval baseline (A.1)", "full", None),
+    (("retrieval_check_2026-10-30_f5784094_X19.json",), "retrieval X19", "partial", None),
+    (("retrieval_check_2026-10-30_f5784094_X20-X23.json",), "retrieval X20-X23", "partial", None),
+    (("retrieval_check_2026-10-30_848efc4e_X21.json",), "retrieval X21", "partial", None),
+] + [((f"corrective_probe{v}_2026-10-30_848efc4e{n}_{arm}.json",), f"corrective probe {name}", "full", arm)
+     for v, n, name in (("", "", "v1"), ("", "_noname", "v1 name stripped"), ("_v2", "", "v2"))
+     for arm in ("orig", "rewrite", "merged")]
+
+# judge_agreement.py runs from 2026-10-30 (results log R-20261030-06 and -07):
+# the stored verdicts of both blind samples, and the 10-22 sample re-judged.
+# The 10-16 sample has no re-judge files. (KEY file, verdicts, date)
+JUDGE_BACKFILL = [
+    ("blind-sample-2026-10-16_KEY.json", None, "2026-10-30"),
+    ("blind-sample-2026-10-22_KEY.json", None, "2026-10-30"),
+    ("blind-sample-2026-10-22_KEY.json", "unfolded", "2026-10-30"),
+    ("blind-sample-2026-10-22_KEY.json", "folded", "2026-10-30"),
+    ("blind-sample-2026-10-22_KEY.json", "gap-wording-rejected", "2026-10-30"),
 ]
 
 
-def backfill(path=HISTORY, out=print):
+def backfill(path=HISTORY, out=print, runs=None, retrieval=None, judge=None, eval_runs=EVAL_RUNS, spec=None):
+    """Adds every saved run, retrieval check and judge-agreement run listed
+    above. Lines already in the history (same run_id) are skipped, so it can be
+    re-run."""
     added = 0
-    for name, runner, label, scope in BACKFILL:
-        src = EVAL_RUNS / name
+    for name, runner, label, scope in BACKFILL if runs is None else runs:
+        src = (eval_runs / name).resolve()
         if not src.exists():
             out(f"  missing  {name}")
             continue
         date = re.search(r"\d{4}-\d{2}-\d{2}", name).group(0)
         data = json.loads(src.read_text(encoding="utf-8"))
-        lines = history_lines(data, runner=runner, source=f"eval_runs/{name}", label=label,
-                              date=date, scope=scope)
+        source = src.relative_to(HERE).as_posix() if src.is_relative_to(HERE) else src.name
+        lines = history_lines(data, runner=runner, source=source, label=label, date=date, scope=scope)
         n = append_history(lines, path)
         added += n
         for ln in lines:
             out(f"  {date} {label:<20} {ln['kind']:<9} {ln['model']!s:<18} arm {ln['arm'] or '-'}  "
                 f"n={ln['answers']:<4} missing: {', '.join(ln['missing']) or 'none'}")
-    out(f"{added} line(s) added to {path.relative_to(HERE)}")
+    if spec is None:
+        spec = json.loads((HERE / "eval_set.json").read_text(encoding="utf-8"))
+    for names, label, scope, arm in RETRIEVAL_BACKFILL if retrieval is None else retrieval:
+        srcs = [eval_runs / n for n in names]
+        if not all(s.exists() for s in srcs):
+            out(f"  missing  {' + '.join(names)}")
+            continue
+        date = re.search(r"\d{4}-\d{2}-\d{2}", names[0]).group(0)
+        ln = retrieval_line(srcs, spec=spec, runner="retrieval_scores", label=label, date=date,
+                            scope=scope, arm=arm)
+        added += append_history([ln], path)
+        out(f"  {date} {label:<30} retrieval index {ln['index_version']}  n={ln['cases_scored']:<3} "
+            f"recall@5 {ln['mean_recall_at_5']}  MRR {ln['mrr_at_5']}")
+    import judge_agreement as JA  # imports bootstrap_ci, which imports this module
+    for key, verdicts, date in JUDGE_BACKFILL if judge is None else judge:
+        if not (eval_runs / key).exists():
+            out(f"  missing  {key}")
+            continue
+        rows, results = JA.load_sample(eval_runs / key, verdicts)
+        if rows is None:
+            out(f"  missing  re-judge files for {key} {verdicts}")
+            continue
+        if JA.history_run_id(rows, verdicts) in {h["run_id"] for h in read_history(path)}:
+            out(f"  {date} {key} {verdicts or 'stored'}: already in the history")
+            continue
+        ln = JA.history_line(eval_runs / key, verdicts, date=date, rows=rows, results=results)
+        added += append_history([ln], path)
+        out(f"  {date} {ln['label']:<40} rho vs D1 {ln['d1']['rho']}  kappa {ln['d1']['kappa']}")
+    out(f"{added} line(s) added to {path.relative_to(HERE) if path.is_relative_to(HERE) else path}")
+    return added
 
 
 # ── trend chart ───────────────────────────────────────────────────────────────
@@ -317,6 +496,7 @@ def backfill(path=HISTORY, out=print):
 SERIES = [("single", "gpt-4o, single-turn", "#2a78d6", "#3987e5"),
           ("multiturn", "gpt-4o, multi-turn", "#eb6834", "#d95926"),
           ("e2e", "site, end to end", "#1baf7a", "#199e70")]
+CHART_KINDS = {k for k, *_ in SERIES}  # retrieval and judge_agreement lines are not answer runs
 PANELS = [("all_checks_pass_rate", "Answers passing every check", lambda v: f"{v:.0%}"),
           ("latency_p95_s", "Latency, p95 (seconds)", lambda v: f"{v:.1f}"),
           ("cost_per_answer_usd", "Cost per answer (USD)", lambda v: f"${v:.4f}")]
@@ -324,7 +504,7 @@ PANELS = [("all_checks_pass_rate", "Answers passing every check", lambda v: f"{v
 
 def trend_points(history):
     """Full-scope lines for the answering model (gpt-4o) and e2e runs, in history order."""
-    pts = [h for h in history if h["scope"] == "full" and h["arm"] in ("B", None)
+    pts = [h for h in history if h["kind"] in CHART_KINDS and h["scope"] == "full" and h["arm"] in ("B", None)
            and (h["kind"] == "e2e" or h["model"] in ("gpt-4o", None))]
     return sorted(pts, key=lambda h: h["date"])  # stable: same-day runs keep their order
 
@@ -393,12 +573,18 @@ def write_trend(history, path=TREND):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[1])
-    ap.add_argument("file", nargs="?", type=Path, help="a results file from any runner")
+    ap.add_argument("files", nargs="*", type=Path,
+                    help="a results file from any runner, or one or more retrieval check files "
+                         "taken on the same index (scored together as one line)")
     ap.add_argument("--append", action="store_true", help="add the file's lines to the history")
     ap.add_argument("--label", help="history label (default: the file name)")
     ap.add_argument("--runner", default="manual")
-    ap.add_argument("--scope", choices=["full", "partial"], default="full")
-    ap.add_argument("--backfill", action="store_true", help="add the saved runs in eval_runs/")
+    ap.add_argument("--scope", choices=["full", "partial", "probe"],
+                    help="default: full for runs; for retrieval checks, partial when the check "
+                         "misses a case in eval_set.json")
+    ap.add_argument("--arm", help="retrieval checks: the probe arm (orig, rewrite, merged)")
+    ap.add_argument("--backfill", action="store_true",
+                    help="add the saved runs, retrieval checks and judge-agreement runs listed in BACKFILL")
     ap.add_argument("--chart", action="store_true", help="redraw the trend chart from the history")
     args = ap.parse_args()
     if args.backfill:
@@ -410,15 +596,26 @@ def main():
         write_trend(read_history())
         print(f"chart written to {TREND.relative_to(HERE)}")
         return
-    if not args.file:
+    if not args.files:
         sys.exit("give a results file, --backfill or --chart")
-    data = json.loads(args.file.read_text(encoding="utf-8"))
-    label = args.label or args.file.stem
+    datas = [json.loads(f.read_text(encoding="utf-8")) for f in args.files]
+    label = args.label or args.files[0].stem
+    if all(is_retrieval_check(d) for d in datas):
+        if args.append:
+            record_retrieval(args.files, runner=args.runner, label=label, scope=args.scope, arm=args.arm)
+        else:
+            spec = json.loads((HERE / "eval_set.json").read_text(encoding="utf-8"))
+            print(retrieval_headline(retrieval_line(args.files, spec=spec, runner=args.runner, label=label,
+                                                    date="-", scope=args.scope, arm=args.arm)))
+        return
+    if len(args.files) > 1:
+        sys.exit("give one results file at a time (several files only for retrieval checks)")
+    data, file, scope = datas[0], args.files[0], args.scope or "full"
     if args.append:
-        record_run(data, runner=args.runner, source=args.file.name, label=label, scope=args.scope)
+        record_run(data, runner=args.runner, source=file.name, label=label, scope=scope)
     else:
-        for ln in history_lines(data, runner=args.runner, source=args.file.name, label=label,
-                                date="-", scope=args.scope):
+        for ln in history_lines(data, runner=args.runner, source=file.name, label=label,
+                                date="-", scope=scope):
             print(headline(ln, " ".join(str(x) for x in (ln["model"], ln["arm"] and f"arm {ln['arm']}") if x)))
 
 

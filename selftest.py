@@ -422,6 +422,117 @@ with tempfile.TemporaryDirectory() as td:
                   path=hp, chart=None, out=out.append)
     check("record_run prints the headline block", "first token, follow-ups (2)" in out[0], True)
 
+print("\n--- retrieval and judge-agreement history lines (plan G.2) ---")
+import judge_agreement as JA
+with tempfile.TemporaryDirectory() as td:
+    td = RM.Path(td)
+    hp = td / "history.jsonl"
+    spec_g2 = {"questions": [{"id": "Q1", "q": "q1", "expect": ["a", "b"]}, {"id": "Q2", "q": "q2", "expect": ["c"]},
+                             {"id": "G1", "q": "g1", "expect": []}],
+               "additive_cases": [], "theme_cases": []}
+    def res(*ids):
+        return [{"rank": i + 1, "chunk_id": c, "similarity": 0.7 - i / 100, "content": "SECRET CHUNK TEXT"}
+                for i, c in enumerate(ids)]
+    new_shape = {"Q1": {"q": "q1", "index_version": "abcd1234", "ranker": "hybrid-x", "results": res("a", "z", "b")},
+                 "Q2": {"q": "q2", "index_version": "abcd1234", "ranker": "hybrid-x", "results": res("z", "c")},
+                 "G1": {"q": "g1", "index_version": "abcd1234", "ranker": "hybrid-x", "results": res("z")}}
+    cp = td / "check_abcd1234.json"
+    cp.write_text(json.dumps(new_shape), encoding="utf-8")
+    old = td / "retrieval_check_2026-10-23_1234abcd.json"
+    old.write_text(json.dumps([{"id": "Q1", "ids": ["z", "a"], "sims": [0.7, 0.6]}]), encoding="utf-8")
+    check("retrieval check files are told apart from results files",
+          [RM.is_retrieval_check(x) for x in (new_shape, json.loads(old.read_text()), {"W01": [["a", 0.7, "t"]]},
+                                              single, multi, e2e)], [True, True, True, False, False, False])
+    rl = RM.retrieval_line([cp], spec=spec_g2, runner="t", label="t", date="2026-10-30")
+    check("retrieval line: recall@5, MRR@5, cases scored (gap case not scored)",
+          (rl["mean_recall_at_5"], rl["mrr_at_5"], rl["micro_recall_at_5"], rl["cases_scored"]), (1.0, 0.75, 1.0, 2))
+    check("retrieval line: index, ranker, expect-list fingerprint, nothing missing",
+          (rl["index_version"], rl["ranker"], rl["expect_version"] == RM.expect_version(spec_g2), rl["missing"]),
+          ("abcd1234", "hybrid-x", True, []))
+    check("retrieval line covering every case is full scope", rl["scope"], "full")
+    ol = RM.retrieval_line([old], spec=spec_g2, runner="t", label="t", date="2026-10-23")
+    check("old check without a ranker: ranker None and listed missing, index from the file name",
+          (ol["ranker"], ol["missing"], ol["index_version"]), (None, ["ranker"], "1234abcd"))
+    check("a check missing cases is partial, with the count", (ol["scope"], ol["not_in_check"]), ("partial", 2))
+    check("retrieval line holds no chunk text", "SECRET" in json.dumps(rl), False)
+    check("retrieval: first append adds, the same check again adds nothing",
+          (RM.append_history([rl], hp), RM.append_history([dict(rl, label="other")], hp)), (1, 0))
+    spec_moved = json.loads(json.dumps(spec_g2))
+    spec_moved["questions"][1]["expect"] = ["c", "d"]
+    ml = RM.retrieval_line([cp], spec=spec_moved, runner="t", label="t", date="2026-10-30")
+    check("changed expect lists: a new run_id and a new fingerprint, and recall moves",
+          (ml["run_id"] != rl["run_id"], ml["expect_version"] != rl["expect_version"], ml["mean_recall_at_5"]),
+          (True, True, 0.75))
+    mixed = td / "check_ffff0000.json"
+    mixed.write_text(json.dumps({"Q2": dict(new_shape["Q2"], index_version="ffff0000")}), encoding="utf-8")
+    try:
+        RM.retrieval_line([old, mixed], spec=spec_g2, runner="t", label="t", date="-")
+        refused = False
+    except ValueError:
+        refused = True
+    check("checks from two indexes are not scored as one line", refused, True)
+
+    # Judge agreement: a tiny blind sample, 4 items over 2 questions.
+    key = {"items": [{"item": i, "question_id": q, "model": "m", "run": r}
+                     for i, (q, r) in enumerate([("Q1", 1), ("Q1", 2), ("Q2", 1), ("Q2", 2)], 1)],
+           "results": "res_ja.json"}
+    scores = [{"item": 1, "q": "Q1", "model": "m", "D1": 5, "ship": 1},
+              {"item": 2, "q": "Q1", "model": "m", "D1": 3, "ship": 0},
+              {"item": 3, "q": "Q2", "model": "m", "D1": 4, "ship": 1},
+              {"item": 4, "q": "Q2", "model": "m", "D1": 5, "ship": 1}]
+    def ans_ja(q, r, verdicts):
+        return {"id": q, "model": "m", "run": r,
+                "judge": {"claims": [{"text": f"SECRET CLAIM {i}", "supported": v, "reason": "x"}
+                                     for i, v in enumerate(verdicts)]}}
+    results_ja = [ans_ja("Q1", 1, ["yes", "yes"]), ans_ja("Q1", 2, ["no", "yes"]),
+                  ans_ja("Q2", 1, ["no", "no"]), ans_ja("Q2", 2, ["yes"])]
+    kp = td / "blind-sample-2099-01-01_KEY.json"
+    kp.write_text(json.dumps(key), encoding="utf-8")
+    (td / "blind-sample-2099-01-01_SCORES.json").write_text(json.dumps(scores), encoding="utf-8")
+    (td / "res_ja.json").write_text(json.dumps(results_ja), encoding="utf-8")
+    jl = JA.history_line(kp, None, date="2099-01-02", resamples=200)
+    jrows, _ = JA.load_sample(kp)
+    m = JA.measures(jrows, "d1")
+    check("judge line: the same numbers measures() gives, table as a list",
+          (jl["d1"]["rho"], jl["d1"]["kappa"], jl["d1"]["table"], jl["answers"], jl["questions"]),
+          (round(m["rho"], 3), round(m["kappa"], 3), list(m["table"]), 4, 2))
+    check("judge line: ranges by question are present and ordered",
+          all(lo is not None and lo <= hi for lo, hi in (jl["d1"]["rho_range"], jl["ship"]["kappa_range"])), True)
+    check("judge line holds no claim text", "SECRET" in json.dumps(jl), False)
+    check("judge line: same inputs, same run_id; other verdicts, another run_id",
+          (JA.history_line(kp, None, date="2099-01-03", resamples=200)["run_id"] == jl["run_id"],
+           JA.history_line(kp, "folded", date="-", resamples=200)),
+          (True, None))
+    (td / "rejudge_res_ja_folded.json").write_text(json.dumps(
+        {f"{a['id']}|m|{a['run']}|": a["judge"] for a in results_ja}), encoding="utf-8")
+    fl = JA.history_line(kp, "folded", date="-", resamples=200)
+    check("re-judged verdicts get their own line", (fl["verdicts"], fl["run_id"] != jl["run_id"]), ("folded", True))
+    flat = dict(jrows[0], sample="s")
+    one_side = [dict(flat, item=i, q=f"Q{i}", d1=5, ship=True) for i in range(3)]
+    check("judge line with no spread on the human side: rho None, listed missing",
+          JA.history_line(kp, None, date="-", resamples=50, rows=one_side, results="r")["missing"][:1], ["d1.rho"])
+
+    # Backfill: re-running it adds nothing.
+    runs_dir = td / "runs"
+    runs_dir.mkdir()
+    (runs_dir / "single_2026-10-24.json").write_text(json.dumps(single), encoding="utf-8")
+    cp2 = runs_dir / "check_2026-10-25_abcd1234.json"
+    cp2.write_text(json.dumps(new_shape), encoding="utf-8")
+    for f in (kp, td / "blind-sample-2099-01-01_SCORES.json", td / "res_ja.json"):
+        (runs_dir / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+    bh = td / "backfill.jsonl"
+    kw = {"runs": [("single_2026-10-24.json", "run_eval", "s", "full")],
+          "retrieval": [((cp2.name,), "r", None, None)],
+          "judge": [(kp.name, None, "2099-01-02")], "eval_runs": runs_dir, "spec": spec_g2, "out": lambda *a: None}
+    first, again = RM.backfill(bh, **kw), RM.backfill(bh, **kw)
+    kinds = [h["kind"] for h in RM.read_history(bh)]
+    check("backfill adds one line per run, check and judge sample; a re-run adds none",
+          (first, again, kinds), (3, 0, ["single", "retrieval", "judge_agreement"]))
+    sp = td / "trend.svg"
+    RM.write_trend(RM.read_history(bh), sp)
+    check("trend chart leaves retrieval and judge lines off (one point per panel)",
+          sp.read_text(encoding="utf-8").count("<circle") - 3, 3)
+
 print("\n--- bootstrap ranges (bootstrap_ci.py, plan A.7) ---")
 import bootstrap_ci as B
 def ans(qid, ok, run=1, model="m", **extra):

@@ -6,6 +6,10 @@ change in Phase D is measured against.
     python retrieval_scores.py A.json B.json     # e.g. core set + a P01-P15 check
     python retrieval_scores.py --estimate        # what --check would call; calls nothing
     python retrieval_scores.py --check [OUT]     # PAID: fresh check via /search, then scores it
+    python retrieval_scores.py A.json --append   # also add the score to eval_history/ (G.2)
+
+--check adds its score to eval_history/history.jsonl on its own. A repeat of
+the same check against the same expect lists adds nothing.
 
 --check is the only part that costs anything (one embedding call per case on
 the running api_server). Run --estimate first; --check only on Jord's go.
@@ -171,7 +175,7 @@ def write_check(spec, path, base_url=BASE_URL, depth=CHECK_DEPTH, disk_version=N
                                      data=json.dumps({"query": c["q"], "n_results": depth}).encode(),
                                      headers={"Content-Type": "application/json"})
         r = json.load(urllib.request.urlopen(req, timeout=60))
-        saved[c["id"]] = {"q": c["q"], "index_version": r["index_version"], "results": [
+        saved[c["id"]] = {"q": c["q"], "index_version": r["index_version"], "ranker": r.get("ranker"), "results": [
             {"rank": i + 1, "chunk_id": x["metadata"].get("chunk_id"), "file": x["metadata"].get("filename"),
              "similarity": round(x["similarity"], 4), "content": x["content"]}
             for i, x in enumerate(r["results"])]}
@@ -193,8 +197,9 @@ def main(args):
             return
         out = args[1] if len(args) > 1 else HERE / "eval_runs" / f"retrieval_check_{date.today()}_{disk_version}.json"
         write_check(spec, out, disk_version=disk_version)
-        args = [str(out)]
-    paths = args
+        args = [str(out), "--append"]
+    append = "--append" in args
+    paths = [a for a in args if a != "--append"]
     if not paths:
         sys.exit(__doc__)
     check, versions = {}, set()
@@ -217,6 +222,9 @@ def main(args):
               f"baseline for the current one. A fresh check costs embedding calls: Jord's go.")
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     report(spec, check, index_ids)
+    if append:
+        import run_metrics as RM
+        RM.record_retrieval(paths, runner="retrieval_scores", label=Path(paths[0]).stem, spec=spec)
 
 
 if __name__ == "__main__":
