@@ -226,13 +226,15 @@ readme = (R.HERE / "README.md").read_text(encoding="utf-8")
 spec = json.load(open(R.EVAL_SET, encoding="utf-8"))
 api_src = (R.HERE / "api_server.py").read_text(encoding="utf-8")
 n_core, n_reg, n_mt = len(spec["questions"]), len(spec["additive_cases"]), len(spec["multiturn"]["cases"])
+n_theme = len(spec["theme_cases"])
 max_per_source = re.search(r"max_per_source = (\d+)", api_src).group(1)
 embed_model = re.search(r'model="(text-embedding[^"]+)"', api_src).group(1)
 for name, fact in [
-    ("total case count", f"holds {n_core + n_reg + n_mt} cases"),
+    ("total case count", f"holds {n_core + n_reg + n_mt + n_theme} cases"),
     ("core case count", f"| Core questions | {n_core} |"),
     ("regression case count", f"| Regression cases | {n_reg} |"),
     ("multi-turn case count", f"| Multi-turn conversations | {n_mt} |"),
+    ("role-theme case count", f"| Role-theme cases | {n_theme} |"),
     ("answering model", f"{R.MODEL} answers from those chunks"),
     ("answering model in stack", f"{R.MODEL} (answers)"),
     ("rewrite model", f"{R.REWRITE_MODEL} turns"),
