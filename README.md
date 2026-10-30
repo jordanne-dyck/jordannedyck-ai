@@ -110,6 +110,7 @@ api_server.py                 /search and /health
 scripts/embed_knowledge_faiss.py   builds the FAISS index from the knowledge base
 mcp_server/server_faiss.py    MCP server over the same index
 eval_set.json                 eval cases, requirements and check definitions
+coverage_report.py            cases per role theme and per requirement, writes COVERAGE.md
 run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py
 Containerfile  pyproject.toml  uv.lock
 ```
