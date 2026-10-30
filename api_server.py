@@ -1,4 +1,3 @@
-import hashlib
 import os
 import pickle
 import threading
@@ -64,23 +63,25 @@ bm25 = retrieval.BM25(documents)
 # is not a deployment: this only changes on restart.
 INDEX_BYTES = (FAISS_DB / "resume.index").stat().st_size
 
-# Short fingerprint of the three index files this process loaded, returned by
+# The embedding model the index was built with, read from the index folder
+# (retrieval.EMBEDDING_FILE; none means a pre-D.3 ada-002 index). Queries are
+# embedded with the same model, so the two cannot drift apart. Refuses to start
+# if the vectors are not the size that model gives.
+EMBEDDING = retrieval.read_embedding_spec(FAISS_DB)
+retrieval.check_index_matches(index.d, EMBEDDING, FAISS_DB)
+print(f"[api_server] embedding model {EMBEDDING['model']} ({EMBEDDING['dimensions']} dimensions)", flush=True)
+
+# Short fingerprint of the index files this process loaded, returned by
 # /health and /search. The web app stores it on every chat_events row as
 # index_version, so a quality change can be traced to a reindex. Same shape as
 # the web side's PROMPT_VERSION: first 8 hex chars of a sha256.
-def index_fingerprint():
-    digest = hashlib.sha256()
-    for name in ("resume.index", "documents.pkl", "metadatas.pkl"):
-        digest.update((FAISS_DB / name).read_bytes())
-    return digest.hexdigest()[:8]
-
-INDEX_VERSION = index_fingerprint()
+INDEX_VERSION = retrieval.index_fingerprint(FAISS_DB)
 print(f"[api_server] index_version {INDEX_VERSION}", flush=True)
 
 # The models this backend calls. 'model_missing' means the key works but one of
 # them is no longer listed (retired, or blocked for this project). Mirrors
 # REQUIRED_MODELS in jordannedyck-ai-web/lib/monitor.ts.
-REQUIRED_MODELS = ("text-embedding-ada-002",)
+REQUIRED_MODELS = (EMBEDDING["model"],)
 
 # /health key check. GET /v1/models is a list call, so it costs no tokens.
 # Cached for 60 seconds so a monitor polling /health cannot hammer OpenAI.
@@ -108,7 +109,7 @@ def check_openai():
 
 def get_embedding(text):
     response = openai_client.embeddings.create(
-        model="text-embedding-ada-002",
+        **retrieval.embedding_request(EMBEDDING),
         input=text,
         timeout=30
     )
@@ -169,7 +170,8 @@ def search():
         'bm25_rank': r['bm25_rank'],
     } for r in ranked]
 
-    return jsonify({'results': results, 'index_version': INDEX_VERSION, 'ranker': retrieval.RANKER})
+    return jsonify({'results': results, 'index_version': INDEX_VERSION, 'ranker': retrieval.RANKER,
+                    'embedding_model': EMBEDDING['model']})
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -182,6 +184,8 @@ def health():
         'chunks': len(documents),
         'index_bytes': INDEX_BYTES,
         'index_version': INDEX_VERSION,
+        'embedding_model': EMBEDDING['model'],
+        'embedding_dimensions': EMBEDDING['dimensions'],
         'openai': openai_status,
     })
 

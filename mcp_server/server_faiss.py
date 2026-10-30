@@ -26,9 +26,9 @@ import retrieval  # noqa: E402
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_embedding(text):
-    """Get embedding using OpenAI directly"""
+    """Embeds the query with the model the loaded index was built with (EMBEDDING)."""
     response = openai_client.embeddings.create(
-        model="text-embedding-ada-002",
+        **retrieval.embedding_request(EMBEDDING),
         input=text,
         timeout=30
     )
@@ -46,7 +46,11 @@ try:
     
     bm25 = retrieval.BM25(documents)
 
-    print(f"Loaded {len(documents)} documents", file=sys.stderr)
+    # Same rule as api_server.py: the query model comes from the index folder.
+    EMBEDDING = retrieval.read_embedding_spec(os.path.join(PROJECT_ROOT, "faiss_db"))
+    retrieval.check_index_matches(index.d, EMBEDDING, os.path.join(PROJECT_ROOT, "faiss_db"))
+
+    print(f"Loaded {len(documents)} documents, {EMBEDDING['model']}", file=sys.stderr)
 except Exception as e:
     print(f"Error loading FAISS index: {e}", file=sys.stderr)
     print("Run embed_knowledge_faiss.py first.", file=sys.stderr)

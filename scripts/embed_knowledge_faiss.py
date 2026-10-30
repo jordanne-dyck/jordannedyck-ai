@@ -5,6 +5,7 @@
     python scripts/embed_knowledge_faiss.py --context --estimate # what a context build costs; calls nothing
     python scripts/embed_knowledge_faiss.py --context --sample growth-001,pay-002  # PAID: a few lines, no index
     python scripts/embed_knowledge_faiss.py --context --out DIR  # PAID: lines + embeddings, new index in DIR
+    python scripts/embed_knowledge_faiss.py --model text-embedding-3-large --out DIR  # PAID: plan D.3, another model
 
 --context (plan D.2, contextual retrieval): before embedding, a model writes a
 short line placing each chunk in its file, and that line is embedded with the
@@ -24,6 +25,7 @@ import json
 import os
 import pickle
 import re
+import sys
 from pathlib import Path
 
 import faiss
@@ -46,6 +48,14 @@ CONTEXT_CACHE = PROJECT_ROOT / "context_cache" / "context_lines.json"
 
 ENV_FILE = PROJECT_ROOT / ".env"
 
+# The model record lives in retrieval.py, which both readers import, so the
+# index side and the query side share one definition (plan D.3).
+sys.path.insert(0, str(PROJECT_ROOT))
+import retrieval
+
+# The embedding model this build uses; set by --model / --dimensions in main().
+EMBEDDING = retrieval.embedding_spec(retrieval.DEFAULT_EMBED_MODEL)
+
 # Created on the first paid call, so --estimate and the free checks need no key.
 _openai_client = None
 
@@ -66,7 +76,8 @@ MAX_CHUNK_LENGTH = 6000  # Max chars per chunk for embedding
 # tier, checked at developers.openai.com/api/docs/pricing 2026-10-30.
 CONTEXT_MODEL = "gpt-4o-mini"
 CONTEXT_PRICE = (0.15, 0.60)
-EMBED_PRICE = 0.10  # text-embedding-ada-002
+# Embedding prices per 1M tokens, standard tier, same page, same date.
+EMBED_PRICE = {"text-embedding-ada-002": 0.10, "text-embedding-3-small": 0.02, "text-embedding-3-large": 0.13}
 CONTEXT_MAX_TOKENS = 120
 # Bump when the prompt changes, so cached lines from the old prompt are not reused.
 # ctx-v2 (2026-10-30): v1 sample wrote "innovative approach" for regimen-001, a
@@ -92,7 +103,7 @@ Rules:
 def get_embedding(text):
     """Get embedding using OpenAI directly"""
     response = openai_client().embeddings.create(
-        model="text-embedding-ada-002",
+        **retrieval.embedding_request(EMBEDDING),
         input=text,
         timeout=30
     )
@@ -360,13 +371,14 @@ def estimate(chunks, cache, use_context):
               f"{len(todo)} {CONTEXT_MODEL} calls, ~{in_chars // 4:,} input tokens (each call carries its whole file), "
               f"~{out_tokens:,} output tokens: ~${ctx_cost:.4f}.")
         embed_chars += len(chunks) * 300  # ~50 words per line
-    embed_cost = embed_chars / 4 / 1e6 * EMBED_PRICE
-    print(f"Embeddings: {len(chunks)} text-embedding-ada-002 calls, ~{embed_chars // 4:,} tokens: ~${embed_cost:.4f}.")
+    embed_cost = embed_chars / 4 / 1e6 * EMBED_PRICE[EMBEDDING["model"]]
+    print(f"Embeddings: {len(chunks)} {EMBEDDING['model']} calls ({EMBEDDING['dimensions']} dimensions), "
+          f"~{embed_chars // 4:,} tokens: ~${embed_cost:.4f}.")
     print(f"Total ~${ctx_cost + embed_cost:.4f}. Nothing was called.")
 
 
 def main():
-    global ENV_FILE
+    global ENV_FILE, EMBEDDING
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--kb", type=Path, default=KNOWLEDGE_BASE, help="knowledge-base folder (read only)")
     ap.add_argument("--out", type=Path, default=FAISS_DB, help="output folder for the three index files")
@@ -376,8 +388,15 @@ def main():
     ap.add_argument("--sample", help="with --context: comma-separated chunk ids. PAID, a few calls. "
                                      "Generates and prints their lines, writes the cache, builds no index")
     ap.add_argument("--env", type=Path, default=ENV_FILE, help=".env holding OPENAI_API_KEY (default: the repo's)")
+    ap.add_argument("--model", default=retrieval.DEFAULT_EMBED_MODEL, choices=sorted(retrieval.DEFAULT_DIMENSIONS),
+                    help="plan D.3: embedding model, recorded in the index folder for the readers")
+    ap.add_argument("--dimensions", type=int, help="shorten a -3 model's vectors (default: the model's full size)")
     args = ap.parse_args()
     ENV_FILE = args.env
+    try:
+        EMBEDDING = retrieval.embedding_spec(args.model, args.dimensions)
+    except ValueError as e:
+        raise SystemExit(str(e))
 
     chunks = build_chunks(args.kb.resolve())
     cache = load_cache(args.context_cache) if args.context else {}
@@ -450,7 +469,13 @@ def main():
     with open(out / "metadatas.pkl", "wb") as f:
         pickle.dump(metadatas, f)
 
-    print(f"\nSuccessfully embedded {len(documents)} chunks")
+    # Which model built these vectors. api_server.py and the MCP server embed
+    # queries with it and refuse an index whose vectors do not match. Written for
+    # ada-002 too, so every new build records its model.
+    retrieval.check_index_matches(index.d, EMBEDDING, out)
+    (out / retrieval.EMBEDDING_FILE).write_text(json.dumps(EMBEDDING) + "\n", encoding="utf-8")
+
+    print(f"\nSuccessfully embedded {len(documents)} chunks with {EMBEDDING['model']} ({EMBEDDING['dimensions']} dimensions)")
     print(f"Index saved to {out}")
 
 

@@ -1,6 +1,7 @@
 """Exercises run_eval.py's pure logic against synthetic answers, plus a fake
 /search server, so the harness is validated before Jord runs it."""
-import json, re, sys, threading, http.server, socketserver, types, urllib.error
+import hashlib, json, re, sys, threading, http.server, socketserver, types, urllib.error
+from pathlib import Path
 import httpx
 from openai import APITimeoutError, OpenAIError
 import run_eval as R
@@ -673,18 +674,51 @@ check("api_server and the MCP server both rank through retrieval.rank",
       all("retrieval.rank(" in (R.HERE / f).read_text(encoding="utf-8")
           for f in ("api_server.py", "mcp_server/server_faiss.py")), True)
 
+print("\n--- embedding model recorded with the index (retrieval.py, D.3) ---")
+with tempfile.TemporaryDirectory() as td:
+    d = Path(td)
+    for n in RT.INDEX_FILES:
+        (d / n).write_bytes(n.encode())
+    legacy_version = RT.index_fingerprint(d)
+    check("no embedding.json: a pre-D.3 ada-002 index", RT.read_embedding_spec(d),
+          {"model": "text-embedding-ada-002", "dimensions": 1536})
+    check("no embedding.json: fingerprint is the three files, as before",
+          legacy_version, hashlib.sha256(b"".join(n.encode() for n in RT.INDEX_FILES)).hexdigest()[:8])
+    (d / RT.EMBEDDING_FILE).write_text(json.dumps({"model": "text-embedding-3-large", "dimensions": 3072}))
+    check("embedding.json is read", RT.read_embedding_spec(d)["model"], "text-embedding-3-large")
+    check("the model is part of index_version", RT.index_fingerprint(d) != legacy_version, True)
+    try:
+        RT.check_index_matches(1536, RT.read_embedding_spec(d), d)
+        refused = False
+    except SystemExit:
+        refused = True
+    check("an index whose vector size disagrees with its model is refused", refused, True)
+check("ada-002 request sends no dimensions", RT.embedding_request(RT.embedding_spec("text-embedding-ada-002")),
+      {"model": "text-embedding-ada-002"})
+check("-3 request sends dimensions", RT.embedding_request(RT.embedding_spec("text-embedding-3-small", 512)),
+      {"model": "text-embedding-3-small", "dimensions": 512})
+for bad in (("text-embedding-ada-002", 512), ("text-embedding-3-small", 3072), ("text-embedding-9", None)):
+    try:
+        RT.embedding_spec(*bad)
+        ok = False
+    except ValueError:
+        ok = True
+    check(f"embedding_spec refuses {bad}", ok, True)
+check("no reader or indexer names an embedding model of its own",
+      [f for f in ("api_server.py", "mcp_server/server_faiss.py", "scripts/embed_knowledge_faiss.py")
+       if re.search(r'model="text-embedding', (R.HERE / f).read_text(encoding="utf-8"))], [])
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.
 import citation_checks as C
 readme = (R.HERE / "README.md").read_text(encoding="utf-8")
 spec = json.load(open(R.EVAL_SET, encoding="utf-8"))
-api_src = (R.HERE / "api_server.py").read_text(encoding="utf-8")
 n_core, n_reg, n_mt = len(spec["questions"]), len(spec["additive_cases"]), len(spec["multiturn"]["cases"])
 n_theme = len(spec["theme_cases"])
 max_per_source = re.search(r"max_per_source = (\d+)",
                            (R.HERE / "retrieval.py").read_text(encoding="utf-8")).group(1)
-embed_model = re.search(r'model="(text-embedding[^"]+)"', api_src).group(1)
+embed_model = RT.DEFAULT_EMBED_MODEL
 for name, fact in [
     ("total case count", f"holds {n_core + n_reg + n_mt + n_theme} cases"),
     ("core case count", f"| Core questions | {n_core} |"),

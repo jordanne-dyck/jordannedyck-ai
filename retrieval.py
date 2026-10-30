@@ -21,10 +21,14 @@ What the scores mean:
     questions it is scored on would be training on the test.
 
 No API calls in this module. Pure Python plus numpy, so selftest runs it in CI.
+It also records which embedding model an index was built with (D.3, at the end).
 """
+import hashlib
+import json
 import math
 import re
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 
@@ -176,3 +180,80 @@ def rank(index, metadatas, bm25, query, query_vector, n_results, hybrid=True):
         take(by_vector, min(VECTOR_LOCK, n_results))
     take(by_fused, n_results)
     return results
+
+
+# ─── Which embedding model an index was built with (plan D.3) ───
+#
+# The query must be embedded with the model that built the index. A mismatch
+# does not fail: FAISS still answers, with rankings that mean nothing. So the
+# indexer records the model in EMBEDDING_FILE next to the three index files,
+# and both readers take the model from there instead of from a constant of
+# their own. An index without the file predates D.3 and was built with
+# LEGACY_EMBED_MODEL (the cluster volumes' kb-* folders, faiss_db/ before D.3).
+EMBEDDING_FILE = "embedding.json"
+LEGACY_EMBED_MODEL = "text-embedding-ada-002"
+# What a plain reindex (scripts/reindex.ps1, no --model) builds with. README.md
+# states it; selftest checks that. Changing it is a reindex and both restarts.
+DEFAULT_EMBED_MODEL = LEGACY_EMBED_MODEL
+# Default output size per model, from developers.openai.com/api/docs/guides/embeddings
+# (checked 2026-10-30). ada-002 is fixed at 1536 and takes no `dimensions`.
+DEFAULT_DIMENSIONS = {
+    "text-embedding-ada-002": 1536,
+    "text-embedding-3-small": 1536,
+    "text-embedding-3-large": 3072,
+}
+INDEX_FILES = ("resume.index", "documents.pkl", "metadatas.pkl")
+
+
+def embedding_spec(model, dimensions=None):
+    """{'model', 'dimensions'} for a model, checked. dimensions=None is the model's default."""
+    if model not in DEFAULT_DIMENSIONS:
+        raise ValueError(f"unknown embedding model {model!r}; known: {sorted(DEFAULT_DIMENSIONS)}")
+    full = DEFAULT_DIMENSIONS[model]
+    dimensions = dimensions or full
+    if model == LEGACY_EMBED_MODEL and dimensions != full:
+        raise ValueError(f"{model} cannot be shortened; it is always {full} dimensions")
+    if not 1 <= dimensions <= full:
+        raise ValueError(f"{model} gives at most {full} dimensions, not {dimensions}")
+    return {"model": model, "dimensions": dimensions}
+
+
+def embedding_request(spec):
+    """Keyword arguments for openai embeddings.create. `dimensions` is sent only
+    to the -3 models; ada-002 rejects the parameter."""
+    if spec["model"] == LEGACY_EMBED_MODEL:
+        return {"model": spec["model"]}
+    return {"model": spec["model"], "dimensions": spec["dimensions"]}
+
+
+def read_embedding_spec(folder):
+    """The spec an index folder was built with. No file means a pre-D.3 ada-002 index."""
+    path = Path(folder) / EMBEDDING_FILE
+    if not path.exists():
+        return embedding_spec(LEGACY_EMBED_MODEL)
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return embedding_spec(raw["model"], raw.get("dimensions"))
+
+
+def index_fingerprint(folder):
+    """First 8 hex chars of a sha256 over the index files: the index_version that
+    /search, /health and chat_events carry. EMBEDDING_FILE is hashed too when it
+    exists, so the model is part of the version. Pre-D.3 folders have no such
+    file and keep the fingerprint they always had."""
+    digest = hashlib.sha256()
+    for name in INDEX_FILES + (EMBEDDING_FILE,):
+        path = Path(folder) / name
+        if name == EMBEDDING_FILE and not path.exists():
+            continue
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:8]
+
+
+def check_index_matches(index_dimensions, spec, folder):
+    """Refuses an index whose vectors are not the size its recorded model gives.
+    Catches an index rebuilt with another model but an old or missing EMBEDDING_FILE."""
+    if index_dimensions != spec["dimensions"]:
+        raise SystemExit(
+            f"STOP: {folder} holds {index_dimensions}-dimension vectors, but its "
+            f"{EMBEDDING_FILE} says {spec['model']} at {spec['dimensions']}. The index and "
+            f"the query model disagree; rebuild the index or fix {EMBEDDING_FILE}.")

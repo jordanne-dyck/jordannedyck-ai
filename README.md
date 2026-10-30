@@ -57,7 +57,7 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 
 - **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases.
 - **Cost.** `/search` caps query length and result count, because each query is a paid embedding call. Eval runners record the cost of every call.
-- **Traceability.** `/health` reports chunk count, index size, the index fingerprint and whether the OpenAI key works.
+- **Traceability.** `/health` reports chunk count, index size, the index fingerprint, the embedding model and whether the OpenAI key works. The indexer records its model next to the index; the server embeds questions with that model and refuses to start on an index whose vectors do not match it.
 - **Deployment.** Containers are built in-cluster with Shipwright from a UBI9 multi-stage `Containerfile`. Argo CD deploys to OpenShift from git. The index lives on a persistent volume, not in the image.
 - **Supply chain.** Dependencies are pinned in `uv.lock`. CI runs ruff, the selftest, and Trivy, with high and critical findings failing the build. GitHub Actions are pinned by commit.
 

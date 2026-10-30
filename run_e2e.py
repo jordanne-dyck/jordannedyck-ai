@@ -102,20 +102,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+import retrieval
 import run_metrics
 
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 INDEX_FILE = HERE / "faiss_db" / "resume.index"
-EMBEDDER = HERE / "scripts" / "embed_knowledge_faiss.py"
 ROUTE_TS = HERE.parent / "jordannedyck-ai-web" / "app" / "api" / "chat" / "route.ts"
 # The prompt moved out of route.ts into buildSystemPrompt() on 2026-10-13. route.ts
 # still holds the model, temperature and n_results config read by extract_route_config.
 PROMPT_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "system-prompt.ts"
 
-# resume.index is IndexFlatL2 over 1536-dim float32 vectors with a 45-byte header.
+# resume.index is IndexFlatL2 over float32 vectors with a 45-byte header. The
+# vector size is the index's recorded embedding model's (1536 for ada-002).
 INDEX_HEADER_BYTES = 45
-INDEX_BYTES_PER_VECTOR = 1536 * 4
 
 # "slowvember" removed 2026-10-23: it is the campaign's name in the knowledge
 # base (growth-and-acquisition.md, how-i-operate.md, ecommerce-platform-and-
@@ -158,13 +158,14 @@ def chunk_count_from_index():
     if not INDEX_FILE.exists():
         return None, None, f"{INDEX_FILE} not found"
     size = INDEX_FILE.stat().st_size
+    dims = retrieval.read_embedding_spec(INDEX_FILE.parent)["dimensions"]
     payload = size - INDEX_HEADER_BYTES
-    if payload <= 0 or payload % INDEX_BYTES_PER_VECTOR != 0:
+    if payload <= 0 or payload % (dims * 4) != 0:
         return None, size, (
-            f"{size} bytes is not a whole number of 1536-dim float32 vectors plus a "
+            f"{size} bytes is not a whole number of {dims}-dim float32 vectors plus a "
             f"{INDEX_HEADER_BYTES}-byte header — the index may be a different type"
         )
-    return payload // INDEX_BYTES_PER_VECTOR, size, None
+    return payload // (dims * 4), size, None
 
 
 def extract_site_prompt(prompt_text):
@@ -248,11 +249,11 @@ def extract_route_config(route_text):
     return cfg
 
 
-def embedding_model_from_embedder():
-    if not EMBEDDER.exists():
+def embedding_model_from_index():
+    """The model recorded in the local index folder (plan D.3); ada-002 for a pre-D.3 index."""
+    if not INDEX_FILE.exists():
         return None
-    m = re.search(r"text-embedding-[a-z0-9-]+", EMBEDDER.read_text(encoding="utf-8", errors="replace"))
-    return m.group(0) if m else None
+    return retrieval.read_embedding_spec(INDEX_FILE.parent)["model"]
 
 
 def build_stamp(args, source_system):
@@ -350,7 +351,7 @@ def run_preflights(args, source_system, harness, stamp):
             stamp["prompt_md5"] = route_md5
             stamp["prompt_version"] = f"route-{route_md5[:8]}" if route_md5 else None
             stamp["site_prompt_version"] = site_prompt_version(site_prompt)
-            stamp["embedding_model"] = embedding_model_from_embedder()
+            stamp["embedding_model"] = embedding_model_from_index()
             missing = [k for k, v in cfg.items() if v is None and k != "truncate"]
             if missing:
                 lines.append(f"  route.ts config   : warn — could not extract {', '.join(missing)}")

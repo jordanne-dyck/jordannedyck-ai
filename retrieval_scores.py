@@ -23,7 +23,6 @@ Three saved shapes are read:
   10-23:   [{"id": "W01", "ids": [...], "sims": [...]}, ...]
   P01-P15: {"P01": {"q": ..., "index_version": ..., "results": [{"rank", "chunk_id", "similarity", ...}]}}
 """
-import hashlib
 import json
 import pickle
 import re
@@ -31,6 +30,8 @@ import sys
 import urllib.request
 from datetime import date
 from pathlib import Path
+
+import retrieval
 
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
@@ -86,15 +87,11 @@ def score(expected, retrieved, k=K):
 def disk_index():
     """(index_version, chunk_ids) of faiss_db/ on disk, same fingerprint as
     api_server.py. (None, None) when there is no local index, e.g. in CI."""
-    names = ("resume.index", "documents.pkl", "metadatas.pkl")
-    if not all((FAISS_DB / n).exists() for n in names):
+    if not all((FAISS_DB / n).exists() for n in retrieval.INDEX_FILES):
         return None, None
-    digest = hashlib.sha256()
-    for n in names:
-        digest.update((FAISS_DB / n).read_bytes())
     with open(FAISS_DB / "metadatas.pkl", "rb") as f:
         ids = {m.get("chunk_id") for m in pickle.load(f)}
-    return digest.hexdigest()[:8], ids
+    return retrieval.index_fingerprint(FAISS_DB), ids
 
 
 def cases(spec):
