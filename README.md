@@ -69,6 +69,7 @@ There are 7 tier-1 checks, and a release needs all of them to pass. Citations ar
 | `run_models.py` | Holds retrieval, prompt and checks constant, and swaps the answering model across OpenAI, Anthropic and Google. Streams answers to measure time to first token. Has `--estimate` and `--max-cost` so a run is priced before it spends anything |
 | `run_metrics.py` | Called by all three runners at the end of a run. Prints the pass rate per check, p50 and p95 latency and time to first token (follow-ups separately), and cost per answer. Appends one line per run to `eval_history/history.jsonl` and redraws `eval_history/trend.svg`. Older runs were backfilled; a metric a run did not record is left empty, not estimated |
 | `bootstrap_ci.py` | Puts a 95% range on each pass rate and on blind-sample means, and says whether a gap between two runs or models is inside the noise. It resamples questions, not answers, because repeat runs of one question are not independent. Comparisons are paired on the same questions. Fixed seed, no API calls |
+| `judge_agreement.py` | Compares the grounding judge's stored verdicts with the blind human accuracy scores (D1) and ship decisions: rank correlation, how many low-scored answers the judge flagged and how many good ones it flagged anyway, and Cohen's kappa, each with a range by question. The judge checks claims against the retrieved chunks and the human checks them against the record, so agreement is expected to be partial. No API calls |
 | `selftest.py` | Tests the checkers against synthetic answers, a stub model client and a fake `/search`. No API calls. Runs in CI on every push. Also fails when the facts in this README (case counts, models, timeouts, ranking limits) no longer match the code |
 
 Model choices are made by blind human scoring. Answers from each model are shuffled and stripped of labels, scored on the D1–D5 rubric, and only then unblinded. With 8 questions per model, the 2026-10-22 gaps (gpt-4o 4.76, Sonnet 4.67, Flash 4.65, Opus 4.50) were all inside the noise. gpt-4o stays on quality-first grounds, not on a measured lead.
@@ -116,6 +117,7 @@ coverage_report.py            cases per role theme and per requirement, writes C
 run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py
 run_metrics.py                headline metrics; writes eval_history/ (results history and trend chart)
 bootstrap_ci.py               confidence ranges on pass rates and blind scores; is a gap noise?
+judge_agreement.py            does the grounding judge agree with the blind human scores?
 Containerfile  pyproject.toml  uv.lock
 ```
 

@@ -430,6 +430,59 @@ check("blind: per-item mean of D1-D5, both key shapes", (bc["x"]["score"], bc["y
 check("blind: ship from 0/1 and from true/false",
       B.bootstrap(bc["x"]["ship"], resamples=100)["value"], 0.5)
 
+print("\n--- judge vs human agreement (judge_agreement.py, plan A.8) ---")
+import judge_agreement as JA
+for text, want in [("Her approach breaks down into four steps:", True),
+                   ("- **Teams and Stakeholders Involved**:", True),
+                   ("She grew email from 1M to 4M by:", False),
+                   ("She led the Virtual Shelf redesign.", False)]:
+    check(f"lead-in line: {text!r}", JA.is_lead_in(text), want)
+check("rank correlation: same order 1, reversed -1, ties averaged",
+      (JA.spearman([1, 2, 3], [10, 20, 30]), JA.spearman([1, 2, 3], [3, 2, 1]), JA.ranks([5, 5, 1])),
+      (1.0, -1.0, [1.5, 1.5, 0.0]))
+check("rank correlation: a constant side has none", JA.spearman([1, 1, 1], [1, 2, 3]), None)
+check("kappa: full agreement 1, chance-level 0", (JA.kappa((3, 0, 0, 5)), JA.kappa((2, 2, 2, 2))), (1.0, 0.0))
+def claims(no, yes, lead=0):
+    return ([{"text": "She ran it.", "supported": "no", "reason": "x"}] * no
+            + [{"text": "She built it.", "supported": "yes", "reason": ""}] * yes
+            + [{"text": "Her approach includes:", "supported": "no", "reason": "x"}] * lead)
+key = {"items": [{"item": 1, "question_id": "W01", "model": "m", "run": 1},
+                 {"item": 2, "question_id": "W02", "model": "m", "run": 1}]}
+sc = [{"item": 1, "q": "W01", "model": "m", "D1": 3, "ship": 0, "notes": "n"},
+      {"item": 2, "qid": "W02", "model": "m", "D1": 5, "ship": True}]
+res = [{"id": "W01", "model": "m", "run": 1, "judge": {"claims": claims(1, 3, lead=2)}},
+       {"id": "W02", "model": "m", "run": 1, "judge": {"claims": claims(0, 4, lead=1)}},
+       {"id": "W01", "model": "other", "run": 1, "judge": {"claims": claims(4, 0)}}]
+jr = JA.join(key, sc, res, "s")
+check("join on question, model and run; both SCORES key shapes",
+      [(r["q"], r["model"], r["d1"], r["ship"]) for r in jr], [("W01", "m", 3, False), ("W02", "m", 5, True)])
+check("judge score leaves lead-ins out, or keeps them",
+      (JA.judge_score(jr[0]), JA.judge_score(jr[0], keep_lead_ins=True), JA.judge_score(jr[1])),
+      (0.25, 0.5, 0.0))
+check("flag table: flagged-low, flagged-ok, clean-low, clean-ok", JA.measures(jr, "d1")["table"], (1, 0, 0, 1))
+check("lead-ins kept: a lead-in alone flags an answer", JA.measures(jr, "d1", keep_lead_ins=True)["table"],
+      (1, 1, 0, 0))
+try:
+    JA.join(key, [dict(sc[0], model="z"), sc[1]], res, "s")
+    check("SCORES/KEY mismatch raises", False, True)
+except ValueError:
+    check("SCORES/KEY mismatch raises", True, True)
+# 8 questions, judge exactly tracking D1: correlation 1 in every resample.
+mono = [{"sample": "s", "item": i, "q": f"Q{i}", "model": "m", "d1": 1 + i % 5, "ship": i % 5 > 2,
+         "claims": claims(4 - i % 5, 1 + i % 5)} for i in range(8)]
+rr = JA.by_question_range(mono, lambda rs: JA.measures(rs, "d1").get("rho"), resamples=500)
+check("judge tracking D1 exactly: range 1 to 1", (rr["value"], round(rr["lo"], 9), round(rr["hi"], 9)),
+      (1.0, 1.0, 1.0))
+check("same seed, same range", rr, JA.by_question_range(mono, lambda rs: JA.measures(rs, "d1").get("rho"),
+                                                        resamples=500))
+# Two samples, no link within either, but one has more flags and lower D1:
+# pooled raw ranks show a link that is only the level shift.
+shift = [{"sample": s, "q": f"Q{i}", "d1": d, "claims": claims(no, 10 - no)}
+         for s, cells in (("a", [(6, 3), (4, 3), (6, 2), (4, 2)]), ("b", [(2, 5), (0, 5), (2, 4), (0, 4)]))
+         for i, (no, d) in enumerate(cells)]
+check("level shift between samples: pooled raw shows a link, within-sample ranking does not",
+      (JA.measures(shift, "d1")["rho"] > 0.5, abs(JA.within_sample_rho(shift, "d1")) < 1e-9), (True, True))
+
 print("\n--- run_eval.generate streams, times each attempt ---")
 class _D:  # stands in for the OpenAI SDK's chunk objects
     def __init__(self, **kw): self.__dict__.update(kw)
