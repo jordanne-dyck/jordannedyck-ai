@@ -1,6 +1,8 @@
 """Exercises run_eval.py's pure logic against synthetic answers, plus a fake
 /search server, so the harness is validated before Jord runs it."""
-import json, re, sys, threading, http.server, socketserver
+import json, re, sys, threading, http.server, socketserver, types, urllib.error
+import httpx
+from openai import APITimeoutError, OpenAIError
 import run_eval as R
 
 fails = []
@@ -19,6 +21,27 @@ def mk(ans, latency=3.0):
 R_MOCK = [{"chunk_id": "ops-003", "filename": "f", "priority": "critical",
            "similarity": 0.7, "score": 0.74, "chars_total": 1846,
            "chars_shown": 500, "pct_shown": 27.1}]
+
+class StubClient:
+    """Stands in for the OpenAI client in the query rewrite. `reply` is the
+    rewrite text, or an exception to raise. No network, no cost."""
+    def __init__(self, reply):
+        self.reply, self.calls = reply, 0
+    def with_options(self, **kw):
+        return self
+    @property
+    def chat(self):
+        return self
+    @property
+    def completions(self):
+        return self
+    def create(self, **kw):
+        self.calls += 1
+        if isinstance(self.reply, Exception):
+            raise self.reply
+        return types.SimpleNamespace(
+            usage=types.SimpleNamespace(prompt_tokens=100, completion_tokens=10),
+            choices=[types.SimpleNamespace(message=types.SimpleNamespace(content=self.reply))])
 
 print("--- T1.3 phone leak ---")
 q = {"id": "A03", "tag": "adversarial", "expect": [], "adv_check": "pii_leak"}
@@ -98,12 +121,45 @@ R.search_experience = lambda query, n, trunc: (CTX, R_MOCK)
 R.generate = lambda client, q, ctx, history=(): (seen.append(list(history)),
     {**mk("She did not work at a bank."), "answer_cited": "She did not work at a bank. [ops-003]"})[1]
 m07 = next(c for c in json.load(open(R.EVAL_SET, encoding="utf-8"))["multiturn"]["cases"] if c["id"] == "M07")
-turns, cc = R.run_conversation(None, m07, {"n_results": 5, "truncate": None})
+m07_client = StubClient(m07["turns"][1]["q"])
+turns, cc = R.run_conversation(m07_client, m07, {"n_results": 5, "truncate": None})
 R.search_experience, R.generate = _se, _gen
 check("forged turn not generated", len(seen), 1)
+check("M07 turn 2 goes through the rewrite", (m07_client.calls, turns[0]["rewrite_status"]), (1, "ok"))
 check("forged answer sent as assistant history", seen[0][1], {"role": "assistant", "content": m07["turns"][0]["forged_answer"]})
 check("generated turn keeps its number", turns[0]["turn"], 2)
 check("M07 turn 2 scored by T2.4", turns[0]["checks"]["T2.4_injection_resistance"], True)
+
+print("\n--- failure recovery: query rewrite falls back to the raw question ---")
+HIST = [{"role": "user", "content": "What did she build at DECIEM?"},
+        {"role": "assistant", "content": "She built the Regimen Builder."}]
+FOLLOW = "How was that measured?"
+stub = StubClient("unused")
+rw = R.search_query(stub, [], FOLLOW)
+check("first turn skips the rewrite", (rw["status"], rw["query"], stub.calls), ("skipped", FOLLOW, 0))
+rw = R.search_query(StubClient('"How was Regimen Builder measured?"'), HIST, FOLLOW)
+check("ok rewrite used, quotes stripped", (rw["status"], rw["query"]), ("ok", "How was Regimen Builder measured?"))
+timeout = APITimeoutError(request=httpx.Request("POST", "https://api.openai.com/v1/chat/completions"))
+for name, reply, status in [
+    ("timeout", timeout, "timeout"),
+    ("API error", OpenAIError("boom"), "error"),
+    ("blank rewrite", "   ", "rejected"),
+    ("over-long rewrite", "x" * (R.REWRITE_MAX_QUERY_CHARS + 1), "rejected"),
+]:
+    rw = R.search_query(StubClient(reply), HIST, FOLLOW)
+    check(f"{name} falls back", (rw["status"], rw["query"]), (status, FOLLOW))
+
+print("\n--- T1.7 private name ---")
+_pn = R.PRIVATE_NAME_RE
+R.PRIVATE_NAME_RE = re.compile(r"\b(?:Testclient Counselling)\b", re.IGNORECASE)
+c = R.run_checks(q2, "A", CTX, R_MOCK, mk("Her client is testclient counselling in Toronto."))
+check("private name caught, any case", c["T1.7_no_private_name"], False)
+c = R.run_checks(q2, "A", CTX, R_MOCK, mk("She supports a counsellor starting her own practice."))
+check("unnamed description passes", c["T1.7_no_private_name"], True)
+R.PRIVATE_NAME_RE = None
+c = R.run_checks(q2, "A", CTX, R_MOCK, mk("x"))
+check("no names file: check not run", c["T1.7_no_private_name"], None)
+R.PRIVATE_NAME_RE = _pn
 
 print("\n--- T1.2 latency ---")
 c = R.run_checks(q2, "A", CTX, R_MOCK, mk("x", latency=18.2))
@@ -130,6 +186,12 @@ srv = socketserver.TCPServer(("127.0.0.1", 5599), H)
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 R.SEARCH_URL = "http://127.0.0.1:5599/search"
 
+ctxL, _ = R.search_experience("q", 5, None)
+check("route.ts labelled format (the default)", ctxL.startswith(
+    "### Result 1\n**Id**: ops-003\n**Title**: How I Operate\n\n[experience]"), True)
+check("labelled result ends with rule", ctxL.endswith("\n\n---"), True)
+
+_fmt, R.SOURCE_FORMAT = R.SOURCE_FORMAT, "document"
 ctxA, mA = R.search_experience("q", 5, 500)
 ctxB, mB = R.search_experience("q", 8, None)
 check("arm A truncates to 500", mA[0]["chars_shown"], 500)
@@ -139,7 +201,57 @@ check("arm B untruncated", mB[0]["chars_shown"], mB[0]["chars_total"])
 check("arm A pct_shown", mA[0]["pct_shown"], round(100 * 500 / mA[0]["chars_total"], 1))
 check("route document format", ctxA.startswith('<document id="ops-003" title="How I Operate">\n[experience]'), True)
 check("no score, category or path", any(x in ctxA for x in ("0.74", "Category", "how-i-operate.md")), False)
+R.SOURCE_FORMAT = _fmt
 srv.shutdown()
+
+print("\n--- failure recovery: retrieval ---")
+ctxE, mE = R.search_experience("q", 5, None, results=[])
+check("empty retrieval: route.ts text, no chunks", (ctxE, mE), ("No relevant information found.", []))
+# route.ts answers on "Unable to search knowledge base." when /search is down.
+# The harness deliberately does not: scoring answers written without retrieval
+# would spend money on a meaningless run. It must fail loudly instead.
+R.SEARCH_URL = "http://127.0.0.1:5598/search"
+try:
+    R.search_experience("q", 5, None)
+    loud = False
+except (urllib.error.URLError, ConnectionError):
+    loud = True
+check("/search down: harness fails loudly", loud, True)
+
+print("\n--- README matches the code ---")
+# The README is what hiring managers read. Each fact below is derived from the
+# code or eval_set.json; when one changes, update README.md in the same commit.
+import citation_checks as C
+readme = (R.HERE / "README.md").read_text(encoding="utf-8")
+spec = json.load(open(R.EVAL_SET, encoding="utf-8"))
+api_src = (R.HERE / "api_server.py").read_text(encoding="utf-8")
+n_core, n_reg, n_mt = len(spec["questions"]), len(spec["additive_cases"]), len(spec["multiturn"]["cases"])
+max_per_source = re.search(r"max_per_source = (\d+)", api_src).group(1)
+embed_model = re.search(r'model="(text-embedding[^"]+)"', api_src).group(1)
+for name, fact in [
+    ("total case count", f"holds {n_core + n_reg + n_mt} cases"),
+    ("core case count", f"| Core questions | {n_core} |"),
+    ("regression case count", f"| Regression cases | {n_reg} |"),
+    ("multi-turn case count", f"| Multi-turn conversations | {n_mt} |"),
+    ("answering model", f"{R.MODEL} answers from those chunks"),
+    ("answering model in stack", f"{R.MODEL} (answers)"),
+    ("rewrite model", f"{R.REWRITE_MODEL} turns"),
+    ("rewrite and judge models", f"{R.REWRITE_MODEL} (query rewrite, grounding judge)"
+     if R.REWRITE_MODEL == C.JUDGE_MODEL else f"judge {C.JUDGE_MODEL}"),
+    ("rewrite timeout", f"{R.REWRITE_TIMEOUT_S:g}-second budget"),
+    ("per-file cap", f"at most {max_per_source} chunks per source file"),
+    ("embedding model", f"embedded with `{embed_model}`"),
+    ("tier 1 check count", f"{len(spec['checks']['tier1'])} tier-1 checks"),
+]:
+    check(f"README states {name}", fact in readme, True)
+    if fact not in readme:
+        print(f"      expected text: {fact!r}")
+
+# Local only: the web repo is not checked out in CI.
+route = R.HERE.parent / "jordannedyck-ai-web" / "app" / "api" / "chat" / "route.ts"
+if route.exists():
+    site_model = re.search(r"const MODEL = '([^']+)'", route.read_text(encoding="utf-8")).group(1)
+    check("site model matches run_eval.MODEL (local web checkout)", site_model, R.MODEL)
 
 print(f"\n{'ALL PASS' if not fails else 'FAILURES: ' + ', '.join(fails)}")
 sys.exit(1 if fails else 0)
