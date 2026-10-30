@@ -96,6 +96,10 @@ for name, ans in [
     ("'doesn't say' admits the gap", "The context doesn't say whether that program launched."),
     ("'does not establish' admits the gap", "The record does not establish that the alternative launched."),
     ("'does not describe' admits the gap", "The material does not describe a specific stakeholder overruling her."),
+    # C.1 dev traffic, #112 and #128.
+    ("'does not explicitly state' admits the gap", "The context does not explicitly state that she ran a referral program."),
+    ("'not provided in the context' admits the gap", "Details of her agency pricing are not provided in the context."),
+    ("'not explicitly mentioned in the' admits the gap", "Her team size is not explicitly mentioned in the record."),
 ]:
     c = R.run_checks(qg, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T2.3_gap_honesty"], True)

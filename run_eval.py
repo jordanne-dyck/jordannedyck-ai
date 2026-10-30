@@ -272,7 +272,11 @@ NO_COVERAGE_RE = re.compile(
     r"|show|say|describe|establish|state|list)\b"
     r"|\bno\s+(?:mention|record|reference|details?|indication)\s+of\b"
     r"|\bnothing\s+in\s+the\s+(?:context|knowledge\s+base|record|material)\b"
-    r"|\bnot\s+(?:reflected|present|available)\s+in\s+the\b"
+    # provided|stated|mentioned|... and the optional adverb added 2026-10-30
+    # (plan A.3, from C.1 dev traffic): #128 said "not provided in the context".
+    r"|\bnot\s+(?:explicitly\s+|specifically\s+|directly\s+)?"
+    r"(?:reflected|present|available|provided|stated|mentioned|included|covered|described"
+    r"|documented|specified|detailed)\s+in\s+the\b"
 )
 
 
