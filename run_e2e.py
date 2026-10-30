@@ -758,7 +758,12 @@ def main():
     out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nwrote         : {out_path}")
 
-    if not args.probe and results:
+    if args.probe and results:
+        # A protocol check, one answer: in the history as scope "probe" (G.2),
+        # never on the trend chart.
+        run_metrics.record_run(payload, runner="run_e2e --probe", source=out_path.name,
+                               label=f"e2e probe {source_system}", scope="probe")
+    elif results:
         # A run is paced over sittings with --resume; each sitting adds a line,
         # and only the sitting that completes the set adds a full-scope one.
         have = {r["record_id"] for r in results}

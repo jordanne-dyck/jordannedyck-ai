@@ -1,7 +1,8 @@
 """
 How far the grounding judge agrees with Jord's blind scores (plan A.8,
-2026-10-30). Free and read-only: reads the blind-sample KEY and SCORES files
-and the results files the answers came from, calls no API, writes nothing.
+2026-10-30). Free: reads the blind-sample KEY and SCORES files and the results
+files the answers came from, and calls no API. Since G.2 it adds one line per
+sample to eval_history/history.jsonl (numbers only; a repeat run adds nothing).
 
 The two are not asked the same question. The judge (gpt-4o-mini,
 citation_checks.JUDGE_MODEL) asks whether the retrieved chunks say each claim.
@@ -44,6 +45,7 @@ import re
 from pathlib import Path
 
 import bootstrap_ci as B
+import run_metrics as RM
 
 HERE = Path(__file__).resolve().parent
 KEYS = [HERE / "eval_runs" / "blind-sample-2026-10-16_KEY.json",
@@ -286,19 +288,66 @@ def load_sample(key_path, setting=None):
                 rows, sample), results
 
 
+# ── history (plan G.2) ────────────────────────────────────────────────────────
+
+def _r3(v):
+    return None if v is None else round(v, 3)
+
+
+def history_run_id(rows, verdicts, resamples=B.RESAMPLES, seed=B.SEED):
+    """Same scores, verdicts and bootstrap setup, same id. Cheap, so a repeat
+    can be skipped before the ranges are computed."""
+    ident = {"verdicts": verdicts or "stored", "resamples": resamples, "seed": seed,
+             "rows": [[r["item"], r["q"], r["model"], r["d1"], r["ship"],
+                       [[c["text"], c["supported"]] for c in r["claims"]]] for r in rows]}
+    return RM.hashlib.sha256(RM.json.dumps(ident, sort_keys=True).encode()).hexdigest()[:12]
+
+
+def history_line(key_path, verdicts=None, *, date, resamples=B.RESAMPLES, seed=B.SEED, rows=None, results=None):
+    """One eval_history line for one blind sample and one set of verdicts:
+    the measures report() prints, against D1 and against ship, with their
+    ranges by question. Ids and numbers only. None when the sample has no
+    verdicts in that setting."""
+    if rows is None:
+        rows, results = load_sample(key_path, verdicts)
+        if rows is None:
+            return None
+    kw = {"resamples": resamples, "seed": seed}
+
+    def block(human):
+        m = measures(rows, human)
+        out = {"table": list(m["table"])}
+        for name in ("rho", "kappa", "caught", "false_alarm"):
+            r = by_question_range(rows, lambda rs, h=human, n=name: measures(rs, h).get(n), **kw)
+            out[name], out[f"{name}_range"] = _r3(m[name]), [_r3(r["lo"]), _r3(r["hi"])]
+        return out
+
+    ln = {"run_id": history_run_id(rows, verdicts, resamples, seed),
+          "date": date, "runner": "judge_agreement", "kind": "judge_agreement",
+          "label": f"judge vs blind {rows[0]['sample']}, {verdicts or 'stored'} verdicts",
+          "source": f"{Path(key_path).name} + {results}", "model": None, "arm": None,
+          "prompt_version": None, "scope": "full", "sample": rows[0]["sample"],
+          "verdicts": verdicts or "stored", "answers": len(rows), "questions": len({r["q"] for r in rows}),
+          "d1_threshold": D1_OK, "d1": block("d1"), "ship": block("ship"),
+          "resamples": resamples, "seed": seed}
+    ln["missing"] = [f"{h}.{n}" for h in ("d1", "ship") for n in ("rho", "kappa") if ln[h][n] is None]
+    return ln
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[1])
     ap.add_argument("keys", nargs="*", type=Path, default=KEYS, help="blind-sample *_KEY.json files")
     ap.add_argument("--resamples", type=int, default=B.RESAMPLES)
     ap.add_argument("--seed", type=int, default=B.SEED)
-    ap.add_argument("--rejudged", choices=["folded", "unfolded"],
-                    help="use judge_check.py rejudge verdicts with lead-ins folded or not, not the stored ones")
+    ap.add_argument("--rejudged", choices=["folded", "unfolded", "gap-wording-rejected"],
+                    help="use judge_check.py rejudge verdicts (lead-ins folded, unfolded, or the "
+                         "rejected gap wording), not the stored ones")
     args = ap.parse_args()
     kw = {"resamples": args.resamples, "seed": args.seed}
     print(B.setup_line(args.resamples, args.seed))
     print(f"Judge score: share of claims marked \"no\", lead-in lines left out. "
           f"Flagged: any claim \"no\". Low: D1 < {D1_OK}.")
-    everything = []
+    everything, lines = [], []
     for k in args.keys:
         rows, results = load_sample(k, args.rejudged)
         if rows is None:
@@ -306,9 +355,12 @@ def main():
             continue
         everything += rows
         report(rows, f"blind sample {rows[0]['sample']} (answers and verdicts from {results})", **kw)
+        lines.append(history_line(k, args.rejudged, date=RM.today(), rows=rows, results=results, **kw))
     if len({r["sample"] for r in everything}) > 1:
         report_combined(everything, **kw)
     report_disagreements(everything)
+    if lines:
+        RM.record_lines(lines)
 
 
 if __name__ == "__main__":

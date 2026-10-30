@@ -165,7 +165,7 @@ Some facts in the knowledge base, such as the $150M+ figure, never reached the t
 
 ## History
 
-`run_metrics.py` runs at the end of every eval. It prints the pass rate per check, latency and cost per answer, and adds one line per run to [`eval_history/history.jsonl`](eval_history/history.jsonl). The file holds 38 lines from 25 saved runs, including a backfill of older runs. A value a run did not record is left empty, not estimated.
+`run_metrics.py` runs at the end of every eval. It prints the pass rate per check, latency and cost per answer, and adds one line per run to [`eval_history/history.jsonl`](eval_history/history.jsonl). Retrieval checks and probes add their recall@5 and MRR, with the index they were taken on, and the judge-agreement script adds its correlation and kappa against my blind scores. The file holds 64 lines: 45 from 32 saved eval runs, 14 retrieval scores and 5 judge-agreement results, including a backfill of older runs. A value a run did not record is left empty, not estimated.
 
 ![All-checks pass rate, p95 latency and cost per answer over time](eval_history/trend.svg)
 
