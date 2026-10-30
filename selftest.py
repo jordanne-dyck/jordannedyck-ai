@@ -169,6 +169,45 @@ for name, reply, status in [
     rw = R.search_query(StubClient(reply), HIST, FOLLOW)
     check(f"{name} falls back", (rw["status"], rw["query"]), (status, FOLLOW))
 
+print("\n--- corrective RAG arm (plan C.2): same rewrite code, own instruction ---")
+class SpyClient(StubClient):
+    def create(self, **kw):
+        self.kw = kw
+        return super().create(**kw)
+spy = SpyClient("cash-back rewards loyalty program design")
+rw = R.search_query(spy, [], "cash back stuff?", corrective=True)
+check("corrective rewrite runs on a first turn", (rw["status"], rw["query"], spy.calls),
+      ("ok", "cash-back rewards loyalty program design", 1))
+check("corrective rewrite sends its own instruction, the question alone",
+      [m["content"] for m in spy.kw["messages"]], [R.CORRECTIVE_REWRITE_PROMPT, "cash back stuff?"])
+check("corrective rewrite: same model and budget as the site's",
+      (spy.kw["model"], spy.kw["max_tokens"]), (R.REWRITE_MODEL, R.REWRITE_MAX_TOKENS))
+check("site rewrite prompt untouched by the arm", R.REWRITE_SYSTEM_PROMPT != R.CORRECTIVE_REWRITE_PROMPT, True)
+rw = R.search_query(StubClient(timeout), HIST, FOLLOW, corrective=True)
+check("corrective timeout falls back", (rw["status"], rw["query"]), ("timeout", FOLLOW))
+
+def hit(cid, sim, f):
+    return {"content": cid, "similarity": sim, "metadata": {"chunk_id": cid, "filename": f}}
+first = [hit("a-1", .72, "a"), hit("a-2", .71, "a"), hit("b-1", .70, "b")]
+second = [hit("b-1", .75, "b"), hit("a-3", .74, "a"), hit("a-4", .73, "a"), hit("c-1", .69, "c")]
+m = R.merge_results(first, second, 5)
+check("pooled: each chunk once at its higher similarity, 3 per file, top 5",
+      [(r["metadata"]["chunk_id"], r["similarity"]) for r in m],
+      [("b-1", .75), ("a-3", .74), ("a-4", .73), ("a-1", .72), ("c-1", .69)])
+check("pooled with an empty second list is the first list",
+      [r["metadata"]["chunk_id"] for r in R.merge_results(first, [], 5)], ["a-1", "a-2", "b-1"])
+_fetch = R.fetch_results
+R.fetch_results = lambda q, n: second if q == "rephrased" else first
+f1, pooled, rw, _ms = R.corrective_search(StubClient("rephrased"), "orig")
+check("corrective search pools both searches", [r["metadata"]["chunk_id"] for r in pooled][:2], ["b-1", "a-3"])
+f1, pooled, rw, _ms = R.corrective_search(StubClient(OpenAIError("boom")), "orig")
+check("failed rewrite: only the first search is used", (rw["status"], pooled == first), ("error", True))
+R.fetch_results = _fetch
+g = R.charge_corrective({"ttft_s": 0.6, "latency_s": 2.0, "cost_usd": 0.0097}, {"cost_usd": 0.0001}, 900)
+check("arm C charged the rewrite delay and cost, model values kept",
+      (g["ttft_s"], g["latency_s"], g["cost_usd"], g["ttft_model_s"], g["answer_cost_usd"]),
+      (1.5, 2.9, 0.0098, 0.6, 0.0097))
+
 print("\n--- T1.7 private name ---")
 _pn = R.PRIVATE_NAME_RE
 R.PRIVATE_NAME_RE = re.compile(r"\b(?:Testclient Counselling)\b", re.IGNORECASE)
