@@ -211,7 +211,7 @@
       "regression_note": "Figure fidelity check. Every numeric claim in the answer must appear in the retrieved context. 2026-10-22: hybrid ff4d5612 run 2 said the 86% reduction in resolution time indicated 'significant improvements in efficiency and customer satisfaction'. ops-005 gives resolution time only. FAILURE if the answer attaches satisfaction, sentiment or any second outcome to the 86% figure." }
   ],
 
-  "additive_cases_note": "Cases held OUTSIDE the 34-question series so the series stays comparable. run_eval.py and run_e2e.py read only 'questions', so nothing here runs until a deliberate decision moves it in. Per the DEFERRED entry in meta.expect_list_changes: add after the deploy, against the same index.",
+  "additive_cases_note": "Cases held OUTSIDE the 34-question series so the series stays comparable. The runners read this block only on --set additive, and write it to its own results file (eval_results_additive.json, eval_results_models_additive.json, eval_e2e_additive_*). Moving a case INTO 'questions' is still a deliberate decision, not made. Per the DEFERRED entry in meta.expect_list_changes: add after the deploy, against the same index.",
   "additive_cases": [
     { "id": "X03", "tag": "domain", "req": ["R1"], "themes": [],
       "q": "How does Jordanne approach growth and customer acquisition?",
@@ -294,7 +294,7 @@
     }
   ],
 
-  "theme_cases_note": "Added 2026-10-30 (Phase 2). Questions for the themes the 26 saved PM roles ask about, plus two for the Wealthsimple track (P14, P15). Held OUTSIDE questions so the 34-question series stays comparable. No runner reads this block yet: run_eval.py --only filters questions only.",
+  "theme_cases_note": "Added 2026-10-30 (Phase 2). Questions for the themes the 26 saved PM roles ask about, plus two for the Wealthsimple track (P14, P15). Held OUTSIDE questions so the 34-question series stays comparable. The runners read this block only on --set theme, and write it to its own results file (eval_results_theme.json, eval_results_models_theme.json, eval_e2e_theme_*), so theme numbers never enter the series.",
   "theme_cases": [
     { "id": "P01", "tag": "domain", "req": ["R4", "R6"], "themes": ["T-AI"],
       "q": "What AI has Jordanne shipped to production, and how did she decide it was good enough to ship?",

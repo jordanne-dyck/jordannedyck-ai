@@ -218,6 +218,89 @@ except (urllib.error.URLError, ConnectionError):
     loud = True
 check("/search down: harness fails loudly", loud, True)
 
+print("\n--- case sets: --set and --only ---")
+# The 34-question series must stay what every comparison is measured on: core is
+# the default, and cases held outside it run only on --set, into their own file.
+import contextlib, io, os, tempfile
+from pathlib import Path
+import run_e2e as E
+import run_models as M
+SPEC = json.load(open(R.EVAL_SET, encoding="utf-8"))
+ids = lambda cs: [c["id"] for c in cs]
+check("default set is the series", ids(R.select_cases(SPEC)), ids(SPEC["questions"]))
+check("series still 34 questions", len(R.select_cases(SPEC, "core")), 34)
+check("theme set is P01-P15", ids(R.select_cases(SPEC, "theme")), [f"P{i:02d}" for i in range(1, 16)])
+check("additive set is X03-X18", ids(R.select_cases(SPEC, "additive")), [f"X{i:02d}" for i in range(3, 19)])
+all_ids = [i for key in R.CASE_SETS.values() for i in ids(SPEC[key])]
+check("no id in two sets", len(all_ids), len(set(all_ids)))
+check("--only within the set, any case", ids(R.select_cases(SPEC, "theme", "p14, P03")), ["P03", "P14"])
+for name, case_set, only, want in [
+    ("theme id on the core set names its set", "core", "W01,P03", "P03 is in --set theme"),
+    ("core id on the theme set names its set", "theme", "W01", "W01 is in --set core"),
+    ("unknown id fails, not an empty run", "core", "Z99", "Z99 is not in eval_set.json"),
+]:
+    try:
+        R.select_cases(SPEC, case_set, only)
+        msg = "no exit"
+    except SystemExit as e:
+        msg = str(e)
+    check(name, want in msg, True)
+    if want not in msg:
+        print(f"      message: {msg!r}")
+check("core results file unchanged", R.results_path(R.RESULTS, "core"), R.RESULTS)
+check("theme results file", R.results_path(R.RESULTS, "theme").name, "eval_results_theme.json")
+check("models theme file", R.results_path(M.DEFAULT_OUT, "theme").name, "eval_results_models_theme.json")
+check("e2e core file unchanged", E.e2e_filename("eval_e2e_", "core", "prod", "2026-10-30"),
+      "eval_e2e_prod_2026-10-30.json")
+check("e2e theme file", E.e2e_filename("eval_e2e_", "theme", "prod", "2026-10-30"),
+      "eval_e2e_theme_prod_2026-10-30.json")
+e2e_choices = re.search(r'"--set".*?choices=\[([^\]]+)\]', Path(E.__file__).read_text(encoding="utf-8"), re.S)
+check("run_e2e --set choices match CASE_SETS", re.findall(r'"(\w+)"', e2e_choices.group(1)), list(R.CASE_SETS))
+
+# Every held-out case must be scorable by the same checks as the series. None is
+# tagged gap or adversarial, so T2.3 and T2.4 are n/a, as for core domain/hostile.
+core_keys = set(R.run_checks(SPEC["questions"][0], "B", CTX, R_MOCK, mk("x")))
+for key in ("theme_cases", "additive_cases"):
+    bad = [c["id"] for c in SPEC[key] if not (c.get("q") and c.get("tag") and "expect" in c)
+           or set(R.run_checks(c, "B", CTX, R_MOCK, mk("x"))) != core_keys]
+    check(f"{key} carry what run_checks needs", bad, [])
+    tagged = sorted({c["tag"] for c in SPEC[key]} & {"gap", "adversarial"})
+    check(f"{key} have no gap/adversarial tags", tagged, [])
+
+# run_eval.main() end to end on --set theme, with search and generation stubbed:
+# the theme row lands in eval_results_theme.json and the series file is untouched.
+tmp = Path(tempfile.mkdtemp())
+_res, _se, _gen, _argv = R.RESULTS, R.search_experience, R.generate, sys.argv
+R.RESULTS = tmp / "eval_results.json"
+R.search_experience = lambda query, n, trunc, results=None: (CTX, R_MOCK)
+R.generate = lambda client, q, ctx, history=(): mk("Jordanne shipped it.")
+os.environ.setdefault("OPENAI_API_KEY", "selftest-not-a-key")
+sys.argv = ["run_eval.py", "--set", "theme", "--only", "P03", "--arm", "B"]
+with contextlib.redirect_stdout(io.StringIO()):
+    R.main()
+R.RESULTS, R.search_experience, R.generate, sys.argv = _res, _se, _gen, _argv
+rows = json.loads((tmp / "eval_results_theme.json").read_text(encoding="utf-8"))
+check("theme run writes its own file", [(r["id"], r["case_set"], r["arm"]) for r in rows], [("P03", "theme", "B")])
+check("theme run leaves the series file alone", (tmp / "eval_results.json").exists(), False)
+sys.argv = ["run_eval.py", "--multiturn", "--set", "theme"]
+try:
+    R.main()
+    msg = "no exit"
+except SystemExit as e:
+    msg = str(e)
+sys.argv = _argv
+check("--multiturn refuses --set", "does not take --set" in msg, True)
+
+# run_models --estimate on the theme set: no API calls, theme file by default.
+sys.argv = ["run_models.py", "--set", "theme", "--models", "gpt-4o", "--estimate"]
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    M.main()
+sys.argv = _argv
+est = buf.getvalue()
+check("estimate counts the 15 theme cases", "--set theme: 15 questions x 1 models" in est, True)
+check("estimate points at the theme file", "eval_results_models_theme.json" in est, True)
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.

@@ -34,8 +34,10 @@ Usage (from C:\\Users\\Jord\\jordannedyck-ai, api_server.py already running):
     venv\\Scripts\\python.exe run_models.py --only W02,G01 --max-cost 1
     venv\\Scripts\\python.exe run_models.py --reps 3 --max-cost 15
     venv\\Scripts\\python.exe run_models.py --report                    # summarise, no calls
+    venv\\Scripts\\python.exe run_models.py --set theme --models gpt-4o --estimate
 
-Writes eval_results_models.json incrementally (--out to change). Safe to
+Writes eval_results_models.json incrementally (--out to change;
+eval_results_models_theme.json or _additive.json for --set theme/additive). Safe to
 re-run: completed question/model/run combinations are skipped.
 """
 
@@ -59,6 +61,7 @@ from citation_checks import (
 )
 from run_eval import (
     ANSWER_MAX_TOKENS,
+    CASE_SETS,
     EVAL_SET,
     HERE,
     PROMPT_VERSION,
@@ -67,10 +70,12 @@ from run_eval import (
     conversation_checks,
     fetch_results,
     lead_chunk,
+    results_path,
     rewrite_drift,
     run_checks,
     search_experience,
     search_query,
+    select_cases,
     strip_citations,
 )
 
@@ -424,7 +429,10 @@ def main_multiturn(args, spec, models):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", default=",".join(MODELS), help="comma-separated model ids")
-    ap.add_argument("--only", help="comma-separated question ids")
+    ap.add_argument("--set", dest="case_set", choices=list(CASE_SETS), default="core",
+                    help="core = the 34-question series (default); theme and additive are held "
+                         "outside it and default to their own results file")
+    ap.add_argument("--only", help="comma-separated question ids, within --set")
     ap.add_argument("--reps", type=int, default=1, help="runs per question (at least its own 'runs')")
     ap.add_argument("--max-cost", type=float, help="stop once spend reaches this many USD")
     ap.add_argument("--no-judge", action="store_true", help="skip the paid judge")
@@ -436,12 +444,16 @@ def main():
     args = ap.parse_args()
 
     if args.multiturn:
+        if args.case_set != "core":
+            sys.exit("--multiturn runs the multiturn cases; it does not take --set.")
         models = [m.strip() for m in args.models.split(",")]
         unknown = [m for m in models if m not in MODELS]
         if unknown:
             sys.exit(f"unknown model(s): {', '.join(unknown)}. Known: {', '.join(MODELS)}")
         return main_multiturn(args, json.loads(EVAL_SET.read_text(encoding="utf-8")), models)
 
+    if args.out == DEFAULT_OUT:
+        args.out = results_path(DEFAULT_OUT, args.case_set)
     existing = json.loads(args.out.read_text(encoding="utf-8")) if args.out.exists() else []
     if args.report:
         if not existing:
@@ -455,17 +467,15 @@ def main():
         sys.exit(f"unknown model(s): {', '.join(unknown)}. Known: {', '.join(MODELS)}")
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
-    questions = spec["questions"]
-    if args.only:
-        want = {s.strip().upper() for s in args.only.split(",")}
-        questions = [q for q in questions if q["id"] in want]
+    questions = select_cases(spec, args.case_set, args.only)
     arm = spec["arms"][ARM]
 
     done = {(r["id"], r["model"], r["run"]) for r in existing}
     calls = [c for c in plan(questions, models, args.reps) if (c[0]["id"], c[1], c[2]) not in done]
     lo, hi = estimate(calls)
     print(f"prompt_version {PROMPT_VERSION}, arm {ARM} ({arm['name']}), "
-          f"{len(questions)} questions x {len(models)} models, reps {args.reps}")
+          f"--set {args.case_set}: {len(questions)} questions x {len(models)} models, reps {args.reps}")
+    print(f"results file {args.out}")
     print(f"{len(calls)} answers to generate ({len(done)} already recorded), "
           f"estimated ${lo:.2f}-${hi:.2f} including the judge")
     if args.estimate:
@@ -518,7 +528,7 @@ def main():
               f"${gen['cost_usd']:.4f}", flush=True)
 
         results.append({
-            "id": q["id"], "tag": q["tag"], "req": q.get("req", []),
+            "id": q["id"], "case_set": args.case_set, "tag": q["tag"], "req": q.get("req", []),
             "arm": ARM, "model": model, "provider": MODELS[model]["provider"],
             "settings": MODELS[model]["settings"], "run": run, "question": q["q"],
             "expect": q.get("expect", []), "prompt_version": PROMPT_VERSION,
