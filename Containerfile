@@ -19,8 +19,8 @@ WORKDIR /opt/app-root/src
 # Copy the entire venv from builder
 COPY --from=builder /venv /venv
 
-# Copy only the application entrypoint
-COPY api_server.py .
+# Copy only the application entrypoint and the ranking module it imports
+COPY api_server.py retrieval.py ./
 
 # faiss_db/ is NOT copied here — it is mounted from a PVC at /opt/app-root/src/faiss_db at runtime
 # api_server.py uses relative path "faiss_db/resume.index" so WORKDIR must stay /opt/app-root/src

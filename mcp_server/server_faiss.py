@@ -17,6 +17,11 @@ load_dotenv()
 # Get project root
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# The ranking is shared with api_server.py through retrieval.py in the repo root,
+# so the MCP tool stays a valid diagnostic for what the site returns.
+sys.path.insert(0, PROJECT_ROOT)
+import retrieval  # noqa: E402
+
 # Initialize OpenAI client
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -39,6 +44,8 @@ try:
     with open(os.path.join(PROJECT_ROOT, "faiss_db", "metadatas.pkl"), "rb") as f:
         metadatas = pickle.load(f)
     
+    bm25 = retrieval.BM25(documents)
+
     print(f"Loaded {len(documents)} documents", file=sys.stderr)
 except Exception as e:
     print(f"Error loading FAISS index: {e}", file=sys.stderr)
@@ -96,54 +103,20 @@ async def handle_call_tool(
         sys.stderr.flush()
         
         # Get embedding for query
-        query_embedding = get_embedding(query)
-        query_vector = np.array([query_embedding]).astype('float32')
-        
-        print("Got embedding, searching index...", file=sys.stderr)
-        sys.stderr.flush()
-        
-        # Rank the FULL corpus. The old cap was min(max(n_results*5, 30), N) = 30;
-        # over a 123-vector IndexFlatL2 that saved microseconds and cost reach.
-        # See the note in api_server.py.
-        fetch_count = len(documents)
-        distances, indices = index.search(query_vector, fetch_count)
+        query_vector = np.array([get_embedding(query)], dtype='float32')
 
-        print(f"Found {len(indices[0])} candidates, re-ranking...", file=sys.stderr)
+        print("Got embedding, ranking...", file=sys.stderr)
         sys.stderr.flush()
 
-        # Rank by raw similarity. No priority boost.
-        # MUST STAY IN SYNC WITH api_server.py - this is a second, independent copy
-        # of the same scorer. api_server.py serves the website's chat route; this
-        # serves the jordan-resume MCP tool. If they diverge, the MCP tool stops
-        # being a valid diagnostic for what the site actually returns.
-        #
-        # The priority boost was retired 2026-09-10 after measurement showed the
-        # tag was still the sort key (rank 1 flipped on 41% of eval questions),
-        # because the real within-list similarity spread is 3.6%, not the 6-9%
-        # the compression had been sized against. Full note in api_server.py.
-        candidates = []
-        for idx, distance in zip(indices[0], distances[0]):
-            if idx < len(documents):
-                similarity = 1 / (1 + distance)
-                candidates.append((idx, similarity, similarity))
-
-        candidates.sort(key=lambda x: x[2], reverse=True)
-        # Source diversity: max 3 chunks per file. Kept at 3 on evidence -
-        # removing it surfaced 0 otherwise-dark chunks, tightening to 2 surfaced 1.
-        top = []
-        source_counts = {}
-        for c in candidates:
-            source = metadatas[c[0]].get('filename', '')
-            source_counts[source] = source_counts.get(source, 0) + 1
-            if source_counts[source] <= 3:
-                top.append(c)
-            if len(top) >= int(n_results):
-                break
+        # Hybrid ranking (vector top 3, then vectors plus BM25 by RRF, max 3 per file) from
+        # retrieval.py, the same code api_server.py's /search runs.
+        top = retrieval.rank(index, metadatas, bm25, query, query_vector, int(n_results))
 
         # Format results
         formatted_results = []
 
-        for i, (idx, similarity, score) in enumerate(top):
+        for i, r in enumerate(top):
+            idx, similarity = r["idx"], r["similarity"]
             doc = documents[idx]
             metadata = metadatas[idx]
 

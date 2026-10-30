@@ -572,6 +572,68 @@ check("TTFT recorded", gen["ttft_s"], 1.0)
 check("latency excludes the 10 s retry wait", gen["latency_s"], 3.0)
 check("cost from streamed usage", gen["cost_usd"], round(1000 / 1e6 * 2.5 + 100 / 1e6 * 10, 5))
 
+print("\n--- hybrid ranking (retrieval.py, D.1) ---")
+# Synthetic corpus and a stub index: no FAISS file, no API. The vector side
+# returns a fixed order; the BM25 side runs on the real tokenizer.
+import numpy as np
+import retrieval as RT
+
+check("tokenizer keeps figures whole", RT.tokenize("Grew it to $150M+ and 86% in 2024."),
+      ["grew", "150m", "86%", "2024"])
+check("tokenizer drops stopwords, possessives and a plain plural",
+      RT.tokenize("How does Jordanne's team handle recommendations and business?"),
+      ["team", "handle", "recommendation", "business"])
+
+class FakeIndex:
+    """Stands in for faiss.IndexFlatL2: returns `order` at rising squared distances."""
+    def __init__(self, order):
+        self.order, self.ntotal = order, len(order)
+    def search(self, q, n):
+        return (np.array([[0.40 + 0.01 * r for r in range(n)]], dtype="float32"),
+                np.array([self.order[:n]]))
+
+texts = [
+    "Loyalty program design and points strategy.",                         # 0 a.md
+    "Customer retention and loyalty economics.",                           # 1 a.md
+    "Points redemption and loyalty tiers.",                                # 2 a.md
+    "Loyalty partnerships and coalition programs.",                        # 3 a.md
+    "Ecommerce platform operations at scale.",                             # 4 b.md
+    "Payments and checkout flow.",                                         # 5 c.md
+    "PC Express was a subscription product; demand generation for it.",    # 6 d.md
+    "Team leadership and hiring.",                                         # 7 e.md
+]
+metas = [{"filename": f, "chunk_id": f"c{i}"}
+         for i, f in enumerate(["a.md"] * 4 + ["b.md", "c.md", "d.md", "e.md"])]
+bm = RT.BM25(texts)
+vec_order = [0, 1, 2, 3, 4, 5, 7, 6]   # the PC Express chunk is last on vectors
+q = "What did she do on PC Express subscription demand generation?"
+vec = RT.rank(FakeIndex(vec_order), metas, bm, q, [0.0], 5, hybrid=False)
+hyb = RT.rank(FakeIndex(vec_order), metas, bm, q, [0.0], 5)
+check("vector-only: the exact-term chunk stays out of the top 5", [r["idx"] for r in vec], [0, 1, 2, 4, 5])
+check("hybrid: the exact-term chunk is lifted into the top 5", 6 in [r["idx"] for r in hyb], True)
+check("hybrid: the top 3 stay the vector top 3, fusion fills ranks 4-5",
+      [r["idx"] for r in hyb], [0, 1, 2, 6, 4])
+check("hybrid: n_results 2 is pure vector order",
+      [r["idx"] for r in RT.rank(FakeIndex(vec_order), metas, bm, q, [0.0], 2)], [0, 1])
+check("hybrid: its bm25 rank is 1, its vector rank is still 8",
+      next((r["bm25_rank"], r["vector_rank"]) for r in hyb if r["idx"] == 6), (1, 8))
+check("similarity stays the raw vector value under fusion",
+      next(r["similarity"] for r in hyb if r["idx"] == 6), float(1 / (1 + np.float32(0.47))))
+check("hybrid: score is the RRF sum, not the similarity",
+      next(r["score"] for r in hyb if r["idx"] == 6), 1 / (RT.RRF_K + 8) + 1 / (RT.RRF_K + 1))
+check("vector-only: score == similarity", all(r["score"] == r["similarity"] for r in vec), True)
+check("hybrid: at most 3 per file after fusion",
+      max(sum(metas[r["idx"]]["filename"] == f for r in hyb) for f in {m["filename"] for m in metas}), 3)
+check("hybrid: the fourth a.md chunk is capped out", 3 in [r["idx"] for r in hyb], False)
+none_q = RT.rank(FakeIndex(vec_order), metas, bm, "zebra", [0.0], 5)
+check("no shared term: no bm25 rank", none_q[0]["bm25_rank"], None)
+check("no shared term: hybrid keeps the vector order", [r["idx"] for r in none_q], [r["idx"] for r in vec])
+check("ranking is deterministic", [r["idx"] for r in RT.rank(FakeIndex(vec_order), metas, bm, q, [0.0], 5)],
+      [r["idx"] for r in hyb])
+check("api_server and the MCP server both rank through retrieval.rank",
+      all("retrieval.rank(" in (R.HERE / f).read_text(encoding="utf-8")
+          for f in ("api_server.py", "mcp_server/server_faiss.py")), True)
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.
@@ -581,7 +643,8 @@ spec = json.load(open(R.EVAL_SET, encoding="utf-8"))
 api_src = (R.HERE / "api_server.py").read_text(encoding="utf-8")
 n_core, n_reg, n_mt = len(spec["questions"]), len(spec["additive_cases"]), len(spec["multiturn"]["cases"])
 n_theme = len(spec["theme_cases"])
-max_per_source = re.search(r"max_per_source = (\d+)", api_src).group(1)
+max_per_source = re.search(r"max_per_source = (\d+)",
+                           (R.HERE / "retrieval.py").read_text(encoding="utf-8")).group(1)
 embed_model = re.search(r'model="(text-embedding[^"]+)"', api_src).group(1)
 for name, fact in [
     ("total case count", f"holds {n_core + n_reg + n_mt + n_theme} cases"),

@@ -27,7 +27,7 @@ flowchart LR
 
 1. **Index.** Each knowledge-base file is split on explicit chunk markers. Each chunk carries YAML metadata (id, priority, weight), gets a `[category] [title] [id]` prefix, and is embedded with `text-embedding-ada-002`. Chunks weighted below 0.3 are left out of the index.
 2. **Rewrite.** On a follow-up turn, gpt-4o-mini turns "how was that measured?" into a standalone query. It has a 2.5-second budget. On a timeout, error or unusable output it falls back to the visitor's own words. A first turn skips the rewrite.
-3. **Retrieve.** `/search` ranks the whole corpus by raw similarity, keeps at most 3 chunks per source file, and returns the top 5 with an `index_version` fingerprint. Any change in answer quality can then be traced to a specific reindex.
+3. **Retrieve.** `/search` ranks the whole corpus two ways: by embedding similarity and by BM25 keyword match. The top 3 slots go to the embedding ranking. The rest are filled by reciprocal rank fusion of the two. It keeps at most 3 chunks per source file, and returns the top 5 with an `index_version` fingerprint. Any change in answer quality can then be traced to a specific reindex.
 4. **Answer.** gpt-4o answers from those chunks only, cites chunk ids, and says plainly when the record does not cover something.
 5. **Monitor.** Every turn is logged with visitor emails and phone numbers redacted. It is then labelled by a moderation check, an off-topic check, and a judge that asks whether each claim in the answer is supported by the retrieved chunks.
 
@@ -85,7 +85,8 @@ Model choices are made by blind human scoring. Answers from each model are shuff
 ### Decisions the evals made
 
 - **Chose the answering model twice, and the answer changed.** Under the original prompt, a 56-answer blind sample put Gemini 3.8 Flash first (4.47 of 5) and gpt-4o second (4.17). The model was kept provisionally and re-tested after the prompt rework. In a 32-answer blind sample under the new prompt (8 per model), gpt-4o scored highest: 4.76 overall and 4.88 on accuracy. Sonnet 5.5 scored 4.67, Flash 4.65 and Opus 5.5 4.50. Production runs gpt-4o.
-- **Retired the priority boost in ranking.** Similarities within a result list spread only 3.6% from rank 1 to rank 5, so even a "small" 6% boost was the real sort key. It flipped the top result on 41% of eval questions, and two files took 60% of all slots. Ranking is now raw similarity.
+- **Retired the priority boost in ranking.** Similarities within a result list spread only 3.6% from rank 1 to rank 5, so even a "small" 6% boost was the real sort key. It flipped the top result on 41% of eval questions, and two files took 60% of all slots. Ranking went back to raw similarity.
+- **Added keyword search, after the first version failed.** Some facts in the knowledge base, such as the $150M+ figure, never reached the top 5 on embeddings alone. Plain fusion of embeddings and BM25 moved 17 expected chunks into the top 5 and pushed 18 out, because a chunk that shared no word with the question could no longer compete. Keeping the embedding top 3 and fusing only below them raised micro recall@5 from 0.462 to 0.511 and MRR@5 from 0.690 to 0.708 over 62 eval questions, on the same query embeddings. That version was chosen after seeing the first result, so it is re-checked on new questions.
 - **Kept the 3-per-file diversity cap on evidence.** Removing it surfaced no new chunks, and tightening it to 2 surfaced one. Neither was worth the change.
 - **Added a query rewrite for follow-ups.** The first multi-turn baseline found 5 of 10 follow-up answers cited nothing. That became check T2.7, then the rewrite. Its timeout was raised from 1.2 s to 2.5 s after it timed out on 3 of 3 calls from the dev cluster.
 
