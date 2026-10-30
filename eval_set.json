@@ -6,6 +6,21 @@
     "source_posting": "https://jobs.ashbyhq.com/wealthsimple/40d9a988-8944-4606-9ea1-51262e495768",
     "posting_note": "Consolidated posting covering five roles with one generic requirements block. No Rewards & Ecommerce-specific requirements section exists; domain-tagged questions test the target role's subject matter, not published requirements.",
     "index": "131 chunks / 23 files, live as of 2026-09-11 (resume.index 804,909 bytes, verified by file size). Reached 130 with pov-004/ops-010/ops-011, then +promo-005 +ecom-006 +ops-012 and -exp-030 -exp-038. The two removals are still present in professional-overview.md; they were dropped from the INDEX by setting embedding_weight to 0.20, below the 0.3 drop filter, because both were retrieving on unrelated questions and eating slots. 2026-10-14: 136 -> 134 chunks, -exp-005 (Key Competencies) -exp-031 (Education & Credentials) by the same 0.20 weight mechanism; both still present in professional-overview.md. The education/certification facts moved into exp-001 and the certification into indie-001. Measured with Claude outputs/probe_generic_chunks.py: generic-chunk slots on 15 recruiter + eval questions 20 -> 7 (all 7 are exp-001). NO expect-list change: H04 still expects exp-031, retained so its failure stays visible -- it sat at raw rank 9 before the drop, so H04's hit count does not move. 2026-10-15: local faiss_db rebuilt at 136 chunks (metadatas.pkl counted), exp-005 and exp-031 still absent, indie-001..indie-006 present.",
+    "failure_types_note": "Added 2026-10-30 (plan A.2). Hand-filled failure_type on the regression cases X03-X18, one primary and an optional failure_type_secondary. Adapted from awesome-llm-apps rag_tutorials/rag_failure_diagnostics_clinic (P01-P12); prefix F because P01-P15 are the theme cases. Assignments approved by Jord 2026-10-30.",
+    "failure_types": {
+      "F01": "grounding drift: the answer claims more than the retrieved text supports (ownership, launch status, invented figures).",
+      "F02": "chunk boundary: the fact is in the KB but buried inside a chunk about something else.",
+      "F03": "dark chunk: the right chunk exists but never ranks for the question (clinic: embedding mismatch).",
+      "F04": "reindex is not a deployment: a reader serves an old index or retired wording (clinic: index staleness).",
+      "F05": "follow-up rewrite misalignment: the multi-turn query rewrite retrieves the wrong thing.",
+      "F06": "long-chain drift: later turns drift from or build on earlier wrong turns.",
+      "F07": "tool misuse: kept for numbering; this pipeline has one retrieval call, no tool choice.",
+      "F08": "session context loss: a follow-up loses what earlier turns established.",
+      "F09": "eval blind spot: a check misses a real failure (T2.3/T2.4 checker misses).",
+      "F10": "startup ordering: a reader caches faiss_db at process start and was not restarted.",
+      "F11": "config drift: duplicated logic diverges (run_eval.py vs system-prompt.ts, api_server vs server_faiss).",
+      "F12": "source wording: the KB text itself states or implies something false. Replaces the clinic's multi-tenant interference, which does not apply here."
+    },
     "expect_list_changes": [
       "2026-09-10: W08 expect gained shopper-007 (agentic-personal-shopper.md, \"The Hard Part Was Never the Technology\"). Reason: W08 asks whether she can hold her own on architecture tradeoffs, and no chunk in the corpus contained an architecture DECISION -- the list pointed at section_4, a tool inventory structurally unable to answer it. shopper-007 was written to answer it. section_4 is deliberately RETAINED so its failure stays visible. CONSEQUENCE: W08 is NOT comparable to eval_results_baseline_2026-09-10.json. Expect instances 89 -> 90.",
       "2026-09-10: W06 expect gained dtx-007 (digital-transformation-salesforce.md, \"Three Rooms, Three Different Arguments\"). Reason: W06 asks who she had to bring along, and dtx-004 -- the chunk the list pointed at -- is a five-bullet results ledger containing no person or team, verified at source. dtx-007 names the three audiences and what each argument actually took. dtx-004 is deliberately RETAINED so its failure stays visible. CONSEQUENCE: W06 is NOT comparable to eval_results_baseline_2026-09-10.json. Expect instances 90 -> 91.",
@@ -93,7 +108,8 @@
 
     { "id": "W09", "tag": "ws_core", "req": ["R9"], "themes": ["T-FIN"],
       "q": "Does Jordanne care about financial inclusion or expanding access to financial services?",
-      "expect": ["fundlocal-001", "fundlocal-002", "fundlocal-003"] },
+      "regression_note": "2026-10-30 (plan A.1): fundlocal-003 removed from expect. It was archived out of the corpus on 2026-09-11 (DUP-AGENCY, knowledge-base-archive/fundlocal-003-archived.md), so no index can return it. Corpus fix, not a score fix; recall@5 rises because the denominator shrinks.",
+      "expect": ["fundlocal-001", "fundlocal-002"] },
 
     { "id": "W10", "tag": "ws_core", "req": ["R10"], "themes": ["T-PLAT"],
       "q": "What does systems thinking actually mean in Jordanne's work? Show me it rather than telling me.",
@@ -175,7 +191,8 @@
 
     { "id": "H03", "tag": "hostile", "req": ["R8", "R13"], "themes": ["T-AI", "T-IC"],
       "q": "Is Jordanne a real builder, or a director who watched engineers build things and took credit?",
-      "expect": ["indie-003", "proj-ai-resume-001", "shopper-003", "fundlocal-003"] },
+      "regression_note": "2026-10-30 (plan A.1): fundlocal-003 removed from expect. It was archived out of the corpus on 2026-09-11 (DUP-AGENCY, knowledge-base-archive/fundlocal-003-archived.md), so no index can return it. Corpus fix, not a score fix; recall@5 rises because the denominator shrinks.",
+      "expect": ["indie-003", "proj-ai-resume-001", "shopper-003"] },
 
     { "id": "H04", "tag": "hostile", "req": ["R7", "R13"], "themes": ["T-AI", "T-IC"],
       "q": "Her last role ended in October 2025. What has she actually been doing since then?",
@@ -216,80 +233,96 @@
   "additive_cases_note": "Cases held OUTSIDE the 34-question series so the series stays comparable. run_eval.py and run_e2e.py read only 'questions', so nothing here runs until a deliberate decision moves it in. Per the DEFERRED entry in meta.expect_list_changes: add after the deploy, against the same index.",
   "additive_cases": [
     { "id": "X03", "tag": "domain", "req": ["R1"], "themes": [],
+      "failure_type": "F01",
       "q": "How does Jordanne approach growth and customer acquisition?",
       "expect": ["growth-001"],
       "regression_note": "Added 2026-10-16 with growth-001 (experience/growth-and-acquisition.md), the first chunk built around this question. Measured on the local 138-chunk index the same day: growth-001 rank 1 at 0.777, next personality-004 at 0.755; ecom-006 and ecom-003 not in the top 8. Expect is growth-001 only, the chunk that answers it -- not the chunks the plan predicted would surface. FAILURE if the answer says she ran the Black Friday shutdown or the Slowvember campaign itself: the campaign was the brand's, her part was the digital side." },
     { "id": "X04", "tag": "narrative", "req": ["R1", "R6"], "themes": [],
+      "failure_type": "F04", "failure_type_secondary": "F12",
       "q": "What kind of product leader is Jordanne?",
       "expect": ["exp-001", "ops-015"],
       "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. FAILURE if the answer leads with 'AI Builder' as the headline identity or uses 'connect the dots, redefine what's possible, architect the vision' (retired 2026-10-21). Correct lead: product growth leader who builds with AI."
     },
     { "id": "X05", "tag": "hostile", "req": ["R10"], "themes": [],
+      "failure_type": "F01",
       "q": "Isn't Jordanne just a generalist? Where does she actually have depth?",
       "expect": ["ops-016", "ops-001", "ops-015"],
       "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct behaviour: range explained as a result of systems thinking, with depth shown in product growth (acquisition, personalization, retention, loyalty). FAILURE if the answer concedes 'generalist' without the depth evidence, or invents a learning-speed figure."
     },
     { "id": "X06", "tag": "narrative", "req": [], "themes": [],
+      "failure_type": "F01", "failure_type_secondary": "F12",
       "q": "How is Jordanne creative?",
       "expect": ["ops-017"],
       "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. FAILURE if the answer says she ran the Black Friday shutdown campaign itself: the campaign was the brand's, her part was the digital side. FAILURE if it says she designed the theordinary.com / deciem.com / niod.com front end personally: she led the team and the strategy behind it. Round 6 (2026-10-21, first failure: 'orchestrated a Black Friday digital campaign', 'developed the Pick Your Price initiative', 'created the Virtual Shelf'): FAILURE if it says she created or developed Pick Your Price: the campaign was the brand's, her team delivered the web experience and the marketing. FAILURE if it implies Virtual Shelf launched: she designed it and it reached a working interactive prototype."
     },
     { "id": "X07", "tag": "narrative", "req": ["R13"], "themes": [],
+      "failure_type": "F01",
       "q": "How quickly does Jordanne get up to speed in a new industry?",
       "expect": ["ops-016"],
       "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. The only timeframe in the corpus is the Salesforce transformation, eight months from kickoff to launch. FAILURE on any other learning-speed figure -- a fabrication (T2.2)."
     },
     { "id": "X08", "tag": "domain", "req": [], "themes": ["T-LIFE"],
+      "failure_type": "F01",
       "q": "Has Jordanne launched a tiered membership program?",
       "expect": ["ops-015", "promo-005", "promo-007"],
       "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct answer is NO, stated plainly: she worked PC Optimum tier mechanics from the growth side and evaluated the tier-based platform DECIEM had bought, then recommended against it. FAILURE if the answer says or implies she owned or launched a tiered program."
     },
     { "id": "X09", "tag": "domain", "req": ["R9"], "themes": ["T-FIN"],
+      "failure_type": "F01",
       "q": "What fintech or financial services experience does Jordanne have?",
       "expect": ["promo-003", "pay-002"],
       "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct answer is limited: a smaller amount of demand generation work on PC Financial, and the PC Optimum credit card as part of the landscape she worked in. FAILURE if overstated as owning a financial product. A pivot to payments (pay-001) and FundLocal is acceptable."
     },
     { "id": "X10", "tag": "domain", "req": ["R2"], "themes": ["T-LIFE"],
+      "failure_type": "F01",
       "q": "What does Jordanne think makes a tier program work?",
       "expect": ["promo-007"],
       "regression_note": "Added 2026-10-21, round 2 (hiring-manager review). Answer from promo-007: fair, attainable effort vs reward; transparent rewards; the Shoppers Drug Mart finding of two redeemer types (save to the top tier vs redeem at the lowest threshold). FAILURE if it cites a share or count for either type -- none exists (T2.2). FAILURE if it says she launched a tier program."
     },
     { "id": "X11", "tag": "hostile", "req": ["R4"], "themes": ["T-DATA"],
+      "failure_type": "F01",
       "q": "How was Regimen Builder's 35% conversion lift measured? Is that causal?",
       "expect": ["regimen-004", "pers-003"],
       "regression_note": "Added 2026-10-21, round 2 (hiring-manager review). Correct basis: Regimen Builder users against non-users. Conversion (+35%) and AOV (+40%) showed from launch; 2x likelihood to buy again is from a one-year cohort. FAILURE if the answer claims a controlled test or A/B result, or states a before/after baseline: Jord cannot share from-what-to-what figures. Acknowledging that users self-select is correct behaviour, not a failure."
     },
     { "id": "X12", "tag": "domain", "req": ["R1", "R4"], "themes": ["T-DATA"],
+      "failure_type": "F01",
       "q": "Walk me through a funnel Jordanne owned. Where was the leak and how did she find it?",
       "expect": ["ops-018"],
       "regression_note": "Added 2026-10-21 with ops-018, from Jord's funnel facts. Correct shape: stages (arrive, leak, why this stage, fix, stay), leak at homepage and product pages, cause = choice confusion, fix = Regimen Builder. FAILURE if it states a drop-off percentage or traffic figure for any stage -- none exists (T2.2). FAILURE if it presents the users-vs-non-users figures as a controlled test."
     },
     { "id": "X13", "tag": "hostile", "req": [], "themes": [],
+      "failure_type": "F12", "failure_type_secondary": "F01",
       "q": "Why did Jordanne decide to shut down DECIEM's store on Black Friday?",
       "expect": ["ecom-004", "ops-014", "ecom-003"],
       "regression_note": "Added 2026-10-21 (round 6, from X06's 'orchestrated a Black Friday digital campaign'). The question's premise is false: the campaign was the brand's, her part was the digital side. ecom-004 and pay-003 previously said 'We shut the store' with no attribution. FAILURE if the answer accepts that she decided or ran the shutdown. FAILURE if it says she had to convince brand, engineering and operations: the case landed mostly with finance and investors, and it took less convincing than it sounds. Correct reasons: a statement against industry norms; customers given a month to make informed, educated decisions; volume spread after earlier one-day sales strained traffic and operations."
     },
     { "id": "X14", "tag": "narrative", "req": [], "themes": [],
+      "failure_type": "F01", "failure_type_secondary": "F12",
       "q": "Did Jordanne come up with Pick Your Price?",
       "expect": ["ecom-004", "pay-003", "ops-017"],
       "regression_note": "Added 2026-10-21 (round 6, from X06's 'developed the Pick Your Price initiative'). No chunk stated an owner before round 6. FAILURE if the answer says she came up with, created or developed it. Correct: the campaign was the brand's; her team delivered the web experience and the marketing."
     },
     { "id": "X15", "tag": "hostile", "req": [], "themes": ["T-LIFE"],
+      "failure_type": "F01", "failure_type_secondary": "F06",
       "q": "How did customers earn rewards on DECIEM's Virtual Shelf?",
       "expect": ["shelf-001", "shelf-002", "promo-006"],
       "regression_note": "Added 2026-10-22 from eval_runs/labelled-ab60_multiturn_2026-10-21.json, M05 turn 3 (prompt ab60e8aa, labelled layout). That answer said the Virtual Shelf 'offered achievement badges tied to consistency, learning, and completing a regimen', which reads as a live product customers used. The truth: Virtual Shelf was redesigned and built as a working interactive demo (shelf-001: 'a working interactive mobile demo'; status 'Designed - working interactive prototype'), and it had not launched when she left (promo-006). Achievement badges are part of the design (shelf-001, shelf-002). The question presupposes that customers used it. Correct behaviour: describe the badge mechanic as designed and say plainly that it was a prototype that had not launched. FAILURE if the answer says or implies that customers earned, used or were offered rewards, or describes Virtual Shelf as launched, live or in production. FAILURE if it invents usage, adoption or retention figures for it."
     },
     { "id": "X16", "tag": "hostile", "req": [], "themes": ["T-LIFE"],
+      "failure_type": "F12", "failure_type_secondary": "F01",
       "q": "Did Jordanne build and run the PC Express refer-a-friend program at Loblaw?",
       "expect": ["growth-002", "ops-015"],
       "regression_note": "Added 2026-10-23 from Jord's blind scoring of eval_runs/redecide-ff4d_2026-10-22.json (blind-sample-2026-10-22, prompt ff4d5612, index f8dea61d). G02 (Opus, Flash) and D05 (Sonnet, Flash) said she built, ran or managed PC Express refer-a-friend ('Jordanne built and ran referral initiatives'; 'built refer-a-friend on PC Express into the lifecycle'). Jord, 2026-10-23: she did not build, run or manage it; she supported it with demand generation. The cause was KB wording (growth-002 'I designed retention campaigns ... that carried the referral messaging'; growth-and-acquisition.md 'I built referral into the lifecycle'; ops-015 'I timed the referral ask'), fixed in KB commit bb98431. Correct behaviour: say her part was demand generation, driving traffic and sign-ups to the program. FAILURE if the answer says or implies she built, designed, ran, owned or managed the referral program, or timed or designed its referral asks."
     },
     { "id": "X17", "tag": "hostile", "req": [], "themes": ["T-AI", "T-IC"],
+      "failure_type": "F12", "failure_type_secondary": "F01",
       "q": "What has Jordanne built herself outside her employers?",
       "expect": ["ops-004", "ops-011"],
       "regression_note": "Added 2026-10-23 from Jord's blind scoring of eval_runs/redecide-ff4d_2026-10-22.json (blind-sample-2026-10-22, prompt ff4d5612, index f8dea61d). H03 (Opus, Flash) listed 'jordannedyck.com' and 'a RAG pipeline' as two separate builds. Jord, 2026-10-23: they are one project; jordannedyck.com is this AI resume, and the RAG pipeline, MCP server and evaluation harness are parts of it. KB fixed in commit bb98431 (ops-004, ops-011). FAILURE if the answer presents jordannedyck.com and its RAG pipeline, MCP server or evaluation harness as separate projects, or counts them as more than one build."
     },
     { "id": "X18", "tag": "hostile", "req": [], "themes": [],
+      "failure_type": "F02", "failure_type_secondary": "F03",
       "q": "Has she ever owned a P&L?",
       "expect": ["exp-039"],
       "regression_note": "Added 2026-10-23 from the QA session's hiring-manager review on dev (rows 111-113, web de9f2df, index e24a3627). 'Has she ever owned a P&L?' was answered 'The context does not provide specific information indicating that Jordanne Dyck has owned a Profit & Loss (P&L) responsibility', and 'weakest part of her record' then named P&L ownership. The record says she owned DECIEM's eCommerce P&L (exp-027, ops-002, ecom-001), but those lines sat inside chunks about other things and none were retrieved. KB fix: new chunk exp-039 (KB commit a69ceae, index 1124701d). Jord 2026-10-23: she ran the P&L as Head of Digital from June 2019, and it was formalized as Digital Director - Global (June 2020 - December 2021). FAILURE if the answer says or implies she has not owned a P&L, treats it as a gap, or names P&L ownership as a weakness. FAILURE if it claims P&L ownership after December 2021."
