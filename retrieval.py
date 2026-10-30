@@ -50,13 +50,16 @@ max_per_source = 3
 
 # Question words that carry no topic. Without this list, "How does Jordanne..."
 # matches every chunk that says "how" or "does". Small on purpose.
-STOPWORDS = frozenset("""
-a an and are as at be been but by can could did do does for from had has have
-her hers how i if in into is it its me my of on or our she so than that the
-their them then there these they this to us was we were what when where which
-who whom why will with would you your about also any just more most not only
-other really some such very jordanne jordanne's jord
-""".split())
+STOPWORDS = frozenset({
+    "a", "an", "and", "are", "as", "at", "be", "been", "but", "by", "can", "could",
+    "did", "do", "does", "for", "from", "had", "has", "have", "her", "hers", "how",
+    "i", "if", "in", "into", "is", "it", "its", "me", "my", "of", "on", "or", "our",
+    "she", "so", "than", "that", "the", "their", "them", "then", "there", "these",
+    "they", "this", "to", "us", "was", "we", "were", "what", "when", "where",
+    "which", "who", "whom", "why", "will", "with", "would", "you", "your", "about",
+    "also", "any", "just", "more", "most", "not", "only", "other", "really", "some",
+    "such", "very", "jordanne", "jordanne's", "jord",
+})
 
 # Figures stay whole: "$150M+" and "150M" both become "150m", "86%" becomes
 # "86%". Everything else is runs of letters and digits.
