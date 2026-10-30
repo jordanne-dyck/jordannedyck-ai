@@ -33,62 +33,25 @@ flowchart LR
 
 ## Evaluation
 
-The harness answers one question before anything ships: is this version better, and how do we know?
-
-### The eval set
+The harness answers one question before anything ships: is this version better, and how do we know? **[EVALS.md](EVALS.md)** has the full account: results, ranges, the decisions the evals drove, and what is left to human judgement.
 
 [`eval_set.json`](eval_set.json) holds 78 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
 | Core questions | 34 | The questions a hiring manager actually asks, each mapped to a requirement (R1–R15) from a real Staff PM posting at Wealthsimple |
-| Regression cases | 21 | One per defect found in testing, each with a note saying what went wrong and what a correct answer looks like |
+| Regression cases | 21 | One per defect found in testing, each tagged with a failure type |
 | Multi-turn conversations | 8 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
-| Role-theme cases | 15 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one. Two more extend the Wealthsimple track. Not scored yet |
+| Role-theme cases | 15 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one |
 
-Every case carries two tags: the Wealthsimple requirements it tests (R1–R15) and the role themes it tests. The themes are a second track. They do not replace the first.
+There are 7 tier-1 checks, and a release needs all of them to pass. Tier 2 measures quality, including whether every figure appears in the sources and whether follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
 
-The core set includes hostile questions ("Is she a real builder, or a director who watched engineers build things?"), prompt-injection attempts, a request for her phone number, and questions the knowledge base deliberately cannot answer. A correct answer to those says so instead of inventing one.
+What the evals decided, in brief:
+- **The answering model, twice.** gpt-4o scored highest in the second blind round (4.76 of 5), but all gaps to Sonnet 5.5, Flash and Opus 5.5 were inside the noise. It stays on quality-first grounds, not on a measured lead.
+- **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite has not fully closed it for gpt-4o.
+- **A false claim in the knowledge base** was found by blind scoring and removed.
 
-### What is checked
-
-| Tier | Checks | How |
-|---|---|---|
-| 1: must pass | Response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names | Automated |
-| 2: quality | Expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, consistent across runs, follow-ups cite a source, no repeated lead example | Automated |
-| 3: judgement | Accuracy, specificity, positioning, tradeoffs, voice (D1–D5, 1–5 scale) | Human, blind |
-
-There are 7 tier-1 checks, and a release needs all of them to pass. Citations are checked separately. The harness flags answer segments that cite nothing, cited ids that were never retrieved, and chunk ids leaking into the visible answer. A grounding judge (gpt-4o-mini) keeps a verdict for every claim, not only the failed ones. A list lead-in ("Her hands-on builds include:") is joined to the claim after it before judging: on its own the judge marked it unsupported. Joining them took one 143-answer run from 46 flagged answers to 17.
-
-### The runners
-
-| Script | What it does |
-|---|---|
-| `run_eval.py` | Retrieval plus generation against the local `/search`, mirroring the production route. Streams answers, as the route does, to measure time to first token. Supports A/B arms, alternative prompts and multi-turn conversations |
-| `run_e2e.py` | Sends the eval set through the real chat route (local, dev or prod) and scores the streamed answers. Checks first that the harness prompt matches the deployed one |
-| `run_models.py` | Holds retrieval, prompt and checks constant, and swaps the answering model across OpenAI, Anthropic and Google. Streams answers to measure time to first token. Has `--estimate` and `--max-cost` so a run is priced before it spends anything |
-| `run_metrics.py` | Called by all three runners at the end of a run. Prints the pass rate per check, p50 and p95 latency and time to first token (follow-ups separately), and cost per answer. Appends one line per run to `eval_history/history.jsonl` and redraws `eval_history/trend.svg`. Older runs were backfilled; a metric a run did not record is left empty, not estimated |
-| `bootstrap_ci.py` | Puts a 95% range on each pass rate and on blind-sample means, and says whether a gap between two runs or models is inside the noise. It resamples questions, not answers, because repeat runs of one question are not independent. Comparisons are paired on the same questions. Fixed seed, no API calls |
-| `judge_agreement.py` | Compares the grounding judge's stored verdicts with the blind human accuracy scores (D1) and ship decisions: rank correlation, how many low-scored answers the judge flagged and how many good ones it flagged anyway, and Cohen's kappa, each with a range by question. The judge checks claims against the retrieved chunks and the human checks them against the record, so agreement is expected to be partial. No API calls |
-| `judge_check.py` | Checks the grounding judge itself. Runs the named cases in `judge_cases.json` (lead-ins, gap admissions, suggested questions, and controls that must still fail), and re-judges stored answers two ways against the same chunk text so one change to the judge can be measured on its own. Calls gpt-4o-mini; has `--estimate` |
-| `selftest.py` | Tests the checkers against synthetic answers, a stub model client and a fake `/search`. No API calls. Runs in CI on every push. Also fails when the facts in this README (case counts, models, timeouts, ranking limits) no longer match the code |
-
-Model choices are made by blind human scoring. Answers from each model are shuffled and stripped of labels, scored on the D1–D5 rubric, and only then unblinded. With 8 questions per model, the 2026-10-22 gaps (gpt-4o 4.76, Sonnet 4.67, Flash 4.65, Opus 4.50) were all inside the noise. gpt-4o stays on quality-first grounds, not on a measured lead.
-
-### Rules the harness follows
-
-- **Write content to the questions, never to the expected answers.** Editing what the scorer expects moves the measurement, not the quality.
-- **Every defect becomes a permanent named case.** The regression cases are a record of what broke.
-- **Print the values, not a pass/fail.** A retrieval change is judged on the chunk ids, similarities and text it returns.
-- **Mirror production exactly.** The harness carries the same prompt and source layout as the live route. `run_e2e.py` checks the index and the prompt before its first paid call, and aborts a local run when either has drifted.
-
-### Decisions the evals made
-
-- **Chose the answering model twice, and the answer changed.** Under the original prompt, a 56-answer blind sample put Gemini 3.8 Flash first (4.47 of 5) and gpt-4o second (4.17). The model was kept provisionally and re-tested after the prompt rework. In a 32-answer blind sample under the new prompt (8 per model), gpt-4o scored highest: 4.76 overall and 4.88 on accuracy. Sonnet 5.5 scored 4.67, Flash 4.65 and Opus 5.5 4.50. Production runs gpt-4o.
-- **Retired the priority boost in ranking.** Similarities within a result list spread only 3.6% from rank 1 to rank 5, so even a "small" 6% boost was the real sort key. It flipped the top result on 41% of eval questions, and two files took 60% of all slots. Ranking went back to raw similarity.
-- **Added keyword search, after the first version failed.** Some facts in the knowledge base, such as the $150M+ figure, never reached the top 5 on embeddings alone. Plain fusion of embeddings and BM25 moved 17 expected chunks into the top 5 and pushed 18 out, because a chunk that shared no word with the question could no longer compete. Keeping the embedding top 3 and fusing only below them raised micro recall@5 from 0.462 to 0.511 and MRR@5 from 0.690 to 0.708 over 62 eval questions, on the same query embeddings. That version was chosen after seeing the first result, so it is re-checked on new questions.
-- **Kept the 3-per-file diversity cap on evidence.** Removing it surfaced no new chunks, and tightening it to 2 surfaced one. Neither was worth the change.
-- **Added a query rewrite for follow-ups.** The first multi-turn baseline found 5 of 10 follow-up answers cited nothing. That became check T2.7, then the rewrite. Its timeout was raised from 1.2 s to 2.5 s after it timed out on 3 of 3 calls from the dev cluster.
+The harness mirrors production: same prompt, same source layout. `run_e2e.py` checks the index and the prompt against the live route before its first paid call. `selftest.py` runs in CI and fails when this README's case counts, models, timeouts or ranking limits no longer match the code.
 
 ## Operating it
 
@@ -114,6 +77,7 @@ Model choices are made by blind human scoring. Answers from each model are shuff
 api_server.py                 /search and /health
 scripts/embed_knowledge_faiss.py   builds the FAISS index from the knowledge base
 mcp_server/server_faiss.py    MCP server over the same index
+EVALS.md                      how jordbot is evaluated, with results and decisions
 eval_set.json                 eval cases, requirements and check definitions
 coverage_report.py            cases per role theme and per requirement, writes COVERAGE.md
 run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py
