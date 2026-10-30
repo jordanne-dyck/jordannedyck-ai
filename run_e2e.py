@@ -76,7 +76,9 @@ RATE LIMITS
     --start value to resume from.
 
 OUTPUT
-    eval_e2e_<source_system>_<YYYY-MM-DD>.json. REFUSES to overwrite an existing file.
+    eval_e2e_<source_system>_<YYYY-MM-DD>.json for the core series (the default),
+    eval_e2e_<set>_<source_system>_<YYYY-MM-DD>.json for --set theme or --set additive,
+    so cases held outside the series never land in a series file. REFUSES to overwrite an existing file.
     Use --resume to append only the question ids not already present. There is no
     --fresh flag; --fresh is what destroyed the 124-chunk run on 2026-09-10.
 
@@ -140,7 +142,8 @@ def load_harness_checkers():
         return None, f"could not import run_eval.py ({exc.__class__.__name__}: {exc})"
     missing = [
         n for n in ("PHONE_RE", "FIRST_PERSON_RE", "GAP_RE", "GAP_PHRASES", "JD_NGRAMS",
-                    "ngrams", "SYSTEM_PROMPT", "gap_admitted", "injection_resisted")
+                    "ngrams", "SYSTEM_PROMPT", "gap_admitted", "injection_resisted",
+                    "select_cases")
         if not hasattr(run_eval, n)
     ]
     if missing:
@@ -260,6 +263,7 @@ def build_stamp(args, source_system):
         "base_url": args.base_url,
         "timestamp": datetime.now(UTC).isoformat(),
         "runner": "run_e2e.py",
+        "case_set": args.case_set,
         # "http-datastream-v4" until 2026-10-27. The protocol actually parsed is
         # per record, in stream.protocol.
         "transport": "http-ai-sdk-stream",
@@ -558,16 +562,22 @@ def check_answer(harness, question, res):
 # ----------------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------------
-def expand_questions(eval_set):
+def expand_questions(cases):
     """One entry per API call, honouring the `runs` field (C01 runs 3x)."""
     out = []
-    for q in eval_set["questions"]:
+    for q in cases:
         for i in range(q.get("runs", 1)):
             item = dict(q)
             item["run_index"] = i + 1
             item["record_id"] = q["id"] if q.get("runs", 1) == 1 else f"{q['id']}#{i + 1}"
             out.append(item)
     return out
+
+
+def e2e_filename(prefix, case_set, source_system, utc_date):
+    """The core series keeps its file name; other sets carry theirs in the name."""
+    set_part = "" if case_set == "core" else f"{case_set}_"
+    return f"{prefix}{set_part}{source_system}_{utc_date}.json"
 
 
 def infer_source_system(base_url):
@@ -590,7 +600,10 @@ def main():
                     help="override the stamp; inferred from --base-url otherwise")
     ap.add_argument("--probe", action="store_true",
                     help="send ONE question, dump the raw stream, verify the protocol, spend ~$0.01")
-    ap.add_argument("--only", help="comma-separated question ids")
+    ap.add_argument("--set", dest="case_set", choices=["core", "theme", "additive"], default="core",
+                    help="core = the 34-question series (default); theme and additive are held "
+                         "outside it and write to their own output file")
+    ap.add_argument("--only", help="comma-separated question ids, within --set")
     ap.add_argument("--start", type=int, default=0, help="skip the first N calls (resume a paced run)")
     ap.add_argument("--limit", type=int, default=18,
                     help="max calls this invocation (default 18, under the hourly 20)")
@@ -615,12 +628,17 @@ def main():
         sys.exit(f"Cannot tell which system {args.base_url} is. Pass --source-system "
                  f"local-route, dev or prod. Unknown hosts are no longer stamped prod.")
     harness, harness_err = load_harness_checkers()
+    if harness is None:
+        # Case selection lives in run_eval.py with the checks, so the three runners
+        # cannot disagree about which cases a set holds.
+        sys.exit(f"Cannot select cases: {harness_err}")
     eval_set = json.loads(EVAL_SET.read_text(encoding="utf-8"))
+    cases = harness.select_cases(eval_set, args.case_set, args.only)
     stamp = build_stamp(args, source_system)
 
     print(f"target        : {args.base_url}  (source_system: {source_system})")
     print(f"eval set      : {EVAL_SET.name} v{eval_set['meta'].get('version')} "
-          f"— {len(eval_set['questions'])} questions")
+          f"— --set {args.case_set}, {len(cases)} questions")
     if harness_err:
         print(f"WARNING       : {harness_err}")
     print("preflight     :")
@@ -634,10 +652,7 @@ def main():
         print("\nWARNING: preflight failed and was skipped. These results are not interpretable.")
         stamp["preflight"] = "FAILED_AND_SKIPPED"
 
-    calls = expand_questions(eval_set)
-    if args.only:
-        wanted = {s.strip() for s in args.only.split(",")}
-        calls = [c for c in calls if c["id"] in wanted]
+    calls = expand_questions(cases)
 
     # UTC for filenames as well as for the C23 stamp, so a sitting that crosses local
     # midnight cannot split across two files and a file's name can never disagree with
@@ -645,7 +660,8 @@ def main():
     # protocol check, not a run, and must never be mistaken for — or overwrite — one.
     utc_date = datetime.now(UTC).strftime("%Y-%m-%d")
     prefix = "eval_e2e_probe_" if args.probe else "eval_e2e_"
-    out_path = Path(args.out) if args.out else HERE / f"{prefix}{source_system}_{utc_date}.json"
+    out_path = Path(args.out) if args.out else HERE / e2e_filename(prefix, args.case_set,
+                                                                    source_system, utc_date)
     existing, done = [], set()
     if out_path.exists() and not args.probe:
         if not args.resume:

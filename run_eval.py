@@ -20,8 +20,10 @@ Usage (from C:\\Users\\Jord\\jordannedyck-ai, api_server.py already running):
     venv\\Scripts\\python.exe run_eval.py
     venv\\Scripts\\python.exe run_eval.py --arm A        # one arm only
     venv\\Scripts\\python.exe run_eval.py --only W05,D01 # specific questions
+    venv\\Scripts\\python.exe run_eval.py --set theme    # P01-P15, outside the series
 
-Writes eval_results.json incrementally. Safe to re-run: completed
+Writes eval_results.json incrementally (eval_results_theme.json for --set theme,
+eval_results_additive.json for --set additive). Safe to re-run: completed
 question/arm/run combinations are skipped unless --fresh is passed.
 """
 
@@ -49,6 +51,33 @@ COST_PER_1M_IN, COST_PER_1M_OUT = 2.50, 10.00
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 RESULTS = HERE / "eval_results.json"
+
+# Case sets in eval_set.json. "core" is the 34-question series every comparison
+# is measured on, and the default. The others are held outside it: they run only
+# on --set, each into its own results file, so their numbers never mix into the
+# series. No "all": one set per run keeps one set per file.
+CASE_SETS = {"core": "questions", "theme": "theme_cases", "additive": "additive_cases"}
+
+
+def select_cases(spec, case_set="core", only=None):
+    """The cases in one set, filtered by --only. An id outside the set exits and
+    names the set it is in; an empty run would look like a finished one."""
+    cases = spec[CASE_SETS[case_set]]
+    if not only:
+        return cases
+    want = {s.strip().upper() for s in only.split(",") if s.strip()}
+    missing = sorted(want - {c["id"] for c in cases})
+    if missing:
+        home = {c["id"]: name for name, key in CASE_SETS.items() for c in spec[key]}
+        where = [f"{i} is in --set {home[i]}" if i in home else f"{i} is not in eval_set.json"
+                 for i in missing]
+        raise SystemExit(f"--only: {'; '.join(where)}. This run is --set {case_set}.")
+    return [c for c in cases if c["id"] in want]
+
+
+def results_path(base, case_set):
+    """The core set keeps the existing file name; other sets get a suffix."""
+    return base if case_set == "core" else base.with_name(f"{base.stem}_{case_set}{base.suffix}")
 
 # How each retrieved chunk is laid out in the sources. "labelled" is the
 # layout route.ts sends: id and title as labelled lines, with no relevance,
@@ -787,7 +816,10 @@ def main_multiturn(args, spec, client):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--arm", choices=["A", "B"], help="run one arm only")
-    ap.add_argument("--only", help="comma-separated question ids")
+    ap.add_argument("--set", dest="case_set", choices=list(CASE_SETS), default="core",
+                    help="core = the 34-question series (default); theme and additive are held "
+                         "outside it and write to their own results file")
+    ap.add_argument("--only", help="comma-separated question ids, within --set")
     ap.add_argument("--fresh", action="store_true", help="ignore existing results")
     ap.add_argument("--multiturn", action="store_true",
                     help="run the multiturn cases (arm B) instead of the 34-question series")
@@ -798,6 +830,8 @@ def main():
                     help="test only: use this prompt text (with {context}) instead of SYSTEM_PROMPT; "
                          "not what route.ts sends")
     args = ap.parse_args()
+    if args.multiturn and args.case_set != "core":
+        sys.exit("--multiturn runs the multiturn cases; it does not take --set.")
     global SOURCE_FORMAT, SYSTEM_PROMPT, PROMPT_VERSION
     SOURCE_FORMAT = args.source_format
     print(f"source_format {SOURCE_FORMAT}")
@@ -807,10 +841,8 @@ def main():
         print(f"prompt_file {args.prompt_file}")
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
-    questions = spec["questions"]
-    if args.only:
-        want = {s.strip().upper() for s in args.only.split(",")}
-        questions = [q for q in questions if q["id"] in want]
+    questions = select_cases(spec, args.case_set, None if args.multiturn else args.only)
+    out = results_path(RESULTS, args.case_set)
     arms = {k: v for k, v in spec["arms"].items() if not args.arm or k == args.arm}
 
     # preflight: is api_server up?
@@ -830,8 +862,8 @@ def main():
         return main_multiturn(args, spec, client)
 
     existing = []
-    if RESULTS.exists() and not args.fresh:
-        existing = json.loads(RESULTS.read_text(encoding="utf-8"))
+    if out.exists() and not args.fresh:
+        existing = json.loads(out.read_text(encoding="utf-8"))
         print(f"resuming — {len(existing)} results already recorded")
     done = {(r["id"], r["arm"], r["run"]) for r in existing}
     results = list(existing)
@@ -839,7 +871,7 @@ def main():
     total_cost = sum(r["gen"]["cost_usd"] for r in results)
     planned = sum(len(arms) * q.get("runs", 1) for q in questions)
     print(f"prompt_version {PROMPT_VERSION} (same id as chat_events.prompt_version)")
-    print(f"{len(questions)} questions x {len(arms)} arm(s) = {planned} calls\n")
+    print(f"--set {args.case_set}: {len(questions)} questions x {len(arms)} arm(s) = {planned} calls\n")
 
     for arm_id, arm in arms.items():
         for q in questions:
@@ -864,18 +896,18 @@ def main():
                       f"visible={','.join(shown)}", flush=True)
 
                 results.append({
-                    "id": q["id"], "tag": q["tag"], "req": q.get("req", []),
+                    "id": q["id"], "case_set": args.case_set, "tag": q["tag"], "req": q.get("req", []),
                     "arm": arm_id, "run": run, "question": q["q"],
                     "expect": q.get("expect", []),
                     "prompt_version": PROMPT_VERSION, "source_format": SOURCE_FORMAT,
                     "retrieved": retrieved, "gen": gen, "checks": checks,
                     "context_chars": len(context),
                 })
-                RESULTS.write_text(json.dumps(results, indent=2, ensure_ascii=False),
+                out.write_text(json.dumps(results, indent=2, ensure_ascii=False),
                                    encoding="utf-8")
 
     print(f"\ndone — {len(results)} results, ${total_cost:.2f} total")
-    print(f"written to {RESULTS}")
+    print(f"written to {out}")
 
     hard = [r for r in results
             if any(not k.startswith("_") and v is False for k, v in r["checks"].items())]

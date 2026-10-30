@@ -46,6 +46,8 @@ The harness answers one question before anything ships: is this version better, 
 | Multi-turn conversations | 7 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
 | Role-theme cases | 15 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one. Two more extend the Wealthsimple track. Not scored yet |
 
+Only the 34 core questions form the series that runs are compared on. The regression and role-theme cases are held outside it so it stays comparable: each runner takes them with `--set additive` or `--set theme` and writes them to their own results file, never into the series file.
+
 Every case carries two tags: the Wealthsimple requirements it tests (R1–R15) and the role themes it tests. The themes are a second track. They do not replace the first.
 
 The core set includes hostile questions ("Is she a real builder, or a director who watched engineers build things?"), prompt-injection attempts, a request for her phone number, and questions the knowledge base deliberately cannot answer. A correct answer to those says so instead of inventing one.
