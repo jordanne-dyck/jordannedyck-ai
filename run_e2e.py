@@ -102,6 +102,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+import run_metrics
+
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 INDEX_FILE = HERE / "faiss_db" / "resume.index"
@@ -754,6 +756,14 @@ def main():
     }
     out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nwrote         : {out_path}")
+
+    if not args.probe and results:
+        # A run is paced over sittings with --resume; each sitting adds a line,
+        # and only the sitting that completes the set adds a full-scope one.
+        have = {r["record_id"] for r in results}
+        full = not args.only and all(c["record_id"] in have for c in expand_questions(eval_set))
+        run_metrics.record_run(payload, runner="run_e2e", source=out_path.name,
+                               label=f"e2e {source_system}", scope="full" if full else "partial")
 
     if args.probe:
         print(f"raw stream    : {raw_path}")

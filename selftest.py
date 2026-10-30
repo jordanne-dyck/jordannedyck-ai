@@ -311,6 +311,112 @@ with tempfile.TemporaryDirectory() as td:
     check("--check refuses when api_server holds a different index than disk", stopped, True)
 srv_rs.shutdown()
 
+print("\n--- headline metrics and history (run_metrics.py, plan A.6/A.9) ---")
+import run_metrics as RM
+check("p50 of 1..10 interpolates", RM.percentile(range(1, 11), 50), 5.5)
+check("p95 of 1..10 interpolates", round(RM.percentile(range(1, 11), 95), 4), 9.55)
+check("p95 of one value is that value", RM.percentile([2.4], 95), 2.4)
+check("percentile drops None and is None when empty", (RM.percentile([None, 3, None, 1], 50),
+      RM.percentile([None], 50)), (2.0, None))
+
+def g(lat, ttft, cost):
+    return {"latency_s": lat, "ttft_s": ttft, "cost_usd": cost}
+single = [
+    {"id": "W01", "arm": "B", "run": 1, "gen": g(2.0, 0.5, 0.01),
+     "checks": {"T1.1_response": True, "T2.3_gap_honesty": None, "_voice_spans": ["x"]}},
+    {"id": "G01", "arm": "B", "run": 1, "gen": g(4.0, 1.5, 0.03),
+     "checks": {"T1.1_response": True, "T2.3_gap_honesty": False}},
+]
+rows = RM.answer_rows(single)
+check("pass counts skip None and _ detail keys", RM.pass_counts(rows),
+      {"T1.1_response": [2, 2], "T2.3_gap_honesty": [0, 1]})
+s = RM.summarise(rows)
+check("summary: latency p50, cost per answer, all-checks rate",
+      (s["latency_p50_s"], s["cost_per_answer_usd"], s["all_checks_pass_rate"]), (3.0, 0.02, 0.5))
+check("summary: no follow-ups, nothing missing", (s["followups"], s["missing"]), (None, []))
+
+multi = [{"id": "M01", "model": "gpt-4o", "run": 1, "prompt_version": "abcd1234",
+          "case_checks": {"T2.7_followups_cited": False, "_leads": ["a"]},
+          "turns": [{"turn": 1, "gen": g(3.0, 1.0, 0.01), "rewrite_cost_usd": None, "checks": {}},
+                    {"turn": 2, "gen": g(5.0, 2.0, 0.02), "rewrite_cost_usd": 0.001, "checks": {}},
+                    {"turn": 3, "gen": g(7.0, 4.0, 0.02), "rewrite_cost_usd": 0.001, "checks": {}}]}]
+rows = RM.answer_rows(multi)
+check("multi-turn cost per answer includes the query rewrite", [r["cost_usd"] for r in rows],
+      [0.01, 0.021, 0.021])
+s = RM.summarise(rows, RM.conversation_rows(multi))
+check("follow-up TTFT uses turns 2+ only", (s["followups"], s["ttft_followup_p50_s"]), (2, 3.0))
+check("conversation checks counted per conversation", s["pass"], {"T2.7_followups_cited": [0, 1]})
+no_ttft = [{"id": "W01", "arm": "B", "run": 1, "gen": {"latency_s": 2.0, "cost_usd": 0.01}, "checks": {}}]
+check("a run without TTFT reports it missing, not zero",
+      (RM.summarise(RM.answer_rows(no_ttft))["ttft_p50_s"], RM.summarise(RM.answer_rows(no_ttft))["missing"]),
+      (None, ["ttft_p50_s"]))
+e2e = {"meta": {}, "results": [{"id": "W01", "run_index": 1, "stamp": {"model": "gpt-4o",
+       "site_prompt_version": "abcd1234"},
+       "timings_ms": {"time_to_first_token": 812, "time_to_complete": 4120},
+       "checks": {"T1.1_response_returned": True, "C10_gap_honesty": "n/a",
+                  "T2.1_retrieval_hit": "unavailable_no_context", "T1.5_jd_echo_spans": ["x"]}}]}
+er = RM.answer_rows(e2e)[0]
+check("e2e: ms to seconds, no cost, string markers skipped",
+      (er["latency_s"], er["ttft_s"], er["cost_usd"], er["checks"]),
+      (4.12, 0.812, None, {"T1.1_response_returned": True}))
+
+import tempfile, os
+with tempfile.TemporaryDirectory() as td:
+    hp = RM.Path(td) / "history.jsonl"
+    single[0]["gen"]["answer"] = "SECRET ANSWER TEXT"
+    lines = RM.history_lines(single, runner="run_eval", source="x.json", label="t", date="2026-10-30",
+                             scope="full")
+    check("run_eval lines without a model field get gpt-4o", lines[0]["model"], "gpt-4o")
+    check("first append adds the line", RM.append_history(lines, hp), 1)
+    check("same run appended again adds nothing", RM.append_history(lines, hp), 0)
+    text = hp.read_text(encoding="utf-8")
+    check("history is one JSON line per run", len(text.splitlines()), 1)
+    check("history line holds no answer text", "SECRET" in text, False)
+    check("history line round-trips", RM.read_history(hp)[0]["pass"]["T2.3_gap_honesty"], [0, 1])
+    sp = RM.Path(td) / "trend.svg"
+    partial = dict(lines[0], run_id="p", scope="partial")
+    RM.write_trend([lines[0], partial], sp)
+    svg = sp.read_text(encoding="utf-8")
+    check("trend chart plots full runs only (one point per panel)", svg.count("<circle") - 3, 3)
+    out = []
+    RM.record_run(multi, runner="run_eval", source="m.json", label="m", scope="partial",
+                  path=hp, chart=None, out=out.append)
+    check("record_run prints the headline block", "first token, follow-ups (2)" in out[0], True)
+
+print("\n--- run_eval.generate streams, times each attempt ---")
+class _D:  # stands in for the OpenAI SDK's chunk objects
+    def __init__(self, **kw): self.__dict__.update(kw)
+clock = [100.0]
+def chunks():
+    for text, fin in [("Hi", None), (" there", "stop")]:
+        clock[0] += 1
+        yield _D(usage=None, choices=[_D(delta=_D(content=text), finish_reason=fin)])
+    clock[0] += 1
+    yield _D(usage=_D(prompt_tokens=1000, completion_tokens=100), choices=[])
+class StreamClient:
+    def __init__(self): self.calls, self.kw = 0, None
+    chat = property(lambda self: self)
+    completions = property(lambda self: self)
+    def create(self, **kw):
+        self.calls += 1
+        if self.calls == 1:
+            raise RuntimeError("first attempt fails")
+        self.kw = kw
+        return chunks()
+_time, _sleep = R.time.time, R.time.sleep
+R.time.time = lambda: clock[0]
+R.time.sleep = lambda s: clock.__setitem__(0, clock[0] + s)
+try:
+    sc = StreamClient()
+    gen = R.generate(sc, "Q?", "ctx")
+finally:
+    R.time.time, R.time.sleep = _time, _sleep
+check("streams with usage", (sc.kw["stream"], sc.kw["stream_options"]), (True, {"include_usage": True}))
+check("text joined, finish reason kept", (gen["answer"], gen["finish_reason"]), ("Hi there", "stop"))
+check("TTFT recorded", gen["ttft_s"], 1.0)
+check("latency excludes the 10 s retry wait", gen["latency_s"], 3.0)
+check("cost from streamed usage", gen["cost_usd"], round(1000 / 1e6 * 2.5 + 100 / 1e6 * 10, 5))
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.

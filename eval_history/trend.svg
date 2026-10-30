@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 832" width="1000" height="832" font-family="system-ui, sans-serif" font-size="12" role="img" aria-label="Eval history: pass rate, p95 latency and cost per answer by run">
+<style>.bg{fill:#fcfcfb}.t1{fill:#0b0b0b}.t2{fill:#52514e}.grid{stroke:#e4e3df}.s0{stroke:#2a78d6;fill:#2a78d6}.s1{stroke:#eb6834;fill:#eb6834}.s2{stroke:#1baf7a;fill:#1baf7a}@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.t1{fill:#f0efec}.t2{fill:#c3c2b7}.grid{stroke:#383835}.s0{stroke:#3987e5;fill:#3987e5}.s1{stroke:#d95926;fill:#d95926}.s2{stroke:#199e70;fill:#199e70}}</style>
+<rect class="bg" width="1000" height="832"/>
+<text class="t1" x="70" y="24" font-size="16" font-weight="600">jordbot eval history</text>
+<text class="t2" x="70" y="44">Full runs only, arm B. Each point is one run; hover for the run. Checks were added over time, so pass rates are not like for like across all dates.</text>
+<text class="t1" x="70" y="82" font-weight="600">Answers passing every check</text>
+<line class="grid" x1="70" x2="880" y1="260.0" y2="260.0"/>
+<text class="t2" x="64" y="264.0" text-anchor="end">0%</text>
+<line class="grid" x1="70" x2="880" y1="217.5" y2="217.5"/>
+<text class="t2" x="64" y="221.5" text-anchor="end">25%</text>
+<line class="grid" x1="70" x2="880" y1="175.0" y2="175.0"/>
+<text class="t2" x="64" y="179.0" text-anchor="end">50%</text>
+<line class="grid" x1="70" x2="880" y1="132.5" y2="132.5"/>
+<text class="t2" x="64" y="136.5" text-anchor="end">75%</text>
+<line class="grid" x1="70" x2="880" y1="90.0" y2="90.0"/>
+<text class="t2" x="64" y="94.0" text-anchor="end">100%</text>
+<polyline class="s0" fill="none" stroke-width="2" points="154.4,116.7 188.1,137.3 255.6,127.7 323.1,118.4 390.6,113.6 458.1,113.6 525.6,127.7 593.1,123.0 660.6,113.6 694.4,123.0 728.1,123.0 795.6,132.5 829.4,127.7" style="fill:none"/>
+<circle class="s0" cx="154.4" cy="116.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): 84%</title></circle>
+<circle class="s0" cx="188.1" cy="137.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): 72%</title></circle>
+<circle class="s0" cx="255.6" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): 78%</title></circle>
+<circle class="s0" cx="323.1" cy="118.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): 83%</title></circle>
+<circle class="s0" cx="390.6" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="458.1" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="525.6" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): 78%</title></circle>
+<circle class="s0" cx="593.1" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): 81%</title></circle>
+<circle class="s0" cx="660.6" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="694.4" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): 81%</title></circle>
+<circle class="s0" cx="728.1" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): 81%</title></circle>
+<circle class="s0" cx="795.6" cy="132.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): 75%</title></circle>
+<circle class="s0" cx="829.4" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): 78%</title></circle>
+<polyline class="s1" fill="none" stroke-width="2" points="221.9,110.1 289.4,90.0 356.9,99.5 424.4,99.5 491.9,90.0 559.4,107.8 626.9,108.9 761.9,99.5 863.1,99.5" style="fill:none"/>
+<circle class="s1" cx="221.9" cy="110.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): 88%</title></circle>
+<circle class="s1" cx="289.4" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): 100%</title></circle>
+<circle class="s1" cx="356.9" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): 94%</title></circle>
+<circle class="s1" cx="424.4" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): 94%</title></circle>
+<circle class="s1" cx="491.9" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): 100%</title></circle>
+<circle class="s1" cx="559.4" cy="107.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): 90%</title></circle>
+<circle class="s1" cx="626.9" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): 89%</title></circle>
+<circle class="s1" cx="761.9" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): 94%</title></circle>
+<circle class="s1" cx="863.1" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): 94%</title></circle>
+<polyline class="s2" fill="none" stroke-width="2" points="86.9,104.1 120.6,99.5" style="fill:none"/>
+<circle class="s2" cx="86.9" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route (e2e, 36 answers): 92%</title></circle>
+<circle class="s2" cx="120.6" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route r2 (e2e, 36 answers): 94%</title></circle>
+<text class="t1" x="70" y="298" font-weight="600">Latency, p95 (seconds)</text>
+<line class="grid" x1="70" x2="880" y1="476.0" y2="476.0"/>
+<text class="t2" x="64" y="480.0" text-anchor="end">0.0</text>
+<line class="grid" x1="70" x2="880" y1="433.5" y2="433.5"/>
+<text class="t2" x="64" y="437.5" text-anchor="end">1.8</text>
+<line class="grid" x1="70" x2="880" y1="391.0" y2="391.0"/>
+<text class="t2" x="64" y="395.0" text-anchor="end">3.7</text>
+<line class="grid" x1="70" x2="880" y1="348.5" y2="348.5"/>
+<text class="t2" x="64" y="352.5" text-anchor="end">5.5</text>
+<line class="grid" x1="70" x2="880" y1="306.0" y2="306.0"/>
+<text class="t2" x="64" y="310.0" text-anchor="end">7.3</text>
+<polyline class="s0" fill="none" stroke-width="2" points="154.4,394.5 188.1,363.1 255.6,385.2 323.1,408.0 390.6,405.7 458.1,321.5 525.6,405.2 593.1,391.5 660.6,387.3 694.4,366.4 728.1,403.8 795.6,395.5 829.4,410.4" style="fill:none"/>
+<circle class="s0" cx="154.4" cy="394.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): 3.5</title></circle>
+<circle class="s0" cx="188.1" cy="363.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): 4.8</title></circle>
+<circle class="s0" cx="255.6" cy="385.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): 3.9</title></circle>
+<circle class="s0" cx="323.1" cy="408.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): 2.9</title></circle>
+<circle class="s0" cx="390.6" cy="405.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): 3.0</title></circle>
+<circle class="s0" cx="458.1" cy="321.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): 6.6</title></circle>
+<circle class="s0" cx="525.6" cy="405.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): 3.0</title></circle>
+<circle class="s0" cx="593.1" cy="391.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): 3.6</title></circle>
+<circle class="s0" cx="660.6" cy="387.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): 3.8</title></circle>
+<circle class="s0" cx="694.4" cy="366.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): 4.7</title></circle>
+<circle class="s0" cx="728.1" cy="403.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): 3.1</title></circle>
+<circle class="s0" cx="795.6" cy="395.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): 3.5</title></circle>
+<circle class="s0" cx="829.4" cy="410.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): 2.8</title></circle>
+<polyline class="s1" fill="none" stroke-width="2" points="221.9,385.7 289.4,381.3 356.9,411.1 424.4,406.4 491.9,340.1 559.4,400.1 626.9,395.2 761.9,399.4 863.1,414.6" style="fill:none"/>
+<circle class="s1" cx="221.9" cy="385.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): 3.9</title></circle>
+<circle class="s1" cx="289.4" cy="381.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): 4.1</title></circle>
+<circle class="s1" cx="356.9" cy="411.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): 2.8</title></circle>
+<circle class="s1" cx="424.4" cy="406.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): 3.0</title></circle>
+<circle class="s1" cx="491.9" cy="340.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): 5.8</title></circle>
+<circle class="s1" cx="559.4" cy="400.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): 3.3</title></circle>
+<circle class="s1" cx="626.9" cy="395.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): 3.5</title></circle>
+<circle class="s1" cx="761.9" cy="399.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): 3.3</title></circle>
+<circle class="s1" cx="863.1" cy="414.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): 2.6</title></circle>
+<polyline class="s2" fill="none" stroke-width="2" points="86.9,398.3 120.6,389.4" style="fill:none"/>
+<circle class="s2" cx="86.9" cy="398.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route (e2e, 36 answers): 3.3</title></circle>
+<circle class="s2" cx="120.6" cy="389.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route r2 (e2e, 36 answers): 3.7</title></circle>
+<text class="t1" x="70" y="514" font-weight="600">Cost per answer (USD)</text>
+<line class="grid" x1="70" x2="880" y1="692.0" y2="692.0"/>
+<text class="t2" x="64" y="696.0" text-anchor="end">$0.0000</text>
+<line class="grid" x1="70" x2="880" y1="649.5" y2="649.5"/>
+<text class="t2" x="64" y="653.5" text-anchor="end">$0.0028</text>
+<line class="grid" x1="70" x2="880" y1="607.0" y2="607.0"/>
+<text class="t2" x="64" y="611.0" text-anchor="end">$0.0056</text>
+<line class="grid" x1="70" x2="880" y1="564.5" y2="564.5"/>
+<text class="t2" x="64" y="568.5" text-anchor="end">$0.0084</text>
+<line class="grid" x1="70" x2="880" y1="522.0" y2="522.0"/>
+<text class="t2" x="64" y="526.0" text-anchor="end">$0.0112</text>
+<polyline class="s0" fill="none" stroke-width="2" points="154.4,547.2 188.1,548.0 255.6,548.9 323.1,544.9 390.6,542.5 458.1,544.9 525.6,548.4 593.1,551.5 660.6,544.5 694.4,544.5 728.1,544.3 795.6,544.2 829.4,544.2" style="fill:none"/>
+<circle class="s0" cx="154.4" cy="547.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): $0.0095</title></circle>
+<circle class="s0" cx="188.1" cy="548.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): $0.0095</title></circle>
+<circle class="s0" cx="255.6" cy="548.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): $0.0094</title></circle>
+<circle class="s0" cx="323.1" cy="544.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="390.6" cy="542.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): $0.0098</title></circle>
+<circle class="s0" cx="458.1" cy="544.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="525.6" cy="548.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): $0.0094</title></circle>
+<circle class="s0" cx="593.1" cy="551.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): $0.0092</title></circle>
+<circle class="s0" cx="660.6" cy="544.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="694.4" cy="544.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="728.1" cy="544.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="795.6" cy="544.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="829.4" cy="544.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): $0.0097</title></circle>
+<polyline class="s1" fill="none" stroke-width="2" points="221.9,546.3 289.4,547.5 356.9,542.9 424.4,537.5 491.9,539.4 559.4,545.2 626.9,543.5 761.9,541.9 863.1,540.8" style="fill:none"/>
+<circle class="s1" cx="221.9" cy="546.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): $0.0096</title></circle>
+<circle class="s1" cx="289.4" cy="547.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): $0.0095</title></circle>
+<circle class="s1" cx="356.9" cy="542.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): $0.0098</title></circle>
+<circle class="s1" cx="424.4" cy="537.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): $0.0101</title></circle>
+<circle class="s1" cx="491.9" cy="539.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): $0.0100</title></circle>
+<circle class="s1" cx="559.4" cy="545.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): $0.0096</title></circle>
+<circle class="s1" cx="626.9" cy="543.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): $0.0097</title></circle>
+<circle class="s1" cx="761.9" cy="541.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): $0.0099</title></circle>
+<circle class="s1" cx="863.1" cy="540.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): $0.0099</title></circle>
+<text class="t2" font-size="10" transform="translate(86.9,722) rotate(45)">09-11 e2e local-route</text>
+<text class="t2" font-size="10" transform="translate(120.6,722) rotate(45)">09-11 e2e local-route r2</text>
+<text class="t2" font-size="10" transform="translate(154.4,722) rotate(45)">10-16 model pass 1</text>
+<text class="t2" font-size="10" transform="translate(188.1,722) rotate(45)">10-19 baseline</text>
+<text class="t2" font-size="10" transform="translate(221.9,722) rotate(45)">10-19 baseline</text>
+<text class="t2" font-size="10" transform="translate(255.6,722) rotate(45)">10-20 kb-r1</text>
+<text class="t2" font-size="10" transform="translate(289.4,722) rotate(45)">10-20 kb-r1</text>
+<text class="t2" font-size="10" transform="translate(323.1,722) rotate(45)">10-21 kb-r2</text>
+<text class="t2" font-size="10" transform="translate(356.9,722) rotate(45)">10-21 kb-r2</text>
+<text class="t2" font-size="10" transform="translate(390.6,722) rotate(45)">10-21 kb-r3</text>
+<text class="t2" font-size="10" transform="translate(424.4,722) rotate(45)">10-21 kb-r3</text>
+<text class="t2" font-size="10" transform="translate(458.1,722) rotate(45)">10-21 labelled-ab60</text>
+<text class="t2" font-size="10" transform="translate(491.9,722) rotate(45)">10-21 labelled-ab60</text>
+<text class="t2" font-size="10" transform="translate(525.6,722) rotate(45)">10-21 oldprompt-newkb</text>
+<text class="t2" font-size="10" transform="translate(559.4,722) rotate(45)">10-21 oldprompt-newkb</text>
+<text class="t2" font-size="10" transform="translate(593.1,722) rotate(45)">10-22 labelled-f138</text>
+<text class="t2" font-size="10" transform="translate(626.9,722) rotate(45)">10-22 labelled-f138</text>
+<text class="t2" font-size="10" transform="translate(660.6,722) rotate(45)">10-22 variant-A</text>
+<text class="t2" font-size="10" transform="translate(694.4,722) rotate(45)">10-22 variant-C</text>
+<text class="t2" font-size="10" transform="translate(728.1,722) rotate(45)">10-22 hybrid-ff4d</text>
+<text class="t2" font-size="10" transform="translate(761.9,722) rotate(45)">10-22 hybrid-ff4d</text>
+<text class="t2" font-size="10" transform="translate(795.6,722) rotate(45)">10-22 hybrid-ff4d r2</text>
+<text class="t2" font-size="10" transform="translate(829.4,722) rotate(45)">10-22 re-decide ff4d</text>
+<text class="t2" font-size="10" transform="translate(863.1,722) rotate(45)">10-22 re-decide ff4d</text>
+<circle class="s0" cx="75" cy="818" r="5"/><text class="t1" x="85" y="822">gpt-4o, single-turn</text>
+<circle class="s1" cx="265" cy="818" r="5"/><text class="t1" x="275" y="822">gpt-4o, multi-turn</text>
+<circle class="s2" cx="455" cy="818" r="5"/><text class="t1" x="465" y="822">site, end to end</text>
+</svg>

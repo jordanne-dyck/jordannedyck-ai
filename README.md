@@ -64,9 +64,10 @@ There are 7 tier-1 checks, and a release needs all of them to pass. Citations ar
 
 | Script | What it does |
 |---|---|
-| `run_eval.py` | Retrieval plus generation against the local `/search`, mirroring the production route. Supports A/B arms, alternative prompts and multi-turn conversations |
+| `run_eval.py` | Retrieval plus generation against the local `/search`, mirroring the production route. Streams answers, as the route does, to measure time to first token. Supports A/B arms, alternative prompts and multi-turn conversations |
 | `run_e2e.py` | Sends the eval set through the real chat route (local, dev or prod) and scores the streamed answers. Checks first that the harness prompt matches the deployed one |
 | `run_models.py` | Holds retrieval, prompt and checks constant, and swaps the answering model across OpenAI, Anthropic and Google. Streams answers to measure time to first token. Has `--estimate` and `--max-cost` so a run is priced before it spends anything |
+| `run_metrics.py` | Called by all three runners at the end of a run. Prints the pass rate per check, p50 and p95 latency and time to first token (follow-ups separately), and cost per answer. Appends one line per run to `eval_history/history.jsonl` and redraws `eval_history/trend.svg`. Older runs were backfilled; a metric a run did not record is left empty, not estimated |
 | `selftest.py` | Tests the checkers against synthetic answers, a stub model client and a fake `/search`. No API calls. Runs in CI on every push. Also fails when the facts in this README (case counts, models, timeouts, ranking limits) no longer match the code |
 
 Model choices are made by blind human scoring. Answers from each model are shuffled and stripped of labels, scored on the D1–D5 rubric, and only then unblinded.
@@ -112,6 +113,7 @@ mcp_server/server_faiss.py    MCP server over the same index
 eval_set.json                 eval cases, requirements and check definitions
 coverage_report.py            cases per role theme and per requirement, writes COVERAGE.md
 run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py
+run_metrics.py                headline metrics; writes eval_history/ (results history and trend chart)
 Containerfile  pyproject.toml  uv.lock
 ```
 

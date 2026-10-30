@@ -51,6 +51,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAIError
 
+import run_metrics
 from citation_checks import (
     citation_labels,
     judge_grounding,
@@ -419,6 +420,11 @@ def main_multiturn(args, spec, models):
         out.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print(f"\n${spent:.2f} spent this invocation, {len(results)} conversations in {out}")
+    if results:
+        n_planned = len(models) * len(cases) * args.reps
+        run_metrics.record_run(results, runner="run_models", source=out.name,
+                               label=f"models multiturn {PROMPT_VERSION}",
+                               scope="partial" if args.only or len(results) < n_planned else "full")
 
 
 def main():
@@ -529,6 +535,11 @@ def main():
 
     print(f"\n${spent:.2f} spent this invocation, {len(results)} results in {args.out}")
     report(results)
+    if results:
+        run_metrics.record_run(results, runner="run_models", source=args.out.name,
+                               label=f"models {PROMPT_VERSION}",
+                               scope="partial" if args.only or len(results) < len(plan(questions, models, args.reps))
+                               else "full")
 
 
 if __name__ == "__main__":
