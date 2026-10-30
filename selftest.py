@@ -218,6 +218,79 @@ except (urllib.error.URLError, ConnectionError):
     loud = True
 check("/search down: harness fails loudly", loud, True)
 
+print("\n--- retrieval scores: recall@5 and MRR (synthetic, no API) ---")
+import os, tempfile
+import retrieval_scores as RS
+ret = [("a", 0.71), ("x", 0.70), ("b", 0.69), ("y", 0.68), ("z", 0.67), ("c", 0.66)]
+s = RS.score(["a", "b", "c"], ret)
+check("hits are the expected chunks in the top 5", s["hits"], ["a", "b"])
+check("recall@5: c at rank 6 does not count", s["recall"], 2 / 3)
+check("RR: first hit at rank 1", s["rr"], 1.0)
+s = RS.score(["y"], ret)
+check("RR: first hit at rank 4", (s["rr"], s["first_rank"]), (0.25, 4))
+check("no hit in top 5: recall 0, RR 0", (RS.score(["c"], ret)["recall"], RS.score(["c"], ret)["rr"]), (0.0, 0.0))
+check("gap case is not scored as zero", (RS.score([], ret)["recall"], RS.score([], ret)["rr"]), (None, None))
+spec_rs = {"questions": [{"id": "Q1", "q": "q1", "expect": ["a", "b"]}, {"id": "Q2", "q": "q2", "expect": ["y"]}, {"id": "G1", "q": "g1", "expect": []}],
+           "additive_cases": [{"id": "Q3", "q": "q3", "expect": ["c"]}], "theme_cases": [{"id": "Q9", "q": "q9", "expect": ["a"]}]}
+chk = {"Q1": ret, "Q2": ret, "G1": ret, "Q3": ret}
+lines = []
+agg = RS.report(spec_rs, chk, index_ids={"a", "b", "x", "y", "z"}, out=lines.append)
+check("mean recall@5 over scored cases", round(agg["mean_recall"], 4), round((1 + 1 + 0) / 3, 4))
+check("MRR@5 over scored cases", round(agg["mrr"], 4), round((1 + 0.25 + 0) / 3, 4))
+check("micro recall@5", agg["micro_recall"], 3 / 4)
+check("zero-hit, gap and missing cases listed", (agg["zero_hit"], agg["gap_cases"], agg["not_in_check"]),
+      (["Q3"], ["G1"], ["Q9"]))
+check("table prints chunk id, rank and similarity", "1. a* 0.7100" in "\n".join(lines), True)
+check("expected chunk missing from the index is flagged", "c (rank 6, NOT IN THE INDEX ON DISK)" in "\n".join(lines), True)
+check("expect lists are left as they were", spec_rs["questions"][0]["expect"], ["a", "b"])
+# The three saved shapes read to the same ranked list.
+shapes = {
+    "r3.json": {"Q1": [["a", 0.71, "text"], ["b", 0.69, "text"]]},
+    "rc_2026-10-23_1124701d.json": [{"id": "Q1", "ids": ["a", "b"], "sims": [0.71, 0.69]}],
+    "p.json": {"Q1": {"q": "?", "index_version": "75c257fb", "results": [
+        {"rank": 2, "chunk_id": "b", "similarity": 0.69}, {"rank": 1, "chunk_id": "a", "similarity": 0.71}]}},
+}
+with tempfile.TemporaryDirectory() as td:
+    for name, body in shapes.items():
+        p = os.path.join(td, name)
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(body, f)
+        got, ver = RS.load_check(p)
+        check(f"load {name}", (got["Q1"], ver),
+              ([("a", 0.71), ("b", 0.69)], {"r3.json": None, "p.json": "75c257fb"}.get(name, "1124701d")))
+
+# --check against a fake api_server on localhost: no embedding call, no cost.
+class HC(http.server.BaseHTTPRequestHandler):
+    def _send(self, body):
+        b = json.dumps(body).encode()
+        self.send_response(200); self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+    def do_GET(self):
+        self._send({"index_version": "abcd1234", "chunks": 2, "ok": True})
+    def do_POST(self):
+        self.rfile.read(int(self.headers["Content-Length"]))
+        self._send({"index_version": "abcd1234", "results": [
+            {"content": "A text", "similarity": 0.71234, "metadata": {"chunk_id": "a", "filename": "f.md"}},
+            {"content": "B text", "similarity": 0.69, "metadata": {"chunk_id": "b", "filename": "g.md"}}]})
+    def log_message(self, *a):
+        pass
+srv_rs = socketserver.TCPServer(("127.0.0.1", 5597), HC)
+threading.Thread(target=srv_rs.serve_forever, daemon=True).start()
+with tempfile.TemporaryDirectory() as td:
+    p = os.path.join(td, "fresh.json")
+    RS.write_check(spec_rs, p, base_url="http://127.0.0.1:5597", disk_version="abcd1234", out=lambda *a: None)
+    got, ver = RS.load_check(p)
+    check("--check saves every single-turn case", sorted(got), ["G1", "Q1", "Q2", "Q3", "Q9"])
+    check("--check round-trips ranks, ids, similarity and index_version", (got["Q1"], ver),
+          ([("a", 0.7123), ("b", 0.69)], "abcd1234"))
+    try:
+        RS.write_check(spec_rs, p, base_url="http://127.0.0.1:5597", disk_version="ffff0000", out=lambda *a: None)
+        stopped = False
+    except SystemExit:
+        stopped = True
+    check("--check refuses when api_server holds a different index than disk", stopped, True)
+srv_rs.shutdown()
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.
