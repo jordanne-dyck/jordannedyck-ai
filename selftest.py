@@ -784,6 +784,118 @@ check("api_server and the MCP server both rank through retrieval.rank",
       all("retrieval.rank(" in (R.HERE / f).read_text(encoding="utf-8")
           for f in ("api_server.py", "mcp_server/server_faiss.py")), True)
 
+print("\n--- analyser (plan G.3) ---")
+import analyse as AN
+check("analyser prices match run_eval's gpt-4o prices",
+      (AN.COST_PER_1M_IN, AN.COST_PER_1M_OUT), (R.COST_PER_1M_IN, R.COST_PER_1M_OUT))
+with tempfile.TemporaryDirectory() as td:
+    td = RM.Path(td)
+    qs = [f"Q{n:02d}" for n in range(12)]
+    def an_run(path, voice_ok, pv="pv000001", extra=()):
+        recs = [{"id": q, "arm": "B", "run": 1, "prompt_version": pv,
+                 "gen": {"latency_s": 2.0, "cost_usd": 0.01, "answer": "SECRET ANSWER TEXT"},
+                 "checks": {"T1.1_response": True, "T1.6_voice": voice_ok}} for q in qs]
+        recs += list(extra)
+        path.write_text(json.dumps(recs), encoding="utf-8")
+        return recs
+    def an_line(path, data, date, label):
+        return RM.history_lines(data, runner="run_eval", source=str(path), label=label, date=date, scope="full")[0]
+    pa, pb, pc = td / "a.json", td / "b.json", td / "c.json"
+    slow = {"id": "Q00", "arm": "B", "run": 2, "prompt_version": "pv000001",
+            "gen": {"latency_s": 30.0, "cost_usd": 0.01}, "checks": {"T1.1_response": True, "T1.6_voice": False}}
+    la = an_line(pa, an_run(pa, True), "2026-10-20", "run a")
+    lb = an_line(pb, an_run(pb, False, extra=[slow]), "2026-10-22", "run b")
+    lc = an_line(pc, an_run(pc, True, pv="pv000002"), "2026-10-21", "run c other prompt")
+    hist = [lb, la, lc]  # file order is not date order
+    check("comparable: no prompt version compares with nothing",
+          [AN.comparable_key(dict(la, prompt_version=v)) for v in (None, "unknown")], [None, None])
+    check("previous comparable: same prompt, earlier date, not file order", AN.previous(hist, 0)["label"], "run a")
+    check("previous comparable: a different prompt is not comparable", AN.previous(hist, 2), None)
+    rep = AN.analyse(hist, 0, resamples=500)
+    check("12 questions all failing voice: regression outside the noise", sorted(rep["regressions"]),
+          ["T1.6_voice", "all checks pass"])
+    check("weakest check listed with its range", (rep["weakest"][0]["measure"], rep["weakest"][0]["value"]),
+          ("T1.6_voice", 0.0))
+    check("latency outlier: the 30s answer, by id and run",
+          [(x["id"], x["run"]) for x in rep["outliers"] if x["measure"] == "latency_s"], [("Q00", 2)])
+    text = AN.render(rep)
+    check("report holds no answer text", "SECRET" in json.dumps(rep) + text, False)
+    one = {"Q": (1, 1)}
+    g = AN.gaps({"m": {"Q": (0, 1)}}, {"m": one}, ["m"], resamples=200, seed=1)["m"]
+    check("a one-question gap is flagged rough", (g["verdict"], g["rough"]), ("outside the noise", True))
+    an_run(pb, True, extra=[slow])  # the same file, its answers re-scored
+    check("a run file that changed since its line is not read back",
+          any("no longer holds" in n for n in AN.analyse(hist, 0, resamples=50)["notes"]), True)
+
+    # retrieval: a partial check walks back past a check with no shared question
+    spec_an = {"questions": [{"id": "Q1", "q": "q1", "expect": ["a"]}, {"id": "Q2", "q": "q2", "expect": ["c"]}],
+               "additive_cases": [], "theme_cases": []}
+    def chk(name, qid, *ids):
+        p = td / f"{name}_abcd1234.json"
+        p.write_text(json.dumps({qid: {"q": "x", "index_version": "abcd1234",
+                                       "results": [{"rank": i + 1, "chunk_id": c, "similarity": 0.5}
+                                                   for i, c in enumerate(ids)]}}), encoding="utf-8")
+        return RM.retrieval_line([p], spec=spec_an, runner="t", label=name, date="2026-10-30",
+                                 scope="partial") | {"source": str(p)}
+    rh = [chk("r1", "Q1", "z", "a"), chk("r2", "Q2", "c"), chk("r3", "Q1", "a")]
+    rrep = AN.analyse(rh, 2, spec=spec_an, resamples=200)
+    check("retrieval: walks back to the check sharing a question", rrep["previous"]["label"], "r1")
+    check("retrieval: MRR gap read from the check files", (rrep["gaps"]["MRR@5"]["a"], rrep["gaps"]["MRR@5"]["b"]),
+          (0.5, 1.0))
+
+    # closed decisions
+    st, pl = td / "state.md", td / "plan.md"
+    st.write_text("## STATE\nstatus: active\ndecided:\n- 2026-10-30: no similarity floor. Do not\n  re-propose.\n"
+                  "- run_e2e.py has no --fresh.\nassets: x\n", encoding="utf-8")
+    pl.write_text("# p\n## Decided\n\n**Model**\n- quality first.\n  - nested detail\n## Other\n- not this\n"
+                  "## Rejected (review)\n- Langfuse.\n", encoding="utf-8")
+    check("decided: STATE field, plan Decided and Rejected, folded continuations",
+          AN.decided_items(st, pl),
+          [("STATE decided", "2026-10-30: no similarity floor. Do not re-propose."),
+           ("STATE decided", "run_e2e.py has no --fresh."), ("plan Decided", "quality first. nested detail"),
+           ("plan Rejected", "Langfuse.")])
+    check("decided: missing files give nothing", AN.decided_items(td / "no1", td / "no2"), [])
+
+    # the paid narrative, through a stub client: no network, no cost
+    check("citation: every number must be in the report",
+          [AN.cited_ok(e, "all checks pass 0.778 -> 0.882  gap 0.105") for e in
+           (["all checks 0.778 -> 0.882"], ["gap +0.105"], ["0.95 voice"], ["no numbers"])],
+          [True, True, False, False])
+    lo, hi = AN.estimate(AN.prompt(text, []))
+    check("estimate is a positive range", 0 < lo < hi, True)
+    reply = json.dumps({"narrative": "Voice fell.", "recommendations": [
+        {"text": "fix voice", "evidence": ["T1.6_voice 0.000"]},
+        {"text": "made up", "evidence": ["99.9%"]}],
+        "blocked": [{"text": "add a similarity floor", "decision": "no similarity floor"}]})
+    stub = StubClient(reply)
+    n = AN.narrative(text, [], stub)
+    check("narrative: one call, cited kept, uncited dropped, blocked apart",
+          (stub.calls, [r["text"] for r in n["recommendations"]], [r["text"] for r in n["uncited"]],
+           len(n["blocked"])), (1, ["fix voice"], ["made up"], 1))
+    check("narrative cost from usage at gpt-4o prices", n["cost_usd"], round((100 * 2.5 + 10 * 10) / 1e6, 6))
+
+    # the results log
+    check("log ids number within the day",
+          (AN.next_id("### R-20261030-15 · x\n### R-20261029-20 · y\n", "2026-10-30"),
+           AN.next_id("", "2026-10-31")), ("R-20261030-16", "R-20261031-01"))
+    lg = td / "results-log.md"
+    lg.write_text("# log\n\n### R-20261030-01 · x\n", encoding="utf-8")
+    eid, af = AN.write_log(rep, text, n, log=lg, analyses=td / "analysis", date="2026-10-30")
+    entry = lg.read_text(encoding="utf-8")
+    check("log entry added as proposed, next id, report saved",
+          (eid, "- status: proposed" in entry, af.exists(), entry.startswith("# log")),
+          ("R-20261030-02", True, True, True))
+    check("log entry holds no answer text and no dropped recommendation",
+          ("SECRET" in entry, "made up" in entry, "fix voice" in entry), (False, False, True))
+
+jl = [{"d1": {m: v for mm in AN.JUDGE_MEASURES for m, v in ((mm, 0.5), (f"{mm}_range", [0.4, 0.6]))},
+       "ship": {m: v for mm in AN.JUDGE_MEASURES for m, v in ((mm, 0.5), (f"{mm}_range", [0.4, 0.6]))}}
+      for _ in range(2)]
+jl[1]["d1"]["rho"], jl[1]["d1"]["rho_range"] = 0.9, [0.7, 0.95]
+jc = AN.judge_changes(jl[1], jl[0])
+check("judge: change and range overlap", (jc["d1 rho"]["change"], jc["d1 rho"]["ranges_overlap"],
+                                          jc["d1 kappa"]["ranges_overlap"]), (0.4, False, True))
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.

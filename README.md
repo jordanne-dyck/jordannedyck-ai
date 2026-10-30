@@ -84,6 +84,7 @@ run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py
 run_metrics.py                headline metrics; writes eval_history/ (runs, retrieval scores, judge agreement; trend chart)
 bootstrap_ci.py               confidence ranges on pass rates and blind scores; is a gap noise?
 judge_agreement.py            does the grounding judge agree with the blind human scores?
+analyse.py                    a run against the last comparable one: regressions, weakest checks, outliers
 judge_check.py                named cases and re-judging for the grounding judge (judge_cases.json)
 Containerfile  pyproject.toml  uv.lock
 ```
