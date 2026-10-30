@@ -23,7 +23,12 @@ Three saved shapes are read:
   10-23:   [{"id": "W01", "ids": [...], "sims": [...]}, ...]
   P01-P15: {"P01": {"q": ..., "index_version": ..., "results": [{"rank", "chunk_id", "similarity", ...}]}}
 """
-import hashlib, json, pickle, re, sys, urllib.request
+import hashlib
+import json
+import pickle
+import re
+import sys
+import urllib.request
 from datetime import date
 from pathlib import Path
 
@@ -94,8 +99,7 @@ def disk_index():
 
 def cases(spec):
     for group in CASE_GROUPS:
-        for c in spec[group]:
-            yield c
+        yield from spec[group]
 
 
 def report(spec, check, index_ids=None, k=K, out=print):
