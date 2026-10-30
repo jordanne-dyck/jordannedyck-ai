@@ -1,0 +1,308 @@
+{
+  "about": "Named cases for the grounding judge (citation_checks.judge_grounding), added 2026-10-30 from the plan A.8 defects. Each case is a question, a few short chunks, and the answer segments as parse_citations returns them, before lead-ins are folded. 'want' gives the verdicts each judged claim may get, after folding. Claim lines are taken from stored answers (source given); chunks are short stand-ins so a knowledge-base edit cannot move a case. Run with: uv run python judge_check.py cases (paid, gpt-4o-mini; --estimate first). The free half, folding, is in selftest.py. A case with an open field is a known defect, kept so a fix can be measured; judge_check.py prints its failures as OPEN. On 2026-10-30 (lead-ins folded, 3 reps) J02 and J10 passed 2 of 3 and every other case not open passed 3 of 3.",
+  "cases": [
+    {
+      "id": "J01",
+      "defect": "lead-in",
+      "source": "redecide-ff4d_2026-10-22 W08 gemini-3.8-flash: 'Her hands-on builds include:' marked no",
+      "question": "What has she built hands-on?",
+      "chunks": [
+        {
+          "chunk_id": "dec-001",
+          "content": "At DECIEM, Jordanne led the build of Regimen Builder, a quiz that recommends a skincare regimen and became the basis of the customer account."
+        }
+      ],
+      "segments": [
+        {
+          "text": "Her hands-on builds include:",
+          "ids": []
+        },
+        {
+          "text": "- Regimen Builder, a quiz that recommends a skincare regimen",
+          "ids": [
+            "dec-001"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J02",
+      "defect": "lead-in",
+      "source": "redecide-ff4d_multiturn_2026-10-22 M03 t2 claude-opus-5-5: 'The evidence settled it within a quarter:' marked no. Folding must keep a detail in the lead-in checked.",
+      "question": "How did she know the approach worked?",
+      "chunks": [
+        {
+          "chunk_id": "ops-003",
+          "content": "The change cut resolution time by 86% and lifted conversion 35%."
+        }
+      ],
+      "segments": [
+        {
+          "text": "The evidence settled it within a quarter:",
+          "ids": []
+        },
+        {
+          "text": "- resolution time fell 86%",
+          "ids": [
+            "ops-003"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "no",
+          "other"
+        ]
+      ]
+    },
+    {
+      "id": "J03",
+      "defect": "lead-in",
+      "source": "redecide-ff4d_2026-10-22 W06 claude-opus-5-5: a bold heading lead-in, '**Who she had to bring along:**', marked no",
+      "question": "Who did she have to align on the Salesforce work?",
+      "chunks": [
+        {
+          "chunk_id": "exp-010",
+          "content": "The Salesforce transformation needed the executive, engineering and operations groups aligned."
+        }
+      ],
+      "segments": [
+        {
+          "text": "**Who she had to bring along:**",
+          "ids": []
+        },
+        {
+          "text": "- the executive, engineering and operations groups",
+          "ids": [
+            "exp-010"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J04",
+      "defect": "gap",
+      "source": "pass1_combined_2026-10-16 D04 claude-opus-5-5 run1, marked no",
+      "question": "How did PC Express perform?",
+      "chunks": [
+        {
+          "chunk_id": "promo-002",
+          "content": "For PC Express, Jordanne ran a refer-a-friend program across email and the app, rewarding referrals with points, a giveaway entry or a free month."
+        }
+      ],
+      "segments": [
+        {
+          "text": "The context does not cover how PC Express performed.",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J05",
+      "defect": "gap",
+      "source": "pass1_combined_2026-10-16 W02 claude-opus-5-5 run1 (blind item 19), marked no",
+      "question": "Tell me about a time a stakeholder overruled her on a loyalty decision.",
+      "chunks": [
+        {
+          "chunk_id": "promo-003",
+          "content": "At DECIEM, Jordanne recommended against a points-based loyalty program and proposed an education-led alternative built on personalized content."
+        }
+      ],
+      "segments": [
+        {
+          "text": "The material does not describe a specific stakeholder overruling her or how that loyalty decision ultimately landed. That is a useful follow-up to ask her directly.",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J06",
+      "defect": "gap",
+      "source": "redecide-ff4d_2026-10-22 G01 claude-sonnet-5-5: a gap admission and a true claim in one segment, marked no",
+      "question": "Has she designed cash-back rewards?",
+      "chunks": [
+        {
+          "chunk_id": "promo-003",
+          "content": "Jordanne's loyalty work was points-based: she worked from the growth marketing side of a national points program."
+        }
+      ],
+      "segments": [
+        {
+          "text": "The context doesn't show any work designing cash-back rewards as such. The closest related work is in points-based loyalty, which is a different mechanism from cash back.",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "yes",
+          "other"
+        ]
+      ],
+      "open": "Open since 2026-10-30: gap admissions. 0 of 3 with the current wording. A rewording that passed it (and J09) was tried and rejected: on the 32 blind items of 10-22 it lowered agreement with D1 (inside the noise) and flagged more answers Jord scored 5."
+    },
+    {
+      "id": "J07",
+      "defect": "gap (control)",
+      "source": "Negative control for J06: the gap sentence must not excuse a made-up claim beside it",
+      "question": "Has she designed cash-back rewards?",
+      "chunks": [
+        {
+          "chunk_id": "promo-003",
+          "content": "Jordanne's loyalty work was points-based: she worked from the growth marketing side of a national points program."
+        }
+      ],
+      "segments": [
+        {
+          "text": "The context doesn't show any work designing cash-back rewards. She set the earn rates for the PC Financial credit card.",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "no"
+        ]
+      ]
+    },
+    {
+      "id": "J08",
+      "defect": "gap (control)",
+      "source": "Negative control: a denial the context contradicts is a false claim, not a gap admission",
+      "question": "Has she built a referral program?",
+      "chunks": [
+        {
+          "chunk_id": "promo-002",
+          "content": "For PC Express, Jordanne ran a refer-a-friend program across email and the app, rewarding referrals with points, a giveaway entry or a free month."
+        }
+      ],
+      "segments": [
+        {
+          "text": "The record does not show her working on a referral program.",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "no"
+        ]
+      ],
+      "open": "Open since 2026-10-30, and older than the folding change: the judge accepts a denial the context contradicts. 0 of 3 with the current wording, and with the old wording unfolded."
+    },
+    {
+      "id": "J09",
+      "defect": "gap",
+      "source": "redecide-ff4d_2026-10-22 W09 claude-sonnet-5-5: a cited gap admission, marked no",
+      "question": "Does she care about financial inclusion?",
+      "chunks": [
+        {
+          "chunk_id": "exp-029",
+          "content": "FundLocal is Jordanne's AI side project about accessible, accountable investing in local businesses for ordinary investors."
+        }
+      ],
+      "segments": [
+        {
+          "text": "\"Financial inclusion\" in the strict sense, such as serving the unbanked or underserved, is not something the available material says she has worked on.",
+          "ids": [
+            "exp-029"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ],
+      "open": "Open since 2026-10-30: gap admissions, cited. 0 of 3 with the current wording. See J06."
+    },
+    {
+      "id": "J10",
+      "defect": "question",
+      "source": "pass1_combined_2026-10-16 W04 claude-sonnet-5-5 run1, marked no. Not seen under the current prompt (0 of 215 answers on 10-22).",
+      "question": "How does she decide when an MVP is ready to scale?",
+      "chunks": [
+        {
+          "chunk_id": "dec-001",
+          "content": "At DECIEM, Jordanne led the build of Regimen Builder, a quiz that recommends a skincare regimen."
+        }
+      ],
+      "segments": [
+        {
+          "text": "- How did she judge whether Regimen Builder worked once it shipped?",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J11",
+      "defect": "question",
+      "source": "pass1_combined_2026-10-16 D01 claude-sonnet-5-5 run2, an 'Ask her' line, marked no",
+      "question": "How did she build the economic case for loyalty?",
+      "chunks": [
+        {
+          "chunk_id": "promo-003",
+          "content": "At DECIEM, Jordanne recommended against a points-based loyalty program and proposed an education-led alternative built on personalized content."
+        }
+      ],
+      "segments": [
+        {
+          "text": "- Ask her to walk through how she estimated the margin available for rewards at DECIEM, and what the liability would have looked like.",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J12",
+      "defect": "none (control)",
+      "source": "Control: an ordinary claim that overstates its source must still fail",
+      "question": "What did the change achieve?",
+      "chunks": [
+        {
+          "chunk_id": "ops-003",
+          "content": "The change cut resolution time by 86% and lifted conversion 35%."
+        }
+      ],
+      "segments": [
+        {
+          "text": "It cut resolution time by 90%.",
+          "ids": [
+            "ops-003"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "no"
+        ]
+      ]
+    }
+  ]
+}

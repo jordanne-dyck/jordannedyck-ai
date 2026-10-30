@@ -13,7 +13,14 @@ because it also turns answers down for voice.
 Judge score per answer: the share of its claims the judge marked "no". Lead-in
 lines ("Her approach breaks down into four steps:") are not claims, but the
 stored verdicts mark them "no"; they are left out, and the numbers with them
-kept are printed too.
+kept are printed too. Since 2026-10-30 the judge folds lead-ins into the claim
+after them (citation_checks.fold_lead_ins), so verdicts made since then, and
+--rejudged folded, have none to leave out. The filter stays for the verdicts
+stored before that, which include both blind samples.
+
+--rejudged reads the verdicts judge_check.py rejudge wrote for the same
+answers instead of the stored ones. Usage as below, adding e.g.
+    uv run python judge_agreement.py eval_runs/blind-sample-2026-10-22_KEY.json --rejudged folded
 
 Measures, each with a 95% range by question (bootstrap_ci: 10,000 resamples,
 seed 20261030; 8 questions, so every range is rough):
@@ -254,13 +261,29 @@ def _load(p):
     return json.loads(Path(p).read_text(encoding="utf-8"))
 
 
-def load_sample(key_path):
+def rejudged(results_rows, path):
+    """The results rows with each judge verdict swapped for the one judge_check.py
+    rejudge wrote for the same answer. Keys there are "id|model|run|turn"."""
+    by_key = _load(path)
+    return [dict(r, judge=by_key[f"{r['id']}|{r.get('model', '')}|{r.get('run', '')}|"]) for r in results_rows
+            if f"{r['id']}|{r.get('model', '')}|{r.get('run', '')}|" in by_key]
+
+
+def load_sample(key_path, setting=None):
+    """setting "folded" or "unfolded" reads the verdicts judge_check.py rejudge wrote,
+    instead of the ones stored on the day; a sample with none is skipped."""
     key_path = Path(key_path)
     key = _load(key_path)
     results = key.get("results") or RESULTS_FALLBACK[key_path.name]
     sample = key_path.name.removeprefix("blind-sample-").removesuffix("_KEY.json")
+    rows = _load(key_path.parent / results)
+    if setting:
+        path = key_path.parent / f"rejudge_{Path(results).stem}_{setting}.json"
+        if not path.exists():
+            return None, results
+        rows, results = rejudged(rows, path), path.name
     return join(key, _load(key_path.with_name(key_path.name.replace("_KEY", "_SCORES"))),
-                _load(key_path.parent / results), sample), results
+                rows, sample), results
 
 
 def main():
@@ -268,6 +291,8 @@ def main():
     ap.add_argument("keys", nargs="*", type=Path, default=KEYS, help="blind-sample *_KEY.json files")
     ap.add_argument("--resamples", type=int, default=B.RESAMPLES)
     ap.add_argument("--seed", type=int, default=B.SEED)
+    ap.add_argument("--rejudged", choices=["folded", "unfolded"],
+                    help="use judge_check.py rejudge verdicts with lead-ins folded or not, not the stored ones")
     args = ap.parse_args()
     kw = {"resamples": args.resamples, "seed": args.seed}
     print(B.setup_line(args.resamples, args.seed))
@@ -275,7 +300,10 @@ def main():
           f"Flagged: any claim \"no\". Low: D1 < {D1_OK}.")
     everything = []
     for k in args.keys:
-        rows, results = load_sample(k)
+        rows, results = load_sample(k, args.rejudged)
+        if rows is None:
+            print(f"\n{k.name}: no re-judged verdicts ({results}), skipped")
+            continue
         everything += rows
         report(rows, f"blind sample {rows[0]['sample']} (answers and verdicts from {results})", **kw)
     if len({r["sample"] for r in everything}) > 1:

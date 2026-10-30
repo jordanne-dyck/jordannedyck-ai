@@ -9,10 +9,13 @@ MUST STAY IN SYNC with jordannedyck-ai-web:
     (same model, temperature, system text, prompt layout and verdict rule)
 Ported 2026-10-15 for the model comparison (run_models.py). Edit both or neither.
 
-Two deliberate differences from the site:
+Deliberate differences from the site:
   - The judge keeps every claim's verdict, not only the failed ones, so an eval
     result can be read claim by claim.
   - No PII redaction: eval questions are fixed, not visitor text.
+  - Lead-in lines are joined to the claim after them before judging
+    (fold_lead_ins, 2026-10-30), until a web session mirrors it in
+    judgeGrounding(). The web brief was handed over the same day.
 """
 
 import json
@@ -153,9 +156,36 @@ JUDGE_SCHEMA = {
 }
 
 
-def judge_grounding(client, query, answer, segments, chunks):
-    """Judges each cited segment against the chunks it cites, with gpt-4o-mini."""
-    judged = (segments or [{"text": answer, "ids": []}])[:MAX_JUDGED_SEGMENTS]
+# An uncited segment ending in a colon introduces what follows: "Her hands-on
+# builds include:". Alone it states nothing the chunks could carry, and the
+# judge marked such lines "no": 49 times in the 215 answers of 10-22. Some do
+# carry a detail ("The evidence settled it within a quarter:"), so they are
+# joined to the next claim and judged with it, not dropped. Re-judged on
+# 2026-10-30 (judge_check.py), folding took the single-turn run from 46
+# flagged answers to 17, and agreement with the blind D1 scores held.
+LEAD_IN_END_RE = re.compile(r":[*_\s]*$")
+LIST_MARK_RE = re.compile(r"^(?:[-*]|\d+\.)\s+")
+
+
+def fold_lead_ins(segments):
+    """Joins each run of lead-in lines to the segment after it, which keeps its
+    ids. A lead-in with nothing after it is judged as it is."""
+    out, lead = [], []
+    for s in segments:
+        if not s["ids"] and LEAD_IN_END_RE.search(s["text"]):
+            lead.append(s["text"])
+            continue
+        if lead:
+            s = {"text": " ".join(lead + [LIST_MARK_RE.sub("", s["text"])]), "ids": s["ids"]}
+            lead = []
+        out.append(s)
+    return out + [{"text": t, "ids": []} for t in lead]
+
+
+def judge_prompt(query, answer, segments, chunks, fold=True):
+    """The segments the judge sees, and the user prompt it gets."""
+    judged = segments or [{"text": answer, "ids": []}]
+    judged = (fold_lead_ins(judged) if fold else judged)[:MAX_JUDGED_SEGMENTS]
     prompt = (
         f"QUESTION:\n{query}\n\nCONTEXT:\n[positioning]\n{POSITIONING}\n\n"
         + "\n\n".join(f"[{c.get('chunk_id') or f'result {i + 1}'}]\n{c['content']}"
@@ -164,6 +194,13 @@ def judge_grounding(client, query, answer, segments, chunks):
         + "\n".join(f"{i + 1}. (cites: {', '.join(s['ids']) or 'none'}) {s['text']}"
                     for i, s in enumerate(judged))
     )
+    return judged, prompt
+
+
+def judge_grounding(client, query, answer, segments, chunks, *, fold=True):
+    """Judges each cited segment against the chunks it cites, with gpt-4o-mini.
+    fold=False is the pre-2026-10-30 way, kept for judge_check.py's comparison."""
+    judged, prompt = judge_prompt(query, answer, segments, chunks, fold)
     resp = client.chat.completions.create(
         model=JUDGE_MODEL,
         temperature=0,
@@ -192,6 +229,7 @@ def judge_grounding(client, query, answer, segments, chunks):
     return {
         "verdict": verdict,
         "checked": len(judged),
+        "folded": len(segments) - len(fold_lead_ins(segments)) if fold else 0,
         "no": unsupported,
         "other": sum(1 for v in failed if v["supported"] == "other"),
         "claims": verdicts,

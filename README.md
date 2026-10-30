@@ -58,7 +58,7 @@ The core set includes hostile questions ("Is she a real builder, or a director w
 | 2: quality | Expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, consistent across runs, follow-ups cite a source, no repeated lead example | Automated |
 | 3: judgement | Accuracy, specificity, positioning, tradeoffs, voice (D1–D5, 1–5 scale) | Human, blind |
 
-There are 7 tier-1 checks, and a release needs all of them to pass. Citations are checked separately. The harness flags answer segments that cite nothing, cited ids that were never retrieved, and chunk ids leaking into the visible answer. A grounding judge (gpt-4o-mini) keeps a verdict for every claim, not only the failed ones.
+There are 7 tier-1 checks, and a release needs all of them to pass. Citations are checked separately. The harness flags answer segments that cite nothing, cited ids that were never retrieved, and chunk ids leaking into the visible answer. A grounding judge (gpt-4o-mini) keeps a verdict for every claim, not only the failed ones. A list lead-in ("Her hands-on builds include:") is joined to the claim after it before judging: on its own the judge marked it unsupported. Joining them took one 143-answer run from 46 flagged answers to 17.
 
 ### The runners
 
@@ -70,6 +70,7 @@ There are 7 tier-1 checks, and a release needs all of them to pass. Citations ar
 | `run_metrics.py` | Called by all three runners at the end of a run. Prints the pass rate per check, p50 and p95 latency and time to first token (follow-ups separately), and cost per answer. Appends one line per run to `eval_history/history.jsonl` and redraws `eval_history/trend.svg`. Older runs were backfilled; a metric a run did not record is left empty, not estimated |
 | `bootstrap_ci.py` | Puts a 95% range on each pass rate and on blind-sample means, and says whether a gap between two runs or models is inside the noise. It resamples questions, not answers, because repeat runs of one question are not independent. Comparisons are paired on the same questions. Fixed seed, no API calls |
 | `judge_agreement.py` | Compares the grounding judge's stored verdicts with the blind human accuracy scores (D1) and ship decisions: rank correlation, how many low-scored answers the judge flagged and how many good ones it flagged anyway, and Cohen's kappa, each with a range by question. The judge checks claims against the retrieved chunks and the human checks them against the record, so agreement is expected to be partial. No API calls |
+| `judge_check.py` | Checks the grounding judge itself. Runs the named cases in `judge_cases.json` (lead-ins, gap admissions, suggested questions, and controls that must still fail), and re-judges stored answers two ways against the same chunk text so one change to the judge can be measured on its own. Calls gpt-4o-mini; has `--estimate` |
 | `selftest.py` | Tests the checkers against synthetic answers, a stub model client and a fake `/search`. No API calls. Runs in CI on every push. Also fails when the facts in this README (case counts, models, timeouts, ranking limits) no longer match the code |
 
 Model choices are made by blind human scoring. Answers from each model are shuffled and stripped of labels, scored on the D1–D5 rubric, and only then unblinded. With 8 questions per model, the 2026-10-22 gaps (gpt-4o 4.76, Sonnet 4.67, Flash 4.65, Opus 4.50) were all inside the noise. gpt-4o stays on quality-first grounds, not on a measured lead.
@@ -118,6 +119,7 @@ run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py
 run_metrics.py                headline metrics; writes eval_history/ (results history and trend chart)
 bootstrap_ci.py               confidence ranges on pass rates and blind scores; is a gap noise?
 judge_agreement.py            does the grounding judge agree with the blind human scores?
+judge_check.py                named cases and re-judging for the grounding judge (judge_cases.json)
 Containerfile  pyproject.toml  uv.lock
 ```
 

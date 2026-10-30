@@ -483,6 +483,61 @@ shift = [{"sample": s, "q": f"Q{i}", "d1": d, "claims": claims(no, 10 - no)}
 check("level shift between samples: pooled raw shows a link, within-sample ranking does not",
       (JA.measures(shift, "d1")["rho"] > 0.5, abs(JA.within_sample_rho(shift, "d1")) < 1e-9), (True, True))
 
+print("\n--- grounding judge: lead-ins folded, gaps and questions still judged (2026-10-30) ---")
+# Named after the paid cases in judge_cases.json; these check only what the
+# code does to the segments before the judge sees them. No API calls.
+import citation_checks as CC
+def seg(text, *ids):
+    return {"text": text, "ids": list(ids)}
+check("J01 lead-in joined to the claim after it, which keeps its ids",
+      CC.fold_lead_ins([seg("Her hands-on builds include:"), seg("- Regimen Builder, a skincare quiz", "dec-001"),
+                        seg("- Virtual Shelf", "dec-002")]),
+      [seg("Her hands-on builds include: Regimen Builder, a skincare quiz", "dec-001"), seg("- Virtual Shelf", "dec-002")])
+check("J02 a lead-in with a detail in it is still judged, inside the joined claim",
+      CC.fold_lead_ins([seg("The evidence settled it within a quarter:"), seg("- resolution time fell 86%", "ops-003")]),
+      [seg("The evidence settled it within a quarter: resolution time fell 86%", "ops-003")])
+check("J03 bold heading lead-in, and two lead-ins in a row, join the next claim",
+      CC.fold_lead_ins([seg("**Who she had to bring along:**"), seg("At DECIEM:"), seg("1. engineering", "exp-010")]),
+      [seg("**Who she had to bring along:** At DECIEM: engineering", "exp-010")])
+check("lead-ins longer than 80 characters or with figures fold too (judge_agreement.is_lead_in misses them)",
+      CC.fold_lead_ins([seg("Her earlier roles at Loblaw Companies (January 2011 to February 2016) were:"),
+                        seg("- Digital marketing manager", "exp-001")])[0]["text"],
+      "Her earlier roles at Loblaw Companies (January 2011 to February 2016) were: Digital marketing manager")
+check("a lead-in with nothing after it is judged on its own",
+      CC.fold_lead_ins([seg("She built it.", "ops-001"), seg("What changed afterward:")]),
+      [seg("She built it.", "ops-001"), seg("What changed afterward:")])
+not_lead_ins = [seg("Her results include:", "ops-003"),  # cited: a claim about its chunk
+                seg("Note: she owned both sides."),
+                seg("The context does not cover how PC Express performed."),  # J04
+                seg("The context doesn't show cash-back work. The closest related work is points-based loyalty."),  # J06
+                seg("- How did she judge whether Regimen Builder worked once it shipped?"),  # J10
+                seg("- Ask her to walk through how she estimated the margin.")]  # J11
+check("J04-J11 cited lines, mid-line colons, gap admissions and questions pass through unchanged",
+      CC.fold_lead_ins(not_lead_ins), not_lead_ins)
+
+class JudgeStub(StubClient):
+    def create(self, **kw):
+        self.kw = kw
+        return super().create(**kw)
+js = JudgeStub(json.dumps({"claims": [{"n": 1, "supported": "yes", "reason": ""},
+                                      {"n": 2, "supported": "no", "reason": "not in the chunk"}]}))
+segs = [seg("Her hands-on builds include:"), seg("- Regimen Builder", "dec-001"), seg("She ran PC Financial.")]
+chunks_ = [{"chunk_id": "dec-001", "similarity": 0.6, "content": "She led the build of Regimen Builder."}]
+j = CC.judge_grounding(js, "What has she built?", "", segs, chunks_)
+sent = js.kw["messages"][1]["content"].split("CLAIMS:\n")[1]
+check("judge gets the folded claims, numbered from 1",
+      sent, "1. (cites: dec-001) Her hands-on builds include: Regimen Builder\n2. (cites: none) She ran PC Financial.")
+check("judge result: checked and folded counts, verdict on the joined text",
+      (j["checked"], j["folded"], j["no"], j["verdict"], j["claims"][0]["text"]),
+      (2, 1, 1, "partial", "Her hands-on builds include: Regimen Builder"))
+CC.judge_grounding(js, "What has she built?", "", segs, chunks_, fold=False)
+check("fold=False, for judge_check.py's comparison: all 3 segments judged as they are",
+      js.kw["messages"][1]["content"].split("CLAIMS:\n")[1].count("\n") + 1, 3)
+cases_ = json.loads((R.HERE / "judge_cases.json").read_text(encoding="utf-8"))["cases"]
+check("judge_cases.json: ids unique", len({c["id"] for c in cases_}), len(cases_))
+check("judge_cases.json: one 'want' per claim after folding",
+      [(c["id"], len(c["want"])) for c in cases_], [(c["id"], len(CC.fold_lead_ins(c["segments"]))) for c in cases_])
+
 print("\n--- run_eval.generate streams, times each attempt ---")
 class _D:  # stands in for the OpenAI SDK's chunk objects
     def __init__(self, **kw): self.__dict__.update(kw)
