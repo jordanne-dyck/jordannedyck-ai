@@ -37,3 +37,7 @@ Claude outputs/
 eval_runs/
 e2e_raw_*.txt
 nimbalyst-local/
+
+# Context lines for the indexer (plan D.2), derived from the knowledge base
+context_cache/
+faiss_db_*/
