@@ -17,6 +17,8 @@ from openai import (
     PermissionDeniedError,
 )
 
+import retrieval
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -55,6 +57,9 @@ with open(FAISS_DB / "documents.pkl", "rb") as f:
 with open(FAISS_DB / "metadatas.pkl", "rb") as f:
     metadatas = pickle.load(f)
 print(f"[api_server] loaded {len(documents)} chunks from {FAISS_DB}", flush=True)
+# Keyword side of the hybrid ranking, built from the same chunk texts. Rebuilt
+# only on restart, like everything else loaded here.
+bm25 = retrieval.BM25(documents)
 # Size of the index this process loaded, not whatever is on disk now. A reindex
 # is not a deployment: this only changes on restart.
 INDEX_BYTES = (FAISS_DB / "resume.index").stat().st_size
@@ -144,60 +149,27 @@ def search():
     if isinstance(n_results, bool) or not isinstance(n_results, int) or not 1 <= n_results <= MAX_N_RESULTS:
         return jsonify({'error': f'n_results must be an integer from 1 to {MAX_N_RESULTS}'}), 400
 
-    # Get embedding and rank the FULL corpus.
+    # Hybrid ranking over the FULL corpus: the vector top 3, then vectors plus
+    # BM25 merged with reciprocal rank fusion, at most 3 chunks per file. The logic lives in
+    # retrieval.py, shared with mcp_server/server_faiss.py.
     #
-    # fetch_count was min(max(n_results*5, 30), len(documents)), i.e. 30. Over a
-    # 123-vector IndexFlatL2 that cap saved microseconds and cost reach: measured,
-    # 28 of 89 chunks the eval set expects sat at rank 31+ and were therefore
-    # structurally unreachable by any re-ranking. At this corpus size, rank
-    # everything. Revisit only if the index grows by an order of magnitude.
-    query_embedding = get_embedding(query)
-    query_vector = np.array([query_embedding]).astype('float32')
-    fetch_count = len(documents)
+    # 'similarity' is still the raw vector similarity, so route.ts's
+    # top_similarity and the dashboard thresholds keep their meaning. 'score' is
+    # the fused score and is the sort key, so the list is no longer in
+    # similarity order. No priority boost and no embedding_weight: see the
+    # PRIORITY_BOOST_RETIRED note. Both are still returned in metadata.
+    query_vector = np.array([get_embedding(query)], dtype='float32')
+    ranked = retrieval.rank(index, metadatas, bm25, query, query_vector, n_results)
+    results = [{
+        'content': documents[r['idx']],
+        'metadata': metadatas[r['idx']],
+        'similarity': r['similarity'],
+        'score': r['score'],
+        'vector_rank': r['vector_rank'],
+        'bm25_rank': r['bm25_rank'],
+    } for r in ranked]
 
-    distances, indices = index.search(query_vector, fetch_count)
-
-    # Score = raw similarity. No priority boost, no embedding_weight.
-    #
-    # embedding_weight stays out for the reason it always did: it is already
-    # applied as a <0.3 drop filter in scripts/embed_knowledge_faiss.py, and
-    # stacking it here was a second prior on top of the first.
-    # context_priority now stays out too - see the PRIORITY_BOOST_RETIRED note.
-    # Both are still returned in metadata, so callers can see them without the
-    # sort being decided by them.
-    candidates = []
-    for idx, distance in zip(indices[0], distances[0]):
-        if idx < len(documents):
-            meta = metadatas[idx]
-            base_similarity = float(1 / (1 + distance))
-            candidates.append({
-                'content': documents[idx],
-                'metadata': meta,
-                'similarity': base_similarity,
-                # 'score' retained as a key so downstream callers do not break;
-                # it is now identical to 'similarity' by design.
-                'score': base_similarity,
-            })
-
-    # Rank by similarity, with source diversity (max 3 per file).
-    #
-    # max_per_source stays at 3 on evidence, not inertia. Measured over the eval
-    # set: removing the cap surfaced 0 chunks that are otherwise never retrieved,
-    # tightening it to 2 surfaced 1. Neither is worth the churn, and the earlier
-    # max_per_source=2 proposal is rejected on this data.
-    candidates.sort(key=lambda x: x['score'], reverse=True)
-    results = []
-    source_counts = {}
-    max_per_source = 3
-    for c in candidates:
-        source = c['metadata'].get('filename', '')
-        source_counts[source] = source_counts.get(source, 0) + 1
-        if source_counts[source] <= max_per_source:
-            results.append(c)
-        if len(results) >= n_results:
-            break
-
-    return jsonify({'results': results, 'index_version': INDEX_VERSION})
+    return jsonify({'results': results, 'index_version': INDEX_VERSION, 'ranker': retrieval.RANKER})
 
 @app.route('/health', methods=['GET'])
 def health():

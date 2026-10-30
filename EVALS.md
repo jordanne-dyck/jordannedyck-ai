@@ -149,6 +149,20 @@ The first multi-turn baseline (2026-10-19, gpt-4o) found that 5 of 10 follow-up 
 
 In the first blind round I marked a claim about a GA4 reporting discrepancy as made up. Checked at source, it was in my own knowledge base, so every model that retrieved it repeated it. The claim was false, and I removed it on 2026-10-19. The models were not at fault: the record was. Source-wording defects like this now have their own failure type, F12.
 
+### Keyword search, after the first version failed
+
+Some facts in the knowledge base, such as the $150M+ figure, never reached the top 5 on embeddings alone. I added BM25 keyword search and merged it with the embedding ranking by reciprocal rank fusion. Both versions below were scored on the same query embeddings, index `848efc4e`, over the 62 baseline cases.
+
+| Ranking | Mean recall@5 | Micro recall@5 | MRR@5 |
+|---|---|---|---|
+| Embeddings only (the baseline) | 0.564 | 0.462 | 0.690 |
+| Embeddings and keywords, equal weight | 0.542 | 0.452 | 0.732 |
+| Embedding top 3 kept, fusion below | 0.602 | 0.511 | 0.708 |
+
+**The equal-weight version lost as much as it gained:** 17 expected chunks in, 18 out. A chunk that shared no word with the question could no longer compete, so strong embedding matches on abstract questions dropped out.
+
+**Keeping the embedding top 3 fixed** brought in 15 expected chunks and lost 5. Over 65 cases, the MRR gain is +0.021 (+0.002 to +0.041) and the recall gain is +0.043 (−0.014 to +0.102). I chose this version after seeing the first one fail, so it is re-checked on new questions.
+
 ## History
 
 `run_metrics.py` runs at the end of every eval. It prints the pass rate per check, latency and cost per answer, and adds one line per run to [`eval_history/history.jsonl`](eval_history/history.jsonl). The file holds 38 lines from 25 saved runs, including a backfill of older runs. A value a run did not record is left empty, not estimated.
