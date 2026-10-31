@@ -50,6 +50,9 @@ What the evals decided, in brief:
 - **The answering model, twice.** gpt-4o scored highest in the second blind round (4.76 of 5), but all gaps to Sonnet 5.5, Flash and Opus 5.5 were inside the noise. It stays on quality-first grounds, not on a measured lead.
 - **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite has not fully closed it for gpt-4o.
 - **A false claim in the knowledge base** was found by blind scoring and removed.
+- **Newer embedding models** ranked worse than ada-002 here, because chunks titled with my name crowded their top results. ada-002 stays.
+
+What the results taught me, and the ideas I tested and dropped, are in **[DECISIONS.md](DECISIONS.md)**.
 
 The harness mirrors production: same prompt, same source layout. `run_e2e.py` checks the index and the prompt against the live route before its first paid call. `selftest.py` runs in CI and fails when this README's case counts, models, timeouts or ranking limits no longer match the code.
 
@@ -78,6 +81,7 @@ api_server.py                 /search and /health
 scripts/embed_knowledge_faiss.py   builds the FAISS index from the knowledge base
 mcp_server/server_faiss.py    MCP server over the same index
 EVALS.md                      how jordbot is evaluated, with results and decisions
+DECISIONS.md                  what the results taught, and rejected ideas with their evidence
 eval_set.json                 eval cases, requirements and check definitions
 coverage_report.py            cases per role theme and per requirement, writes COVERAGE.md
 run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py

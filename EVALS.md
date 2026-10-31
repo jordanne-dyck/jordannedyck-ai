@@ -10,6 +10,8 @@ jordbot answers hiring managers' questions about my work from a knowledge base o
 
 All numbers below come from the scripts in this repo, run on the saved results. The results files hold answer text drawn from the private knowledge base, so they are not published. The committed history in [`eval_history/`](eval_history/) holds ids and numbers only.
 
+What the results taught me, and the ideas I tested and dropped with their evidence, are in [DECISIONS.md](DECISIONS.md).
+
 ## Organised around AI in production
 
 About 15 of the 26 product roles I saved ask for AI shipped to production. They name six things: evals, cost, latency, failure recovery, permissions and monitoring. This page follows that list.
@@ -25,6 +27,20 @@ About 15 of the 26 product roles I saved ask for AI shipped to production. They 
 The core set includes hostile questions, prompt-injection attempts, and questions the record deliberately cannot answer.
 
 **The checks.** Tier 1 must pass for a release: response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names. Tier 2 measures quality: expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, consistent across runs, no repeated lead example, follow-ups cite a source. Tier 3 is human, blind: accuracy, specificity, positioning, tradeoffs and voice (D1–D5, 1 to 5).
+
+**Voice was the most-failed check before the prompt rework.** The 2026-10-16 model comparison answers (old prompt), re-scored offline with today's voice check:
+
+| Model | Answers failing voice |
+|---|---|
+| gpt-4o | 11 of 102 |
+| Gemini 3.8 Flash | 13 of 102 |
+| Gemini 4 Argon | 4 of 36 |
+| GPT-6.1 Sol | 22 of 36 |
+| Claude Haiku 5.5 | 70 of 102 |
+| Claude Opus 5.5 | 33 of 36 |
+| Claude Sonnet 5.5 | 102 of 102 |
+
+Most failures named the source ("the record", "the context") instead of stating the fact. Voice became a must-pass check on 2026-10-19, and the prompt rework was written against it.
 
 **Retrieval is scored, not passed or failed.** `retrieval_scores.py` gives recall@5 and MRR per question. The baseline, on index `75c257fb` (2026-10-30), over the 62 cases with an expected-source list:
 
@@ -124,6 +140,8 @@ Model choice is made by blind human scoring. Answers are shuffled and stripped o
 - The gap between them, +0.30 (−0.08 to +0.70), is inside the noise.
 - Flash's lead over the other five models is outside it.
 
+Gemini 4 Argon was ruled out on latency, not on quality. In the automated pass the same week it took over 15 seconds on 20 of 36 answers (median 16.3 s, p95 70.1 s). Flash went over on 5 of 102, and no other model went over at all.
+
 I kept gpt-4o provisionally. Many of the deductions came from prompt lines and knowledge-base text I was about to change, so I re-tested after the prompt rework.
 
 **Second round, 2026-10-22, new prompt.** 32 answers, 4 models, 8 questions each:
@@ -142,6 +160,8 @@ The automated checks agree that the models are close. gpt-4o passed every check 
 ### Follow-ups that cited nothing: check T2.7 and the query rewrite
 
 The first multi-turn baseline (2026-10-19, gpt-4o) found that 5 of 10 follow-up answers cited no source, and 4 of 6 conversations had at least one. Nothing was checking for it. That became check T2.7, and then a fix in two parts: a prompt rule, and a gpt-4o-mini rewrite that turns "how was that measured?" into a standalone search query before retrieval.
+
+Before changing the prompt, I re-ran with only the knowledge-base edits (2026-10-20, same prompt). Uncited follow-ups went from 5 of 10 to 4 of 10, and conversations with one from 4 of 6 to 3 of 6. Voice failures went from 5 of 36 answers to 3. Every check passed on 78% of answers, against 72%: +6 points (0 to +15), at the edge of the noise. The rest was left to the prompt.
 
 **The fix has not closed it for gpt-4o.** In the 2026-10-22 runs, 4 of 7 gpt-4o conversations still had an uncited follow-up. Sonnet and Opus cited on every follow-up, 7 of 7. That gap, +57 points (+14 to +86), is the only check where the models separate outside the noise. It is open work.
 
@@ -163,9 +183,17 @@ Some facts in the knowledge base, such as the $150M+ figure, never reached the t
 
 **Keeping the embedding top 3 fixed** brought in 15 expected chunks and lost 5. Over 65 cases, the MRR gain is +0.021 (+0.002 to +0.041) and the recall gain is +0.043 (−0.014 to +0.102). I chose this version after seeing the first one fail, so it is re-checked on new questions.
 
+In the full answer eval afterwards (2026-10-30, gpt-4o, 34 questions × 3 runs), answers had an expected source in their top 5 on 84 of 90 tries. The misses were W08 and H03, on every run. Other checks also rose, but that run differed from the earlier ones in more than retrieval, so I do not credit those gains to keyword search.
+
+### Newer embedding models, tested and kept out
+
+On 2026-10-30 I rebuilt the index with text-embedding-3-large and 3-small, everything else unchanged. Both ranked worse than ada-002. 3-large, the pre-registered test, lost 0.111 MRR@5 (−0.198 to −0.029) and 0.070 recall@5 (−0.137 to −0.002). The cause was my name: the chunks titled with it took 59% to 63% of the newer models' top-3 slots, against 36% on ada-002. ada-002 stays. The detail, and a name-strip fix that improved ranking but not answers, are in [DECISIONS.md](DECISIONS.md#newer-embedding-models-2026-10-30).
+
 ## History
 
 `run_metrics.py` runs at the end of every eval. It prints the pass rate per check, latency and cost per answer, and adds one line per run to [`eval_history/history.jsonl`](eval_history/history.jsonl). Retrieval checks and probes add their recall@5 and MRR, with the index they were taken on, and the judge-agreement script adds its correlation and kappa against my blind scores. The file holds 64 lines: 45 from 32 saved eval runs, 14 retrieval scores and 5 judge-agreement results, including a backfill of older runs. A value a run did not record is left empty, not estimated.
+
+Retrieval scores carry their own noise. The same 70-question check, run twice on one index on 2026-10-30, gave the same recall@5 (0.569) and MRR@5 of 0.696 and 0.688. A change of about 0.01 in MRR between two checks is noise, not a result.
 
 ![All-checks pass rate, p95 latency and cost per answer over time](eval_history/trend.svg)
 
