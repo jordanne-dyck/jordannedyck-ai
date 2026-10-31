@@ -191,7 +191,7 @@ On 2026-10-30 I rebuilt the index with text-embedding-3-large and 3-small, every
 
 ## History
 
-`run_metrics.py` runs at the end of every eval. It prints the pass rate per check, latency and cost per answer, and adds one line per run to [`eval_history/history.jsonl`](eval_history/history.jsonl). Retrieval checks and probes add their recall@5 and MRR, with the index they were taken on, and the judge-agreement script adds its correlation and kappa against my blind scores. The file holds 65 lines: 45 from 32 saved eval runs, 15 retrieval scores and 5 judge-agreement results, including a backfill of older runs. A value a run did not record is left empty, not estimated.
+`run_metrics.py` runs at the end of every eval. It prints the pass rate per check, latency and cost per answer, and adds one line per run to [`eval_history/history.jsonl`](eval_history/history.jsonl). Retrieval checks and probes add their recall@5 and MRR, with the index they were taken on, and the judge-agreement script adds its correlation and kappa against my blind scores. It includes a backfill of older runs. A value a run did not record is left empty, not estimated.
 
 Retrieval scores carry their own noise. The same 70-question check, run twice on one index on 2026-10-30, gave the same recall@5 (0.569) and MRR@5 of 0.696 and 0.688. A change of about 0.01 in MRR between two checks is noise, not a result.
 
