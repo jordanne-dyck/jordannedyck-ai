@@ -14,7 +14,10 @@ list it gives, and ask which items to log. Do nothing else until there is an ans
 Otherwise:
 
 1. Read the "How to write an entry" section of the log and follow it exactly. It is the
-   format; this command does not restate it.
+   format; this command does not restate it. Every entry needs `summary`, `tags` and
+   `hypothesis`. Write the question so a reader who was not in the session can follow it.
+   Take the hypothesis from what the plan or session record says led to the test, and mark
+   whether it was recorded before or inferred after. Never write one to fit the result.
 2. Open every source file named in the input. If the input is a description with no file,
    find the file(s) it came from (`eval_runs/`, `nimbalyst-local/`, `eval_history/history.jsonl`)
    and confirm them with Jord before drafting. Never draft from a summary or from memory.
