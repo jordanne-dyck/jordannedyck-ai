@@ -19,7 +19,7 @@ The working rule I took from this: rewording a chunk that never ranks rarely lif
 
 ### My name was crowding the ranking
 
-This is the result behind two of the rejected ideas below. 13 of 145 chunks carry my name in the header that gets embedded with them: 9% of the knowledge base. 67 of the 74 eval questions name me too, so those 13 chunks matched almost every question.
+This is the result behind two of the rejected ideas below. 13 of 145 chunks carry my name in the header that gets embedded with them: 9% of the knowledge base. 67 of the 74 questions I tested with (the 70 eval questions and 4 retrieval probes) name me too, so those 13 chunks matched almost every question.
 
 Across 74 questions, they took 36% of the embedding top-3 slots with the current model (ada-002), 59% with text-embedding-3-large and 63% with 3-small. With my name taken out of the question, they took 4% to 6% on every model.
 
