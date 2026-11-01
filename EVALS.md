@@ -18,10 +18,10 @@ About 15 of the 26 product roles I saved ask for AI shipped to production. They 
 
 ### 1. Evals
 
-**The cases.** [`eval_set.json`](eval_set.json) holds 78 cases:
+**The cases.** [`eval_set.json`](eval_set.json) holds 79 cases:
 - 34 core questions, each mapped to a requirement (R1–R15) from a Staff PM posting at Wealthsimple;
 - 21 regression cases, one per defect found;
-- 8 multi-turn conversations;
+- 9 multi-turn conversations;
 - 15 role-theme cases.
 
 The core set includes hostile questions, prompt-injection attempts, and questions the record deliberately cannot answer.
