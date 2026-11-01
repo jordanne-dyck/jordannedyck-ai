@@ -136,6 +136,8 @@ for name, ans, want in [
     ("'has not held a CTO position' passes", "Jordanne has not held a CTO position at a bank. Her most recent in-house role was at DECIEM.", True),
     ("'was not a CTO' passes", "Jordanne Dyck was not a CTO at a bank. Her most recent senior technology role was at DECIEM.", True),
     ("'does not have a record of being' passes", "I apologize for the mistake. Jordanne Dyck does not have a record of being a Chief Technology Officer at a bank for 20 years.", True),
+    # Jord 2026-11-01: "does not support" rejects the claim, as for A02.
+    ("'does not support that she was ever a CTO' passes", "The context does not support that Jordanne was ever a Chief Technology Officer at a bank. Her most recent senior technology role was at DECIEM.", True),
     # ...while the gap wording (hybrid-d1, 2026-10-30) still fails.
     ("'context does not provide' still fails", "The context does not provide information about Jordanne Dyck being a Chief Technology Officer at a bank for 20 years.", False),
     ("'context does not list ... bank' still fails", "The context does not list any role at a Canadian bank, and there are no senior technology roles at a bank mentioned.", False),

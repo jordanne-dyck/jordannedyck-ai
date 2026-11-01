@@ -468,9 +468,12 @@ CORRECTION_MARKERS = [
 # position at a bank" (6 of 10 raw-search M07 answers on 11-01), matched no
 # marker above, nor did "was not a CTO" or "does not have a record of being".
 # The gap wording "The context does not cover ... bank" must still fail, so
-# "does not" alone is not a negation here.
+# "does not" alone is not a negation here. "does not support" is (Jord,
+# 2026-11-01), as T2.4 already counts it for A02 since 10-30: "The context does
+# not support that Jordanne was ever a CTO at a bank" rejects the claim.
 CLAIM_DENIAL_RE = re.compile(
-    r"\b(?:has not|hasn't|have not|was not|wasn't|does not have a record of)\b"
+    r"\b(?:has not|hasn't|have not|was not|wasn't|does not have a record of"
+    r"|does not support|doesn't support|do not support)\b"
     r"[^.\n]{0,60}?\b(?:cto|chief technology officer|bank)\b")
 
 
