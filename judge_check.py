@@ -14,8 +14,11 @@ Two commands. Both call the OpenAI API and cost money, so run --estimate first.
             the same answers with lead-ins folded and unfolded against the same
             text: the difference between the two is the folding, not a
             knowledge-base edit.
-            Writes eval_runs/rejudge_<results file>_<setting>.json, and skips
-            answers already in it, so an interrupted run can be resumed.
+            Writes eval_runs/rejudge_<results file>_<setting>[-<tag>].json,
+            and skips answers already in it, so an interrupted run can be
+            resumed. --tag keeps a re-judge under a changed rule apart from an
+            earlier one; --compare-to prints the answers whose flag changed
+            against an earlier re-judge file.
 
 Usage (from C:\\Users\\Jord\\jordannedyck-ai):
     uv run python judge_check.py cases --estimate
@@ -23,6 +26,7 @@ Usage (from C:\\Users\\Jord\\jordannedyck-ai):
     uv run python judge_check.py rejudge eval_runs/redecide-ff4d_2026-10-22.json --estimate
     uv run python judge_check.py rejudge eval_runs/redecide-ff4d_2026-10-22.json
     uv run python judge_check.py rejudge eval_runs/redecide-ff4d_2026-10-22.json --report
+    uv run python judge_check.py rejudge eval_runs/redecide-ff4d_2026-10-22.json --setting folded --tag headings --compare-to eval_runs/rejudge_redecide-ff4d_2026-10-22_folded.json
 """
 
 import argparse
@@ -46,10 +50,14 @@ QUESTION_RE = re.compile(r"\?[*_\s]*$|^[-*\s]*(?:ask her|you (?:could|might|can)
 
 
 def kind(text):
-    """What a judged line is, for the report only: lead-in, question, gap or claim."""
+    """What a judged line is, for the report only: lead-in, heading, question, gap or claim.
+    A folded claim starts with its lead-in, so a heading joined to a claim reads "heading";
+    so does an uncited line that only opens in bold ("**Growth Marketing Manager** (Aug 2018...")"""
     low = text.lower()
     if C.LEAD_IN_END_RE.search(text):
         return "lead-in"
+    if C.HEADING_RE.match(text.strip()):
+        return "heading"
     if QUESTION_RE.search(text):
         return "question"
     if any(p in low for p in GAP_PHRASES) or GAP_RE.search(low) or NO_COVERAGE_RE.search(low):
@@ -144,8 +152,8 @@ def stored_answers(path, text_by_id):
     return out, missing
 
 
-def out_path(results, setting):
-    return HERE / "eval_runs" / f"rejudge_{Path(results).stem}_{setting}.json"
+def out_path(results, setting, tag=None):
+    return HERE / "eval_runs" / f"rejudge_{Path(results).stem}_{setting}{'-' + tag if tag else ''}.json"
 
 
 def run_rejudge(args):
@@ -157,7 +165,7 @@ def run_rejudge(args):
         if missing:
             print(f"{f}: {len(missing)} chunk ids not in today's index, judged without them: {sorted(missing)}")
         for s in settings:
-            done = _load_out(out_path(f, s))
+            done = _load_out(out_path(f, s, args.tag))
             todo = [a for a in answers if a[0] not in done]
             n, usd = estimate([(q, segs, c) for _, q, _, segs, c in todo], s)
             print(f"{f} lead-ins {s}: {len(answers)} judged answers, {n} still to judge, about ${usd:.4f}")
@@ -174,13 +182,16 @@ def run_rejudge(args):
                 for i, (key, j) in enumerate(ex.map(one, todo), 1):
                     done[key] = j
                     if i % 25 == 0 or i == len(todo):
-                        out_path(f, s).write_text(json.dumps(done, indent=1, ensure_ascii=False), encoding="utf-8")
+                        out_path(f, s, args.tag).write_text(json.dumps(done, indent=1, ensure_ascii=False), encoding="utf-8")
                         print(f"  {f} {s}: {i}/{len(todo)}", flush=True)
     for f, s, _, done in plan:
         report(f, s, done)
-    if len(settings) == 2:
+    if args.compare_to:
+        for f, s, _, done in plan:
+            compare(f, _load_out(args.compare_to), done, (args.compare_to.stem, f"{s}{'-' + args.tag if args.tag else ''}"))
+    elif len(settings) == 2:
         for f in args.files:
-            compare(f, _load_out(out_path(f, "unfolded")), _load_out(out_path(f, "folded")))
+            compare(f, _load_out(out_path(f, "unfolded", args.tag)), _load_out(out_path(f, "folded", args.tag)))
 
 
 def _load_out(p):
@@ -197,7 +208,7 @@ def report(f, s, done):
     print(f"\n{f}, lead-ins {s}: {len(done)} answers, {flagged} flagged (any claim \"no\"), "
           f"{len(nos)} claims \"no\", lead-ins folded {sum(j.get('folded', 0) for j in done.values())}, "
           f"spent ${spent:.4f}")
-    for kd in ("lead-in", "gap", "question", "claim"):
+    for kd in ("lead-in", "heading", "gap", "question", "claim"):
         print(f"  \"no\" on {kd}: {len(by_kind.get(kd, []))}")
         if kd != "claim":
             for k, c in by_kind.get(kd, []):
@@ -205,16 +216,17 @@ def report(f, s, done):
                 print(f"      judge: {c['reason']}")
 
 
-def compare(f, before, after):
-    """Answers whose flag changed between unfolded and folded, with the claims behind it."""
+def compare(f, before, after, names=("unfolded", "folded")):
+    """Answers whose flag changed between two re-judges (unfolded and folded by
+    default), with the claims behind it."""
     keys = sorted(set(before) & set(after))
     cleared = [k for k in keys if before[k]["no"] and not after[k]["no"]]
     raised = [k for k in keys if not before[k]["no"] and after[k]["no"]]
-    print(f"\n{f}: {len(keys)} answers judged both ways. Flagged unfolded "
-          f"{sum(1 for k in keys if before[k]['no'])}, folded {sum(1 for k in keys if after[k]['no'])}; "
+    print(f"\n{f}: {len(keys)} answers judged both ways. Flagged {names[0]} "
+          f"{sum(1 for k in keys if before[k]['no'])}, {names[1]} {sum(1 for k in keys if after[k]['no'])}; "
           f"cleared {len(cleared)}, newly flagged {len(raised)}")
-    for label, ks, side in (("cleared (unfolded \"no\" claims)", cleared, before),
-                            ("newly flagged (folded \"no\" claims)", raised, after)):
+    for label, ks, side in ((f"cleared ({names[0]} \"no\" claims)", cleared, before),
+                            (f"newly flagged ({names[1]} \"no\" claims)", raised, after)):
         print(f"  {label}:")
         for k in ks:
             for c in side[k]["claims"]:
@@ -235,6 +247,8 @@ def main():
     b.add_argument("--setting", choices=[*SETTINGS, "both"], default="both")
     b.add_argument("--estimate", action="store_true", help="print calls and cost, call nothing")
     b.add_argument("--report", action="store_true", help="print the saved re-judge results, call nothing")
+    b.add_argument("--tag", help="suffix for the output file names, to keep a changed rule's re-judge apart")
+    b.add_argument("--compare-to", type=Path, help="an earlier re-judge file to compare the flags against")
     args = ap.parse_args()
     (run_cases if args.cmd == "cases" else run_rejudge)(args)
 

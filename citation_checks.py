@@ -14,8 +14,10 @@ Deliberate differences from the site:
     result can be read claim by claim.
   - No PII redaction: eval questions are fixed, not visitor text.
   - Lead-in lines are joined to the claim after them before judging
-    (fold_lead_ins, 2026-10-30), until a web session mirrors it in
-    judgeGrounding(). The web brief was handed over the same day.
+    (fold_lead_ins, 2026-10-30). Mirrored in foldLeadIns() in lib/classify.ts
+    (web PR #52). Headings with no colon were added on 2026-11-01; until the
+    web side mirrors that, the two differ on headings. Brief:
+    nimbalyst-local/web-brief-judge-fold-headings-2026-11-01.md.
 """
 
 import json
@@ -165,14 +167,24 @@ JUDGE_SCHEMA = {
 # flagged answers to 17, and agreement with the blind D1 scores held.
 LEAD_IN_END_RE = re.compile(r":[*_\s]*$")
 LIST_MARK_RE = re.compile(r"^(?:[-*]|\d+\.)\s+")
+# A heading with no colon introduces what follows the same way: a markdown
+# heading, or a line that is all bold ("**How it was built**"). The judge
+# marked 9 such lines "no" in the 10-22 re-judges (2026-11-01). Folding keeps
+# a detail in one checked ("**Loblaw Companies Limited (2011-2016)**").
+HEADING_RE = re.compile(r"#{1,6}\s+\S.*|\*\*[^*]+\*\*|__[^_]+__")
+
+
+def is_lead_in(s):
+    """An uncited segment that introduces the next one, not a claim on its own."""
+    return not s["ids"] and bool(LEAD_IN_END_RE.search(s["text"]) or HEADING_RE.fullmatch(s["text"].strip()))
 
 
 def fold_lead_ins(segments):
-    """Joins each run of lead-in lines to the segment after it, which keeps its
-    ids. A lead-in with nothing after it is judged as it is."""
+    """Joins each run of lead-in lines and headings to the segment after it,
+    which keeps its ids. A lead-in with nothing after it is judged as it is."""
     out, lead = [], []
     for s in segments:
-        if not s["ids"] and LEAD_IN_END_RE.search(s["text"]):
+        if is_lead_in(s):
             lead.append(s["text"])
             continue
         if lead:

@@ -339,9 +339,9 @@ def main():
     ap.add_argument("keys", nargs="*", type=Path, default=KEYS, help="blind-sample *_KEY.json files")
     ap.add_argument("--resamples", type=int, default=B.RESAMPLES)
     ap.add_argument("--seed", type=int, default=B.SEED)
-    ap.add_argument("--rejudged", choices=["folded", "unfolded", "gap-wording-rejected"],
-                    help="use judge_check.py rejudge verdicts (lead-ins folded, unfolded, or the "
-                         "rejected gap wording), not the stored ones")
+    ap.add_argument("--rejudged", choices=["folded", "unfolded", "gap-wording-rejected", "folded-headings"],
+                    help="use judge_check.py rejudge verdicts (lead-ins folded, unfolded, the "
+                         "rejected gap wording, or lead-ins and headings folded), not the stored ones")
     args = ap.parse_args()
     kw = {"resamples": args.resamples, "seed": args.seed}
     print(B.setup_line(args.resamples, args.seed))

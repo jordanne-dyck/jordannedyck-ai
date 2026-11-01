@@ -1,5 +1,5 @@
 {
-  "about": "Named cases for the grounding judge (citation_checks.judge_grounding), added 2026-10-30 from the plan A.8 defects. Each case is a question, a few short chunks, and the answer segments as parse_citations returns them, before lead-ins are folded. 'want' gives the verdicts each judged claim may get, after folding. Claim lines are taken from stored answers (source given); chunks are short stand-ins so a knowledge-base edit cannot move a case. Run with: uv run python judge_check.py cases (paid, gpt-4o-mini; --estimate first). The free half, folding, is in selftest.py. A case with an open field is a known defect, kept so a fix can be measured; judge_check.py prints its failures as OPEN. On 2026-10-30 (lead-ins folded, 3 reps) J02 and J10 passed 2 of 3 and every other case not open passed 3 of 3.",
+  "about": "Named cases for the grounding judge (citation_checks.judge_grounding), added 2026-10-30 from the plan A.8 defects. Each case is a question, a few short chunks, and the answer segments as parse_citations returns them, before lead-ins are folded. 'want' gives the verdicts each judged claim may get, after folding. Claim lines are taken from stored answers (source given); chunks are short stand-ins so a knowledge-base edit cannot move a case. Run with: uv run python judge_check.py cases (paid, gpt-4o-mini; --estimate first). The free half, folding, is in selftest.py. A case with an open field is a known defect, kept so a fix can be measured; judge_check.py prints its failures as OPEN. On 2026-10-30 (lead-ins folded, 3 reps) J02 and J10 passed 2 of 3 and every other case not open passed 3 of 3. On 2026-11-01 (lead-ins and headings folded, 3 reps) J13, J14, J16 and the open J15 passed 3 of 3; J02 and J10 passed 0 of 3 on the same judged text as 10-30, so gpt-4o-mini's verdicts on those two drift between runs.",
   "cases": [
     {
       "id": "J01",
@@ -296,6 +296,111 @@
           "ids": [
             "ops-003"
           ]
+        }
+      ],
+      "want": [
+        [
+          "no"
+        ]
+      ]
+    },
+    {
+      "id": "J13",
+      "defect": "heading",
+      "source": "redecide-ff4d_multiturn_2026-10-22 M03 t1 claude-opus-5-5: '**How it was built**' marked no. Abridged: in the answer the heading is followed by a lead-in and a bullet list before this claim. Written 2026-11-01, before any result for it.",
+      "question": "What is the Agentic Personal Shopper?",
+      "chunks": [
+        {
+          "chunk_id": "shopper-001",
+          "content": "Personally built the first working version. Tested with pilots, identified failure modes, and iterated fast before scaling."
+        }
+      ],
+      "segments": [
+        {
+          "text": "**How it was built**",
+          "ids": []
+        },
+        {
+          "text": "She tested it with pilots, identified failure modes and iterated before scaling.",
+          "ids": [
+            "shopper-001"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J14",
+      "defect": "heading (control)",
+      "source": "Control for J13, from redecide-ff4d_multiturn_2026-10-22 M06 t2 claude-opus-5-5 '**Loblaw Companies Limited (2011-2016)**' with the start year changed: a detail in a folded heading must still be checked. Written 2026-11-01, before any result for it.",
+      "question": "What did she do before DECIEM?",
+      "chunks": [
+        {
+          "chunk_id": "exp-029",
+          "content": "Loblaw Companies Limited (Jan 2011 - Feb 2016). Marketing Analyst, Shoppers Drug Mart (May 2011 - Dec 2014)."
+        }
+      ],
+      "segments": [
+        {
+          "text": "**Loblaw Companies Limited (2009–2016)**",
+          "ids": []
+        },
+        {
+          "text": "She was a Marketing Analyst at Shoppers Drug Mart.",
+          "ids": [
+            "exp-029"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "no"
+        ]
+      ]
+    },
+    {
+      "id": "J15",
+      "defect": "self-correction",
+      "open": "Open since 2026-11-01: a multi-turn retraction restates what it withdraws, and the judge reads that as a claim. Same class as the gap admissions (J06, J09); no fix chosen. Written before any result for it. This stand-in passed 3 of 3 on 2026-11-01, but the stored M04 answer it comes from was still marked no in that day's re-judge with the real chunks, so the case does not yet reproduce the defect.",
+      "source": "redecide-ff4d_multiturn_2026-10-22 M04 t3 claude-opus-5-5, marked no in the unfolded and rejected-wording re-judges",
+      "question": "Can you correct your last answer?",
+      "chunks": [
+        {
+          "chunk_id": "promo-006",
+          "content": "Email grew from one million people getting a single email a year to four million getting personalized weekly sends."
+        }
+      ],
+      "segments": [
+        {
+          "text": "Second, I added details I can't confirm and should not have stated. These were that email was chosen as the cheapest channel, that the email result persuaded leadership to extend personalization across the whole digital ecosystem, and that she describes the work as \"one continuous argument.\"",
+          "ids": []
+        }
+      ],
+      "want": [
+        [
+          "yes"
+        ]
+      ]
+    },
+    {
+      "id": "J16",
+      "defect": "self-correction (control)",
+      "source": "Control for J15: a 'correction' that states a new fact the context contradicts must fail. Written 2026-11-01, before any result for it.",
+      "question": "Can you correct your last answer?",
+      "chunks": [
+        {
+          "chunk_id": "ops-003",
+          "content": "The subscription program I launched at The Ordinary did not succeed. The product worked, but the business had not committed the people and process to grow it."
+        }
+      ],
+      "segments": [
+        {
+          "text": "One correction to my earlier answer: the subscription program she launched at The Ordinary succeeded.",
+          "ids": []
         }
       ],
       "want": [

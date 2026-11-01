@@ -717,6 +717,27 @@ not_lead_ins = [seg("Her results include:", "ops-003"),  # cited: a claim about 
                 seg("- Ask her to walk through how she estimated the margin.")]  # J11
 check("J04-J11 cited lines, mid-line colons, gap admissions and questions pass through unchanged",
       CC.fold_lead_ins(not_lead_ins), not_lead_ins)
+# Headings with no colon, 2026-11-01.
+check("J13 a bold heading with no colon joins the claim after it",
+      CC.fold_lead_ins([seg("**How it was built**"), seg("She tested it with pilots.", "shopper-001")]),
+      [seg("**How it was built** She tested it with pilots.", "shopper-001")])
+check("J14 a detail in a heading is judged inside the joined claim",
+      CC.fold_lead_ins([seg("**Loblaw Companies Limited (2009–2016)**"), seg("- She was a Marketing Analyst.", "exp-029")]),
+      [seg("**Loblaw Companies Limited (2009–2016)** She was a Marketing Analyst.", "exp-029")])
+check("markdown headings and __bold__ lines fold too",
+      [s["text"] for s in CC.fold_lead_ins([seg("## Results"), seg("__Loyalty__"), seg("Email grew to 4M.", "promo-006")])],
+      ["## Results __Loyalty__ Email grew to 4M."])
+not_headings = [seg("**Storefront surfaces**", "exp-001"),  # cited: a claim about its chunk
+                seg("**Regimen Builder** saved a customer's regimen to their account."),  # bold start, then a claim
+                seg("She grew it **fast**."),
+                seg("#1 in the category.")]  # no space after '#': not a heading
+check("cited bold lines, bold openings and '#1' pass through unchanged",
+      CC.fold_lead_ins(not_headings), not_headings)
+check("J15/J16 self-corrections are not folded (still judged as they are)",
+      CC.fold_lead_ins([seg("Second, I added details I can't confirm and should not have stated."),
+                        seg("One correction to my earlier answer: the subscription program succeeded.")]),
+      [seg("Second, I added details I can't confirm and should not have stated."),
+       seg("One correction to my earlier answer: the subscription program succeeded.")])
 
 class JudgeStub(StubClient):
     def create(self, **kw):
