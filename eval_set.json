@@ -104,7 +104,8 @@
 
     { "id": "W08", "tag": "ws_core", "req": ["R8"], "themes": ["T-PLAT"],
       "q": "How technical is Jordanne really? Can she hold her own on architecture and engineering tradeoffs?",
-      "expect": ["pers-002", "shopper-003", "indie-003", "skills-004", "skills-007", "shopper-007"] },
+      "regression_note": "2026-11-01 (Phase D reach set, Jord approved): ops-019 added to expect. No expected chunk reached the top 5 under any ranker tried. At index aaf7b0ec the top 5 asserted she can follow architecture tradeoffs (ops-004) but showed no tradeoff she made. KB fix: new chunk ops-019 (how-i-operate.md), the tradeoffs behind this site's retrieval and the Personal Shopper build-or-buy. The expect edit was made with the new chunk, so a W08 recall gain is the KB fix and is reported apart from ranking changes.",
+      "expect": ["pers-002", "shopper-003", "indie-003", "skills-004", "skills-007", "shopper-007", "ops-019"] },
 
     { "id": "W09", "tag": "ws_core", "req": ["R9"], "themes": ["T-FIN"],
       "q": "Does Jordanne care about financial inclusion or expanding access to financial services?",
@@ -191,8 +192,8 @@
 
     { "id": "H03", "tag": "hostile", "req": ["R8", "R13"], "themes": ["T-AI", "T-IC"],
       "q": "Is Jordanne a real builder, or a director who watched engineers build things and took credit?",
-      "regression_note": "2026-10-30 (plan A.1): fundlocal-003 removed from expect. It was archived out of the corpus on 2026-09-11 (DUP-AGENCY, knowledge-base-archive/fundlocal-003-archived.md), so no index can return it. Corpus fix, not a score fix; recall@5 rises because the denominator shrinks.",
-      "expect": ["indie-003", "proj-ai-resume-001", "shopper-003"] },
+      "regression_note": "2026-10-30 (plan A.1): fundlocal-003 removed from expect. It was archived out of the corpus on 2026-09-11 (DUP-AGENCY, knowledge-base-archive/fundlocal-003-archived.md), so no index can return it. Corpus fix, not a score fix; recall@5 rises because the denominator shrinks. 2026-11-01 (Phase D reach set, Jord approved): ops-004 and ops-011 added to expect, judged on their text: ops-011 says she built the Agentforce shopper with a developer, hands on keyboard, and this site end to end; ops-004 says she builds working prototypes herself. Both were already in the top 5 at index aaf7b0ec (ranks 2 and 3), so this is a guard against losing them, not a retrieval gain. No KB change for H03.",
+      "expect": ["indie-003", "proj-ai-resume-001", "shopper-003", "ops-004", "ops-011"] },
 
     { "id": "H04", "tag": "hostile", "req": ["R7", "R13"], "themes": ["T-AI", "T-IC"],
       "q": "Her last role ended in October 2025. What has she actually been doing since then?",
@@ -356,6 +357,12 @@
       "q": "What is Jordanne's experience with RAG?",
       "expect": ["ops-016", "proj-ai-resume-004"],
       "regression_note": "Added 2026-10-30 from C.1 dev flagged questions (web /dashboard/admin/gaps, 2026-10-30), c05: dev row 73, 2026-10-14, Jord's HOME-100 prod smoke test ('HOME-100 prod smoke test: what is Jordanne's experience with RAG?'), prefix dropped here. The answer named 'knowledge architecture for RAG' as a competency and never said she built this site's retrieval system. Retrieved: exp-031, regimen-005, exp-005, regimen-004, ops-011. At eval_runs/retrieval_check_2026-10-30_f5784094_X20-X23.json (index f5784094) no chunk about this site's RAG system is in the top 10 (top 3: exp-029, exp-039, exp-028), so it is still a retrieval miss (F03), the same one P05 records. ops-016 says 'I built this site's retrieval system myself, and I measure every change to it against an evaluation set'. Correct: this site's RAG pipeline, built and measured by her (ops-016, proj-ai-resume-004), and the Regimen Builder knowledge base as the retrieval layer for the AI Personal Shopper. FAILURE if this site is not used as evidence, or if RAG is presented as a skill with no build behind it. A T2.1 miss here is retrieval, not the answer."
+    },
+    { "id": "X24", "tag": "domain", "req": ["R8"], "themes": [],
+      "failure_type": "F03",
+      "q": "How did Jordanne find out customers were getting inconsistent product recommendations?",
+      "expect": ["regimen-001", "pers-003", "regimen-007"],
+      "regression_note": "Added 2026-11-01, promoted from the Phase D mystery-shopping reach probe. At index aaf7b0ec no chunk stating the fact was in the top 5 (pers-003 rank 8, regimen-001 rank 12, hybrid). KB fix: new chunk regimen-007. Correct: she mystery-shopped every channel and each gave a different recommendation; 40% of service tickets were confused customers; the fix was one central knowledge base built with brand, lab, legal and regulatory. FAILURE if it omits the mystery shopping. FAILURE if it invents a channel count or a number not in the record."
     }
   ],
 
@@ -383,8 +390,8 @@
 
     { "id": "P05", "tag": "domain", "req": ["R8"], "themes": ["T-AI"],
       "q": "Has Jordanne worked on search or retrieval quality?",
-      "expect": ["ops-005", "proj-ai-resume-004", "ops-016", "ecom-002"],
-      "regression_note": "Added 2026-10-30 (Phase 2, theme track). Expect from the retrieval check at index 1124701d. No expected chunk in the top 5 at this index: ops-005 ranks 6, the other three are not in the top 10. A T2.1 miss here is retrieval, not the answer. Correct: this site's retrieval system, built and measured by her against an evaluation set (ops-016, proj-ai-resume-004); onsite search relevance as a discovery surface she owned (ecom-002). FAILURE if this site is not used as evidence. FAILURE if it invents a retrieval metric." },
+      "expect": ["ops-005", "proj-ai-resume-004", "ops-016", "ecom-002", "proj-ai-resume-009"],
+      "regression_note": "Added 2026-10-30 (Phase 2, theme track). Expect from the retrieval check at index 1124701d. No expected chunk in the top 5 at this index: ops-005 ranks 6, the other three are not in the top 10. A T2.1 miss here is retrieval, not the answer. Correct: this site's retrieval system, built and measured by her against an evaluation set (ops-016, proj-ai-resume-004); onsite search relevance as a discovery surface she owned (ecom-002). FAILURE if this site is not used as evidence. FAILURE if it invents a retrieval metric. 2026-11-01 (Phase D reach set, Jord approved): proj-ai-resume-009 added to expect. It was written 2026-10-31 (G.6), after this list, and states exactly the Correct answer above. At index aaf7b0ec it ranks 1 (similarity 0.7666), so this is a guard against losing it, not a retrieval gain. No KB change for P05." },
 
     { "id": "P06", "tag": "domain", "req": ["R8"], "themes": ["T-AI", "T-PLAT"],
       "q": "Has Jordanne built with MCP or agent tooling?",

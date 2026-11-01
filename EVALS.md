@@ -18,9 +18,9 @@ About 15 of the 26 product roles I saved ask for AI shipped to production. They 
 
 ### 1. Evals
 
-**The cases.** [`eval_set.json`](eval_set.json) holds 78 cases:
+**The cases.** [`eval_set.json`](eval_set.json) holds 79 cases:
 - 34 core questions, each mapped to a requirement (R1–R15) from a Staff PM posting at Wealthsimple;
-- 21 regression cases, one per defect found;
+- 22 regression cases, one per defect found;
 - 8 multi-turn conversations;
 - 15 role-theme cases.
 
@@ -52,13 +52,14 @@ Most failures named the source ("the record", "the context") instead of stating 
 
 Nine questions get none of their expected chunks in the top 5 (W04, W08, W13, W14, H03, X09, P05, P07, P12). Four gap and attack cases have nothing to retrieve and are not scored. The four newest regression cases (X20–X23) were checked on a later index and are not in this baseline. Every planned retrieval change is judged against these numbers.
 
-**Every regression case has a failure type.** X03–X23 carry a type from a 12-item list adapted from a RAG failure clinic:
+**Every regression case has a failure type.** X03–X24 carry a type from a 12-item list adapted from a RAG failure clinic:
 
 | Type | Cases |
 |---|---|
 | F01 grounding drift: the answer claims more than the sources support | 13 |
 | F12 source wording: the knowledge base itself implies something false | 4 |
-| F02 chunk boundary, F03 dark chunk, F04 stale index, F09 checker miss | 1 each |
+| F03 dark chunk | 2 |
+| F02 chunk boundary, F04 stale index, F09 checker miss | 1 each |
 
 Most defects were overclaims, not retrieval misses. That is why prompt and knowledge-base edits came before retrieval changes.
 
