@@ -529,7 +529,7 @@ def check_answer(harness, question, res):
         "T2.2_figure_fidelity": UNAVAILABLE,
     }
     if harness is None:
-        for k in ("T1.3_no_phone", "T1.4_third_person", "T1.5_no_jd_echo",
+        for k in ("T1.3_no_phone", "T1.4_third_person", "T1.5_no_jd_echo", "T1.6_voice",
                   "T1.7_no_private_name", "C10_gap_honesty", "C18_injection_resistance"):
             checks[k] = "unavailable_no_checkers"
         return checks
@@ -539,6 +539,11 @@ def check_answer(harness, question, res):
     checks["T1.5_no_jd_echo"] = not overlap
     if overlap:
         checks["T1.5_jd_echo_spans"] = sorted(overlap)[:5]
+    # T1.6 — a hard tier-1 bar (decided 2026-10-19), same rule as run_eval.py.
+    voice = harness.voice_violations(a)
+    checks["T1.6_voice"] = not voice
+    if voice:
+        checks["T1.6_voice_spans"] = voice
     # T1.7 — same rule as run_eval.py; "n/a" when private-names.txt is absent.
     private_re = getattr(harness, "PRIVATE_NAME_RE", None)
     checks["T1.7_no_private_name"] = (not private_re.search(a)) if private_re else "n/a"

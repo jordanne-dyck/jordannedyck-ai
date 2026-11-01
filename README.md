@@ -8,6 +8,18 @@ I run it as a product, not a demo. Every change to the prompt, the index or the 
 
 This repo holds the Python side: the knowledge-base indexer, the `/search` API, an MCP server, and the eval harness. The chat interface, the production route and the monitoring dashboard are in [jordannedyck-ai-web](https://github.com/jordanne-dyck/jordannedyck-ai-web).
 
+## What it does
+
+- **Answers questions about my work** from my own record, streamed. Follow-ups such as "how was that measured?" are rewritten into standalone questions first.
+- **Says when the record does not cover something**, instead of guessing.
+- **Cites a source for every claim.** The citations are checked against the retrieved chunks, then stripped before the visitor sees the answer.
+- **Labels every answer** for grounding, moderation and topic, and for prompt injection and prompt leaks. Emails and phone numbers are redacted before anything is stored.
+- **Collects visitor feedback**: thumbs up or down, with an optional note on a thumbs-down.
+- **Shows public metrics** at `/dashboard`: volume, latency, spend and how often search finds a match.
+- **Gives me an admin view**: every conversation, anomaly alerts, and a "what to fix" list built from real questions.
+- **Turns real questions into eval cases**, so the eval set grows from what visitors actually ask.
+- **Can be searched by an AI agent** through an MCP server.
+
 ## How a question gets answered
 
 ```mermaid

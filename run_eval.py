@@ -42,6 +42,7 @@ from dotenv import load_dotenv
 from openai import APITimeoutError, OpenAI, OpenAIError
 
 import run_metrics
+from retrieval import RRF_K
 
 load_dotenv()
 
@@ -743,15 +744,23 @@ EST_REWRITE_USD = 0.0001
 
 
 def merge_results(first, second, n_results, max_per_source=MAX_PER_SOURCE):
-    """Both /search lists pooled: each chunk once, at its higher similarity,
-    re-ranked the way /search ranks (similarity, at most 3 chunks per file)."""
-    best = {}
-    for r in [*first, *second]:
-        cid = r["metadata"].get("chunk_id")
-        if cid not in best or r["similarity"] > best[cid]["similarity"]:
-            best[cid] = r
+    """Both /search lists pooled by reciprocal rank fusion of their list
+    positions, with the k /search fuses with (retrieval.RRF_K). Each list is
+    already in /search's hybrid order, so re-sorting the pool by raw similarity
+    would undo that ranking. Each chunk is kept once, at its higher similarity.
+    Ties go to the better place in the first list, then in the second. At most
+    3 chunks per file, as /search."""
+    best, fused, places = {}, {}, {}
+    for which, results in enumerate((first, second)):
+        for rank, r in enumerate(results, 1):
+            cid = r["metadata"].get("chunk_id")
+            if cid not in best or r["similarity"] > best[cid]["similarity"]:
+                best[cid] = r
+            fused[cid] = fused.get(cid, 0.0) + 1.0 / (RRF_K + rank)
+            places.setdefault(cid, [float("inf"), float("inf")])[which] = rank
+    order = sorted(best, key=lambda c: (-fused[c], places[c][0], places[c][1]))
     out, per_file = [], {}
-    for r in sorted(best.values(), key=lambda r: r["similarity"], reverse=True):
+    for r in (best[c] for c in order):
         f = r["metadata"].get("filename", "")
         per_file[f] = per_file.get(f, 0) + 1
         if per_file[f] <= max_per_source:

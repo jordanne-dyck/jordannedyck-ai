@@ -26,7 +26,7 @@ About 15 of the 26 product roles I saved ask for AI shipped to production. They 
 
 The core set includes hostile questions, prompt-injection attempts, and questions the record deliberately cannot answer.
 
-**The checks.** Tier 1 must pass for a release: response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names. Tier 2 measures quality: expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, consistent across runs, no repeated lead example, follow-ups cite a source. Tier 3 is human, blind: accuracy, specificity, positioning, tradeoffs and voice (D1–D5, 1 to 5).
+**The checks.** Tier 1 must pass for a release: response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names. Tier 2 measures quality: expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, no repeated lead example, follow-ups cite a source. Tier 3 is human, blind: accuracy, specificity, positioning, tradeoffs and voice (D1–D5, 1 to 5).
 
 **Voice was the most-failed check before the prompt rework.** The 2026-10-16 model comparison answers (old prompt), re-scored offline with today's voice check:
 

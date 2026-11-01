@@ -192,15 +192,17 @@ def hit(cid, sim, f):
 first = [hit("a-1", .72, "a"), hit("a-2", .71, "a"), hit("b-1", .70, "b")]
 second = [hit("b-1", .75, "b"), hit("a-3", .74, "a"), hit("a-4", .73, "a"), hit("c-1", .69, "c")]
 m = R.merge_results(first, second, 5)
-check("pooled: each chunk once at its higher similarity, 3 per file, top 5",
+# Fused by list position, not raw similarity: b-1 is in both lists, a-2 beats
+# a-3 on its first-list place, and a-4 is the fourth from file a.
+check("pooled: fused by list position, each chunk once at its higher similarity, 3 per file, top 5",
       [(r["metadata"]["chunk_id"], r["similarity"]) for r in m],
-      [("b-1", .75), ("a-3", .74), ("a-4", .73), ("a-1", .72), ("c-1", .69)])
+      [("b-1", .75), ("a-1", .72), ("a-2", .71), ("a-3", .74), ("c-1", .69)])
 check("pooled with an empty second list is the first list",
       [r["metadata"]["chunk_id"] for r in R.merge_results(first, [], 5)], ["a-1", "a-2", "b-1"])
 _fetch = R.fetch_results
 R.fetch_results = lambda q, n: second if q == "rephrased" else first
 f1, pooled, rw, _ms = R.corrective_search(StubClient("rephrased"), "orig")
-check("corrective search pools both searches", [r["metadata"]["chunk_id"] for r in pooled][:2], ["b-1", "a-3"])
+check("corrective search pools both searches", [r["metadata"]["chunk_id"] for r in pooled][:2], ["b-1", "a-1"])
 f1, pooled, rw, _ms = R.corrective_search(StubClient(OpenAIError("boom")), "orig")
 check("failed rewrite: only the first search is used", (rw["status"], pooled == first), ("error", True))
 R.fetch_results = _fetch
@@ -220,6 +222,15 @@ R.PRIVATE_NAME_RE = None
 c = R.run_checks(q2, "A", CTX, R_MOCK, mk("x"))
 check("no names file: check not run", c["T1.7_no_private_name"], None)
 R.PRIVATE_NAME_RE = _pn
+
+print("\n--- run_e2e: T1.6 voice on the live route ---")
+import run_e2e as E2E
+_res = {"error": None, "stream_error": None, "total_ms": 1000}
+c = E2E.check_answer(R, {"id": "W01", "tag": "ws_core"}, {**_res, "answer": "She ran the programme."})
+check("voice failure caught end to end, span kept", (c["T1.6_voice"], c["T1.6_voice_spans"]),
+      (False, {"uk_spelling": ["programme"]}))
+c = E2E.check_answer(R, {"id": "W01", "tag": "ws_core"}, {**_res, "answer": "She ran the program."})
+check("clean answer passes voice end to end", (c["T1.6_voice"], "T1.6_voice_spans" in c), (True, False))
 
 print("\n--- T1.2 latency ---")
 c = R.run_checks(q2, "A", CTX, R_MOCK, mk("x", latency=18.2))

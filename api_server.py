@@ -122,7 +122,8 @@ def get_embedding(text):
 # {1.06, 1.03, 1.00, 0.97} earlier the same day, on the belief that within-list
 # similarities span ~6-9% and a ~3% tier gap would act as a tiebreak.
 #
-# Measured, not assumed (dump_candidates.py over the 34-question eval set):
+# Measured, not assumed (dump_candidates.py over the 34-question eval set;
+# the script was removed 2026-11-01 and is in git history):
 #   - actual within-list similarity spread is 3.6% mean, rank 1 to rank 5
 #   - so a 6% critical-vs-medium gap EXCEEDS the entire semantic range of a
 #     result list, and the tag remained the sort key, not a tiebreak
@@ -132,7 +133,7 @@ def get_embedding(text):
 #     (how-i-operate, professional-overview took 60% of all slots)
 #
 # Any future reintroduction must be sized against a MEASURED within-list spread,
-# not a remembered one, and re-verified with dump_candidates.py.
+# not a remembered one, measured against the hybrid ranking in retrieval.py.
 PRIORITY_BOOST_RETIRED = {"critical": 1.06, "high": 1.03, "medium": 1.0, "low": 0.97}
 
 @app.route('/search', methods=['POST'])

@@ -12,7 +12,7 @@ Read that file before taking any action involving builds, cluster resources, or 
 - `api_server.py` — Flask app, the only file copied into the container image
 - `Containerfile` — multi-stage UBI9/python-311 build using `uv sync --frozen`; `faiss_db/` is **not** copied in (mounted from PVC at runtime)
 - `pyproject.toml` — direct Python dependencies
-- `uv.lock` — full pinned dependency tree (31 packages); used by Trivy for CVE scanning and by the container build
+- `uv.lock` — full pinned dependency tree (30 packages); used by Trivy for CVE scanning and by the container build
 - `requirements.txt` — kept for reference; the container build now uses `uv.lock` via `pyproject.toml`
 - `scripts/embed_knowledge_faiss.py` — rebuilds the FAISS index from the knowledge base (run locally, then re-seed the cluster PVC)
 

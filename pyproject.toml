@@ -4,7 +4,6 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "flask>=2.0",
-    "flask-cors>=3.0",
     "faiss-cpu>=1.7.0",
     "numpy>=1.20",
     "openai>=1.0",
@@ -17,6 +16,5 @@ dependencies = [
 extend-exclude = [
     "mcp_server/",
     "test_*.py",
-    "dump_candidates.py",
     "selftest.py",
 ]
