@@ -60,7 +60,7 @@ There are 8 tier-1 checks, and a release needs all of them to pass. One fails an
 
 What the evals decided, in brief:
 - **The answering model, twice.** gpt-4o scored highest in the second blind round (4.76 of 5), but all gaps to Sonnet 5.5, Flash and Opus 5.5 were inside the noise. It stays on quality-first grounds, not on a measured lead.
-- **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite has not fully closed it for gpt-4o.
+- **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite did not close it for gpt-4o; a cite reminder did in testing.
 - **A false claim in the knowledge base** was found by blind scoring and removed.
 - **Newer embedding models** ranked worse than ada-002 here, because chunks titled with my name crowded their top results. ada-002 stays.
 
