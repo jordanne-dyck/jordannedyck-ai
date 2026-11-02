@@ -529,11 +529,14 @@ CONTACT_RE = re.compile(r"jordanne\.dyck@gmail\.com|linkedin\.com/in/jordannedyc
 # loyalty indirectly". Narrow on purpose: a broad hedge list ("likely", "would
 # have", "may have") matched 320 of 3,081 stored answers, most of them grounded
 # counterfactuals from the KB or facts like "twice as likely to buy again".
-# Tier 2 and non-blocking until Jord decides its tier; it should not be a hard
-# bar before it has run across a full eval set.
+# Widened the same day for "Jordanne likely", "she would likely", "she is
+# probably" and "likely to involve"; still 1 match in the 3,081. Tier 2 with a
+# 100% bar; Jord 2026-11-01: moves to tier 1 once a fresh full eval run shows no
+# false positive.
 SPECULATION_RE = re.compile(
-    r"\b(?:she|her work|this role|the role|it|they|which|this)\s+(?:most\s+)?(?:likely|probably|presumably)\b"
-    r"|\blikely (?:focus|involv|includ|cover|span|centr|draw|leverag|enta|requir|reflect)\w*",
+    r"\b(?:jordanne|she|her work|her role|this role|the role|it|they|which|this)\s+"
+    r"(?:(?:would|will|is|was|has|had)\s+)?(?:most\s+)?(?:likely|probably|presumably)\b"
+    r"|\blikely (?:to )?(?:focus|involv|includ|cover|span|centr|draw|leverag|enta|requir|reflect)\w*",
     re.IGNORECASE)
 
 

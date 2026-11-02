@@ -273,6 +273,10 @@ for name, ans, want in [
      "through improved customer relationships.", False),
     ("'likely focuses on' caught", "As Digital Strategist, her work likely focuses on digital strategies.", False),
     ("'she probably' caught", "She probably ran the migration herself.", False),
+    ("'Jordanne likely' caught", "Jordanne likely led the migration.", False),
+    ("'she would likely' caught", "She would likely have owned the roadmap.", False),
+    ("'she is probably' caught", "She is probably best known for Regimen Builder.", False),
+    ("'likely to involve' caught", "Her role is likely to involve strategy.", False),
     ("grounded counterfactual passes", "A points program would have added a permanent liability.", True),
     ("a fact about customers passes", "Regimen Builder users were twice as likely to buy again.", True),
 ]:
