@@ -548,7 +548,7 @@ def check_answer(harness, question, res):
     # T1.7 — same rule as run_eval.py; "n/a" when private-names.txt is absent.
     private_re = getattr(harness, "PRIVATE_NAME_RE", None)
     checks["T1.7_no_private_name"] = (not private_re.search(a)) if private_re else "n/a"
-    # T1.8 — same rule as run_eval.py; tier 2, non-blocking until Jord decides.
+    # T1.8 — a hard tier-1 bar since 2026-11-02, same rule as run_eval.py.
     spec_spans = harness.speculation_spans(a)
     checks["T1.8_no_speculation"] = not spec_spans
     if spec_spans:

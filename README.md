@@ -56,7 +56,7 @@ The harness answers one question before anything ships: is this version better, 
 | Multi-turn conversations | 9 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
 | Role-theme cases | 16 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one |
 
-There are 7 tier-1 checks, and a release needs all of them to pass. Tier 2 measures quality, including whether every figure appears in the sources, whether follow-ups cite one, and whether an answer guesses at her work ("she likely focuses on") instead of stating it. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
+There are 8 tier-1 checks, and a release needs all of them to pass. One fails any answer that guesses at her work ("she likely focuses on") instead of stating it. Tier 2 measures quality, including whether every figure appears in the sources and whether follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
 
 What the evals decided, in brief:
 - **The answering model, twice.** gpt-4o scored highest in the second blind round (4.76 of 5), but all gaps to Sonnet 5.5, Flash and Opus 5.5 were inside the noise. It stays on quality-first grounds, not on a measured lead.
