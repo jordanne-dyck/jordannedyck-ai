@@ -1,5 +1,5 @@
 ---
-description: Draft a results-log entry for a run, probe, check or scoring round, and append it after approval
+description: Write a results-log entry for a run, probe, check or scoring round, marked unreviewed for Jord's batch review
 argument-hint: [result file path(s) or short description] | --backlog
 ---
 
@@ -33,8 +33,11 @@ Otherwise:
 6. `status` is `proposed` unless EVALS.md already holds the result (promoted) or a plan
    Decided line or Jord closed the idea (declined, with the reason). Check the `decided`
    list before suggesting any next step, and do not re-propose a closed item.
-7. Show the full drafted entry and wait for Jord's yes or corrections. Only then append it at
-   the bottom of the log, in date order. One entry per result.
+7. Add `- reviewed: no` as the entry's last field and append it at the bottom of the log, in
+   date order, without waiting for approval. One entry per result. Tell Jord the id and
+   summary in one line; she reviews `reviewed: no` entries in batch (G.6) and flips them to
+   `yes`. A file that is not a result goes under `## Not results` in the log as `ai:<path>`
+   with a one-line reason, so the capture hook stops flagging it.
 
 Free: this command makes no paid API calls. If logging a result seems to need a new paid run,
 stop and ask.
