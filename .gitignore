@@ -41,3 +41,6 @@ nimbalyst-local/
 # Context lines for the indexer (plan D.2), derived from the knowledge base
 context_cache/
 faiss_db_*/
+
+# Git worktrees made by Claude sessions (see CLAUDE.md)
+.worktrees/
