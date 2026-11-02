@@ -47,7 +47,7 @@ flowchart LR
 
 The harness answers one question before anything ships: is this version better, and how do we know? **[EVALS.md](EVALS.md)** has the full account: results, ranges, the decisions the evals drove, and what is left to human judgement.
 
-[`eval_set.json`](eval_set.json) holds 80 cases:
+[`eval_set.json`](eval_set.json) holds 81 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
