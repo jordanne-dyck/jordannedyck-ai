@@ -408,6 +408,31 @@
           "no"
         ]
       ]
+    },
+    {
+      "id": "J17",
+      "defect": "hedged speculation",
+      "source": "mt-citerem_2026-11-01 M05 t2 gpt-4o (prompt ff4d5612): 'which likely supported loyalty indirectly' passed every automated check (nimbalyst-local/answer-gaps-contact-speculation-findings-2026-11-01.md, option 2c). The chunk is exp-029's B2B line, which says nothing about loyalty. Written 2026-11-01, before any result for it; if it fails, mark it open and option 2d (judge prompt) follows.",
+      "question": "What loyalty work has she done?",
+      "chunks": [
+        {
+          "chunk_id": "exp-029",
+          "content": "Marketing Coordinator, National Wholesale (Jan 2015 - Feb 2016). Managed marketing for Loblaw's B2B portfolio, introduced digital-first practices including social media and enabled Pardot for lead generation."
+        }
+      ],
+      "segments": [
+        {
+          "text": "Earlier in her career, she managed marketing for Loblaw's B2B portfolio, where she introduced digital-first practices and enabled lead generation tools, which likely supported loyalty indirectly through improved customer relationships and engagement",
+          "ids": [
+            "exp-029"
+          ]
+        }
+      ],
+      "want": [
+        [
+          "no"
+        ]
+      ]
     }
   ]
 }
