@@ -54,7 +54,7 @@ The harness answers one question before anything ships: is this version better, 
 | Core questions | 34 | The questions a hiring manager actually asks, each mapped to a requirement (R1–R15) from a real Staff PM posting at Wealthsimple |
 | Regression cases | 22 | One per defect found in testing, each tagged with a failure type |
 | Multi-turn conversations | 9 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
-| Role-theme cases | 15 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one |
+| Role-theme cases | 16 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" |
 
 There are 7 tier-1 checks, and a release needs all of them to pass. Tier 2 measures quality, including whether every figure appears in the sources and whether follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
 

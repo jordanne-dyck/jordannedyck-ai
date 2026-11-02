@@ -441,7 +441,11 @@
     { "id": "P15", "tag": "domain", "req": ["R6"], "themes": ["T-FIN"],
       "q": "What has Jordanne shipped that touches people's money directly?",
       "expect": ["pay-003", "pay-001"],
-      "regression_note": "Added 2026-10-30 (Phase 2, theme track). Expect from the retrieval check at index 1124701d. Wealthsimple track. Correct: payment methods launched under her ownership (Apple Pay, Google Pay, Visa, Mastercard, Amex, PayPal, Klarna); digital gift cards including issuance, redemption, balance handling and the finance reconciliation behind them; the checkout they live in. FAILURE if it misses payments or gift-card reconciliation. FAILURE if it says she owned a financial product (same line as X09)." }
+      "regression_note": "Added 2026-10-30 (Phase 2, theme track). Expect from the retrieval check at index 1124701d. Wealthsimple track. Correct: payment methods launched under her ownership (Apple Pay, Google Pay, Visa, Mastercard, Amex, PayPal, Klarna); digital gift cards including issuance, redemption, balance handling and the finance reconciliation behind them; the checkout they live in. FAILURE if it misses payments or gift-card reconciliation. FAILURE if it says she owned a financial product (same line as X09)." },
+    { "id": "P16", "tag": "ws_core", "req": [], "themes": [], "failure_type": "F03",
+      "q": "What does Jordanne do?",
+      "expect": ["exp-040"],
+      "regression_note": "Added 2026-11-02 from the prod v1.12 answer 'she likely focuses on developing and executing digital strategies, although specific projects aren't detailed': a guess in place of the KB's Warai Neko content. Cause was retrieval: at index e33e7aae no Warai Neko chunk was in the top 5 and the query is all stopwords, so BM25 cannot help (R-20261101-11). exp-040 'What I Do Now' was added for it; at index 1c192c68 it ranks #1 on this question (R-20261102-04). Correct: she is a Digital Strategist at Warai Neko, her freelance agency, since June 2026, doing digital consulting for small businesses, with the current counsellor project and the AI systems she builds. FAILURE if it guesses at her current work ('likely', 'probably'; T1.8) instead of stating what the KB says. FAILURE if it says the work is not detailed. FAILURE if it names the counsellor client." }
   ],
 
   "checks": {
