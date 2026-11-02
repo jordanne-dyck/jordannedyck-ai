@@ -18,11 +18,11 @@ About 15 of the 26 product roles I saved ask for AI shipped to production. They 
 
 ### 1. Evals
 
-**The cases.** [`eval_set.json`](eval_set.json) holds 80 cases:
+**The cases.** [`eval_set.json`](eval_set.json) holds 82 cases:
 - 34 core questions, each mapped to a requirement (R1–R15) from a Staff PM posting at Wealthsimple;
-- 22 regression cases, one per defect found;
+- 23 regression cases, one per defect found;
 - 9 multi-turn conversations;
-- 15 role-theme cases.
+- 16 role-theme cases.
 
 The core set includes hostile questions, prompt-injection attempts, and questions the record deliberately cannot answer.
 
@@ -128,7 +128,7 @@ In production, every turn is logged with visitor emails and phone numbers redact
 
 On the 2026-10-22 sample it flagged 2 of the 11 answers I scored below 4.5. The misses were facts wrong against my record that the retrieved chunks did not contradict. The judge cannot see those, because it checks against the chunks, not against the record.
 
-**Testing the judge found a defect in it.** It marked list lead-ins ("Her approach includes:") as unsupported claims. It now joins a lead-in to the claim after it before judging. On one 143-answer re-run, flagged answers went from 46 to 17. Headings with no colon ("**How it was built**") are joined the same way since 2026-11-01. `judge_check.py` holds 16 named cases for the judge itself, including controls that must still fail. One proposed fix, rewording how the judge treats gap admissions, was rejected: it let a made-up claim through on a control case.
+**Testing the judge found a defect in it.** It marked list lead-ins ("Her approach includes:") as unsupported claims. It now joins a lead-in to the claim after it before judging. On one 143-answer re-run, flagged answers went from 46 to 17. Headings with no colon ("**How it was built**") are joined the same way since 2026-11-01. `judge_check.py` holds 17 named cases for the judge itself, including controls that must still fail. One proposed fix, rewording how the judge treats gap admissions, was rejected: it let a made-up claim through on a control case.
 
 ## Decisions the evals drove
 
