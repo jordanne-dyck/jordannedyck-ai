@@ -188,7 +188,9 @@ stub = StubClient("unused")
 turns, _ = R.run_conversation(stub, m01, arm_b, raw_search=True)
 check("raw search: no rewrite call, raw query", (stub.calls, queries[1], turns[1]["rewrite_status"]),
       (0, "Tell me more about that.", "raw"))
-check("default run sends no reminder", (R.run_conversation(StubClient("q"), m01, arm_b), seen[-1][-1]["role"])[1], "assistant")
+check("default run sends the reminder", (R.run_conversation(StubClient("q"), m01, arm_b), seen[-1][-1])[1],
+      {"role": "system", "content": R.CITE_REMINDER})
+check("cite_reminder=False sends none", (R.run_conversation(StubClient("q"), m01, arm_b, cite_reminder=False), seen[-1][-1]["role"])[1], "assistant")
 R.search_experience, R.generate = _se, _gen
 n, n_rw, _usd = R.estimate_multiturn([m07, m01], 3, False)
 check("estimate skips forged turns; rewrites only with history", (n, n_rw), (9, 6))
