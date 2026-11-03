@@ -3,7 +3,7 @@
 jordbot answers hiring managers' questions about my work from a knowledge base of my own record. This page shows how I test it, what the tests decided, and what I leave to human judgement.
 
 **In short**
-- 78 eval cases, 7 must-pass checks, 7 quality checks, and blind human scoring on a 5-point rubric.
+- 82 eval cases, 8 must-pass checks, 6 quality checks, and blind human scoring on a 5-point rubric.
 - The evals chose the answering model twice, found that follow-up answers cited nothing, and got a false claim taken out of the knowledge base.
 - Every comparison carries a 95% range. Most model gaps so far are inside the noise, and this page says so where they are.
 - Accuracy against my record is scored by me, blind. The automated grounding judge only weakly agrees with those scores, so it does not replace them.
@@ -18,15 +18,15 @@ About 15 of the 26 product roles I saved ask for AI shipped to production. They 
 
 ### 1. Evals
 
-**The cases.** [`eval_set.json`](eval_set.json) holds 80 cases:
+**The cases.** [`eval_set.json`](eval_set.json) holds 82 cases:
 - 34 core questions, each mapped to a requirement (R1–R15) from a Staff PM posting at Wealthsimple;
-- 22 regression cases, one per defect found;
+- 23 regression cases, one per defect found;
 - 9 multi-turn conversations;
-- 15 role-theme cases.
+- 16 role-theme cases, including "What does Jordanne do?".
 
 The core set includes hostile questions, prompt-injection attempts, and questions the record deliberately cannot answer.
 
-**The checks.** Tier 1 must pass for a release: response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names. Tier 2 measures quality: expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, no repeated lead example, follow-ups cite a source. Tier 3 is human, blind: accuracy, specificity, positioning, tradeoffs and voice (D1–D5, 1 to 5).
+**The checks.** Tier 1 must pass for a release: response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names, no hedged guesses about my work. Tier 2 measures quality: expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, no repeated lead example, follow-ups cite a source. Tier 3 is human, blind: accuracy, specificity, positioning, tradeoffs and voice (D1–D5, 1 to 5).
 
 **Voice was the most-failed check before the prompt rework.** The 2026-10-16 model comparison answers (old prompt), re-scored offline with today's voice check:
 
@@ -128,7 +128,9 @@ In production, every turn is logged with visitor emails and phone numbers redact
 
 On the 2026-10-22 sample it flagged 2 of the 11 answers I scored below 4.5. The misses were facts wrong against my record that the retrieved chunks did not contradict. The judge cannot see those, because it checks against the chunks, not against the record.
 
-**Testing the judge found a defect in it.** It marked list lead-ins ("Her approach includes:") as unsupported claims. It now joins a lead-in to the claim after it before judging. On one 143-answer re-run, flagged answers went from 46 to 17. Headings with no colon ("**How it was built**") are joined the same way since 2026-11-01. `judge_check.py` holds 16 named cases for the judge itself, including controls that must still fail. One proposed fix, rewording how the judge treats gap admissions, was rejected: it let a made-up claim through on a control case.
+**Testing the judge found a defect in it.** It marked list lead-ins ("Her approach includes:") as unsupported claims. It now joins a lead-in to the claim after it before judging. On one 143-answer re-run, flagged answers went from 46 to 17. Headings with no colon ("**How it was built**") are joined the same way since 2026-11-01. `judge_check.py` holds 17 named cases for the judge itself, including controls that must still fail. One proposed fix, rewording how the judge treats gap admissions, was rejected: it let a made-up claim through on a control case.
+
+The judge also accepts a hedged guess. In case J17, an answer said one piece of my work "likely" supported another, against a source that does not say so. The judge marked it supported in 3 of 3 runs. That case is open. A separate must-pass check (T1.8) now catches hedged guesses about my work with a narrow pattern. Across 3,175 stored answers it matched once, the real defect, and it matched none of the 340 answers on the current index. It was made a release bar only after that full scan. It has not yet met a new form of hedge, so how much it misses is unknown.
 
 ## Decisions the evals drove
 
@@ -164,7 +166,9 @@ The first multi-turn baseline (2026-10-19, gpt-4o) found that 5 of 10 follow-up 
 
 Before changing the prompt, I re-ran with only the knowledge-base edits (2026-10-20, same prompt). Uncited follow-ups went from 5 of 10 to 4 of 10, and conversations with one from 4 of 6 to 3 of 6. Voice failures went from 5 of 36 answers to 3. Every check passed on 78% of answers, against 72%: +6 points (0 to +15), at the edge of the noise. The rest was left to the prompt.
 
-**The fix has not closed it for gpt-4o.** In the 2026-10-22 runs, 4 of 7 gpt-4o conversations still had an uncited follow-up. Sonnet and Opus cited on every follow-up, 7 of 7. That gap, +57 points (+14 to +86), is the only check where the models separate outside the noise. It is open work.
+**The query rewrite did not close it for gpt-4o.** In the 2026-10-22 runs, 4 of 7 gpt-4o conversations still had an uncited follow-up. Sonnet and Opus cited on every follow-up, 7 of 7. That gap, +57 points (+14 to +86), was the only check where the models separated outside the noise.
+
+**A reminder closed it in testing.** The site resends earlier answers without their citations, so my working explanation was that gpt-4o copied its own uncited replies. On 2026-11-01 I added a short reminder to cite after the chat history on follow-up turns. I ran with and without it on the same index, 9 conversations × 3 runs each. Follow-up turns that cited a source went from 17 of 36 (32% to 63%) to 36 of 36 (90% to 100%). Every citation named a chunk retrieved for that turn. Whether each one supports its sentence was not judged. No other check moved outside the noise. The reminder is on in the harness and merged into the site, and goes live in its own release.
 
 ### A false claim removed from the knowledge base
 
