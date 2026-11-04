@@ -93,6 +93,7 @@ import difflib
 import hashlib
 import http.cookiejar
 import json
+import os
 import re
 import sys
 import time
@@ -381,7 +382,7 @@ def make_opener():
     return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 
 
-def ask(opener, base_url, question, timeout, raw_sink=None):
+def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
     """
     POST one question and read the stream line by line.
 
@@ -391,12 +392,11 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
     """
     url = base_url.rstrip("/") + "/api/chat"
     body = json.dumps({"messages": [{"role": "user", "content": question}]}).encode()
-    req = urllib.request.Request(
-        url, data=body,
-        headers={"Content-Type": "application/json", "Accept": "*/*",
-                 "User-Agent": "jordannedyck-e2e-eval/1.0"},
-        method="POST",
-    )
+    headers = {"Content-Type": "application/json", "Accept": "*/*",
+               "User-Agent": "jordannedyck-e2e-eval/1.0"}
+    if monitor_token:
+        headers["x-monitor-token"] = monitor_token
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
 
     out = {
         "http_status": None, "answer": "", "error": None, "stream_error": None,
@@ -579,10 +579,28 @@ def check_answer(harness, question, res):
 # ----------------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------------
-def expand_questions(eval_set):
-    """One entry per API call, honouring the `runs` field (C01 runs 3x)."""
+# --only also looks in these groups. Added 2026-11-04 (brief-gaps-page-followups,
+# item 3): X08, X18 and P16 live outside "questions", so no runner could ask them.
+# A run without --only still asks "questions" alone, so full runs stay comparable.
+ONLY_GROUPS = ("questions", "additive_cases", "theme_cases")
+
+
+def expand_questions(eval_set, only=None):
+    """One entry per API call, honouring the `runs` field (C01 runs 3x).
+
+    With `only` (a set of ids), the cases come from every group in ONLY_GROUPS,
+    and an id found in none of them is an error rather than a silent skip.
+    """
+    if only:
+        source = [q for g in ONLY_GROUPS for q in eval_set.get(g, []) if q["id"] in only]
+        missing = only - {q["id"] for q in source}
+        if missing:
+            sys.exit(f"--only: no case with id {', '.join(sorted(missing))} in "
+                     f"{', '.join(ONLY_GROUPS)}.")
+    else:
+        source = eval_set["questions"]
     out = []
-    for q in eval_set["questions"]:
+    for q in source:
         for i in range(q.get("runs", 1)):
             item = dict(q)
             item["run_index"] = i + 1
@@ -655,10 +673,8 @@ def main():
         print("\nWARNING: preflight failed and was skipped. These results are not interpretable.")
         stamp["preflight"] = "FAILED_AND_SKIPPED"
 
-    calls = expand_questions(eval_set)
-    if args.only:
-        wanted = {s.strip() for s in args.only.split(",")}
-        calls = [c for c in calls if c["id"] in wanted]
+    wanted = {s.strip() for s in args.only.split(",")} if args.only else None
+    calls = expand_questions(eval_set, wanted)
 
     # UTC for filenames as well as for the C23 stamp, so a sitting that crosses local
     # midnight cannot split across two files and a file's name can never disagree with
@@ -688,6 +704,17 @@ def main():
     print(f"\nrunning       : {len(queue)} calls "
           f"({queue[0]['record_id']} -> {queue[-1]['record_id']})\n")
 
+    # 2026-11-04 (brief-gaps-page-followups, item 1): web marks a chat_events row
+    # is_synthetic only when the request carries x-monitor-token (lib/monitor.ts).
+    # Without it, e2e rows land on the gaps page as real traffic. The token is read
+    # from the environment and never written to a file, a log or the run JSON; the
+    # stamp records only whether it was sent.
+    monitor_token = os.environ.get("MONITOR_TOKEN") or None
+    stamp["monitor_token_sent"] = bool(monitor_token)
+    if not monitor_token:
+        print("WARNING       : MONITOR_TOKEN unset — these rows will count as real traffic "
+              "in chat_events.\n")
+
     opener = make_opener()
     results, stopped = list(existing), None
     raw_path = HERE / (
@@ -698,7 +725,7 @@ def main():
 
     try:
         for i, q in enumerate(queue):
-            res = ask(opener, args.base_url, q["q"], args.timeout, raw_sink)
+            res = ask(opener, args.base_url, q["q"], args.timeout, raw_sink, monitor_token)
             record = {
                 "record_id": q["record_id"], "id": q["id"], "run_index": q["run_index"],
                 "tag": q.get("tag"), "req": q.get("req", []), "question": q["q"],
