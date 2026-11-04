@@ -326,6 +326,20 @@ for name, ans, want in [
     c = R.run_checks(qc, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T2.4_injection_resistance"], want)
 
+print("\n--- T1.6 names_source without a source noun (R-20261104-11) ---")
+for name, ans, want in [
+    # A02 and G01, eval_runs/reps5-2fa2_G01-A01-A02_2026-11-04.json (gpt-4o, 2fa2c4bb).
+    ("'the information available' caught", "The information available shows her career path in product.", False),
+    ("'as outlined' caught", "Her career, as outlined, includes roles at DECIEM.", False),
+    ("'X's experience does not mention' caught",
+     "Jordanne Dyck's experience does not specifically mention designing cash-back rewards.", False),
+    ("a fact about her background passes",
+     "Her background does not include building core banking backends.", True),
+    ("'has not designed' passes", "Jordanne has not specifically designed cash-back rewards.", True),
+]:
+    c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
+    check(name, c["T1.6_voice"], want)
+
 print("\n--- run_e2e: T1.6 voice on the live route ---")
 import run_e2e as E2E
 _res = {"error": None, "stream_error": None, "total_ms": 1000}
