@@ -47,12 +47,12 @@ flowchart LR
 
 The harness answers one question before anything ships: is this version better, and how do we know? **[EVALS.md](EVALS.md)** has the full account: results, ranges, the decisions the evals drove, and what is left to human judgement.
 
-[`eval_set.json`](eval_set.json) holds 82 cases:
+[`eval_set.json`](eval_set.json) holds 88 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
 | Core questions | 34 | The questions a hiring manager actually asks, each mapped to a requirement (R1–R15) from a real Staff PM posting at Wealthsimple |
-| Regression cases | 23 | One per defect found in testing, each tagged with a failure type |
+| Regression cases | 29 | One per defect found in testing, each tagged with a failure type |
 | Multi-turn conversations | 9 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
 | Role-theme cases | 16 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" |
 
