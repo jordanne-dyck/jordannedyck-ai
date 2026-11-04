@@ -207,6 +207,38 @@ def site_prompt_version(template):
 
 PROMPT_VERSION = site_prompt_version(SYSTEM_PROMPT)
 
+
+def split_resumable(rows, **want):
+    """Rows a resume may keep, and rows it must not.
+
+    A resume skips every row already recorded for a question. Until 2026-11-04
+    the key was (id, arm, run) alone, so the 09b85beb baseline kept 9 arm-B rows
+    from prompt ff4d5612 and never re-asked them (results-log R-20261104-05). A
+    row is kept only when every field in `want` (prompt_version, source_format,
+    model, ...) matches; a row missing a field counts as not matching.
+    """
+    keep, stale = [], []
+    for r in rows:
+        (keep if all(r.get(k) == v for k, v in want.items()) else stale).append(r)
+    return keep, stale
+
+
+def load_resumable(path, **want):
+    """Read `path` for a resume. Rows from another prompt, source format or model
+    are moved to <name>.stale.json beside it, so they are neither skipped nor
+    pooled into this run's metrics, and nothing is deleted."""
+    if not path.exists():
+        return []
+    keep, stale = split_resumable(json.loads(path.read_text(encoding="utf-8")), **want)
+    if stale:
+        side = path.with_name(path.stem + ".stale.json")
+        old = json.loads(side.read_text(encoding="utf-8")) if side.exists() else []
+        side.write_text(json.dumps(old + stale, indent=2, ensure_ascii=False), encoding="utf-8")
+        path.write_text(json.dumps(keep, indent=2, ensure_ascii=False), encoding="utf-8")
+        versions = sorted({str(r.get("prompt_version")) for r in stale})
+        print(f"moved {len(stale)} rows from another run ({', '.join(versions)}) to {side.name}")
+    return keep
+
 # Wealthsimple posting language, for the JD-echo check (T1.5)
 JD_TEXT = """
 Own your product area, end-to-end. Get clear on the problem, write requirements people
@@ -1051,7 +1083,8 @@ def main_multiturn(args, spec, client):
                                         ("raw-search", args.raw_search)) if on) or None
     results = []
     if path.exists():
-        results = json.loads(path.read_text(encoding="utf-8"))
+        results = load_resumable(path, prompt_version=PROMPT_VERSION, source_format=SOURCE_FORMAT,
+                                 model=MODEL, variant=variant)
         print(f"resuming — {len(results)} conversations already recorded in {path.name}")
     done = {(r["id"], r.get("run", 1)) for r in results}
 
@@ -1208,8 +1241,9 @@ def main():
 
     existing = []
     if results_path.exists() and not args.fresh:
-        existing = json.loads(results_path.read_text(encoding="utf-8"))
-        print(f"resuming — {len(existing)} results already recorded")
+        existing = load_resumable(results_path, prompt_version=PROMPT_VERSION,
+                                  source_format=SOURCE_FORMAT, model=MODEL)
+        print(f"resuming — {len(existing)} results already recorded for {PROMPT_VERSION}")
     done = {(r["id"], r["arm"], r["run"]) for r in existing}
     results = list(existing)
 

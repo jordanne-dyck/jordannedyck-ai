@@ -1100,6 +1100,31 @@ for name, fact in [
     if fact not in readme:
         print(f"      expected text: {fact!r}")
 
+# Resume keeps only rows from this prompt, source format and model (R-20261104-05:
+# the 09b85beb baseline kept 9 arm-B rows from ff4d5612 because the key was id, arm, run).
+print("\n--- resume ignores rows from another prompt ---")
+import tempfile
+cur = dict(prompt_version="09b85beb", source_format="labelled", model="gpt-4o")
+rows = [{"id": "W05", "arm": "B", "run": 1, **cur},
+        {"id": "W14", "arm": "B", "run": 1, **cur, "prompt_version": "ff4d5612"},
+        {"id": "H03", "arm": "B", "run": 1, "source_format": "labelled", "model": "gpt-4o"},
+        {"id": "D05", "arm": "A", "run": 1, **cur, "source_format": "xml"}]
+keep, stale = R.split_resumable(rows, **cur)
+check("resume keeps only current-prompt rows", [r["id"] for r in keep], ["W05"])
+check("resume drops other prompt, missing prompt, other format", [r["id"] for r in stale],
+      ["W14", "H03", "D05"])
+with tempfile.TemporaryDirectory() as td:
+    p = Path(td) / "eval_results.json"
+    p.write_text(json.dumps(rows), encoding="utf-8")
+    kept = R.load_resumable(p, **cur)
+    side = Path(td) / "eval_results.stale.json"
+    check("load_resumable returns current rows", [r["id"] for r in kept], ["W05"])
+    check("results file rewritten without stale rows",
+          [r["id"] for r in json.loads(p.read_text(encoding="utf-8"))], ["W05"])
+    check("stale rows kept in the .stale.json sidecar, not deleted",
+          [r["id"] for r in json.loads(side.read_text(encoding="utf-8"))], ["W14", "H03", "D05"])
+    check("load_resumable on a missing file", R.load_resumable(Path(td) / "none.json", **cur), [])
+
 # Local only: the web repo is not checked out in CI.
 route = R.HERE.parent / "jordannedyck-ai-web" / "app" / "api" / "chat" / "route.ts"
 if route.exists():
