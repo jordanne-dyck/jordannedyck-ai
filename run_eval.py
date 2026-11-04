@@ -88,23 +88,37 @@ ANSWER_MAX_TOKENS = 1000
 # sentence banning hedged inference under "Ground every claim" (options 1b and 2a,
 # nimbalyst-local/prompt-draft-answer-gaps-2026-11-01.txt; tested on ff4d5612 as
 # f6a61205, results-log R-20261102-01). lib/system-prompt.ts takes the same text.
+# 2026-11-04: 39689179 plus the 2026-11-03 repositioning in CORE POSITIONING
+# (nimbalyst-local/positioning-handoff-2026-11-03.md section 1, as Jord edited it):
+# Positioning line, new Career Arc, GitHub in Contact, theme 2 reworded, theme 5,
+# the "How she works" block (Option C), and a warmer first line under TONE.
+# lib/system-prompt.ts must take the same text (web brief 2026-11-04, item 1).
 SYSTEM_PROMPT = """You are an AI assistant answering questions about Jordanne Dyck for product leaders assessing her for a role. Represent her record accurately. A reader should finish an answer knowing what she did and what followed from it.
 
 # CORE POSITIONING
 
-**Current Role**: Digital Strategist at Warai Neko, her freelance agency (since June 2026)
+**Positioning**: Sr. Product Manager. She builds DTC products that bridge human and digital moments at scale: she decides where people guide the customer and where technology does, then builds both sides.
+**Current Role**: Digital Strategist at Warai Neko, her independent practice (since June 2026)
 **Most Recent In-House Role**: Director of Digital Product Management at DECIEM (2022-2025)
-**Career Arc**: Growth Marketing → Data & Platform Leadership → Digital Transformation → Production AI
-**Contact**: email jordanne.dyck@gmail.com, LinkedIn www.linkedin.com/in/jordannedyck
+**Career Arc**: Consumer research → Growth and CRM (Loblaw Digital) → DTC platform and customer experience (DECIEM) → Human and AI service and commerce at scale
+**Contact**: email jordanne.dyck@gmail.com, LinkedIn www.linkedin.com/in/jordannedyck, GitHub github.com/jordanne-dyck
 
-Four themes run through her work. Use them to choose what to emphasise. They are not facts to state, and they carry no citation:
+Five themes run through her work. Use them to choose what to emphasise. They are not facts to state, and they carry no citation:
 
 1. **She owns systems, not features, and changes the operating model to make the system work.**
-2. **She works on products that push the boundary of what exists, and the commercial case can be values-led.**
+2. **She works on products that push the boundary of what exists, and makes the business case for them.**
 3. **Conviction starts as intuition and gets proven by building the thing.**
 4. **Vision at the top, hands on the keyboard at the bottom, and she moves between them.**
+5. **She decides where people guide and where technology does, and designs the handoff between them.**
 
 Show these through what she did and what followed from it, using facts from the context. Never state one as a quality she has.
+
+How she works. Let this shape tone and what you emphasise. It is not a fact to state and carries no citation; show it through what she did:
+- Direct and candid: she says what isn't working, clearly and respectfully.
+- Ships to learn: prototype, test, measure, improve, rather than months of planning.
+- Brings people along: she involves the people affected in the design and builds in time for alignment.
+- Context first: she asks for the problem, the constraints and the success criteria before solving.
+- Kind and high-performing at once: she does not treat them as a trade-off.
 
 ---
 
@@ -169,7 +183,7 @@ The readers are hiring managers, and the answers appear on her own site. Anythin
 
 # TONE
 
-Professional, direct and concrete. Confident without overselling. Describe what she has done; do not write an enthusiastic account of her.
+Warm, direct and conversational, like a colleague who enjoys talking about her work. Plain, modern language; contractions are fine. A light touch of humour only where the material invites it. No slang, no exclamation marks, no hype.
 
 **Handling gaps:**
 - If what was asked is not covered, say so in one plain sentence, then give the closest real work. No separate section about gaps.
@@ -192,6 +206,38 @@ def site_prompt_version(template):
 
 
 PROMPT_VERSION = site_prompt_version(SYSTEM_PROMPT)
+
+
+def split_resumable(rows, **want):
+    """Rows a resume may keep, and rows it must not.
+
+    A resume skips every row already recorded for a question. Until 2026-11-04
+    the key was (id, arm, run) alone, so the 09b85beb baseline kept 9 arm-B rows
+    from prompt ff4d5612 and never re-asked them (results-log R-20261104-05). A
+    row is kept only when every field in `want` (prompt_version, source_format,
+    model, ...) matches; a row missing a field counts as not matching.
+    """
+    keep, stale = [], []
+    for r in rows:
+        (keep if all(r.get(k) == v for k, v in want.items()) else stale).append(r)
+    return keep, stale
+
+
+def load_resumable(path, **want):
+    """Read `path` for a resume. Rows from another prompt, source format or model
+    are moved to <name>.stale.json beside it, so they are neither skipped nor
+    pooled into this run's metrics, and nothing is deleted."""
+    if not path.exists():
+        return []
+    keep, stale = split_resumable(json.loads(path.read_text(encoding="utf-8")), **want)
+    if stale:
+        side = path.with_name(path.stem + ".stale.json")
+        old = json.loads(side.read_text(encoding="utf-8")) if side.exists() else []
+        side.write_text(json.dumps(old + stale, indent=2, ensure_ascii=False), encoding="utf-8")
+        path.write_text(json.dumps(keep, indent=2, ensure_ascii=False), encoding="utf-8")
+        versions = sorted({str(r.get("prompt_version")) for r in stale})
+        print(f"moved {len(stale)} rows from another run ({', '.join(versions)}) to {side.name}")
+    return keep
 
 # Wealthsimple posting language, for the JD-echo check (T1.5)
 JD_TEXT = """
@@ -1037,7 +1083,8 @@ def main_multiturn(args, spec, client):
                                         ("raw-search", args.raw_search)) if on) or None
     results = []
     if path.exists():
-        results = json.loads(path.read_text(encoding="utf-8"))
+        results = load_resumable(path, prompt_version=PROMPT_VERSION, source_format=SOURCE_FORMAT,
+                                 model=MODEL, variant=variant)
         print(f"resuming — {len(results)} conversations already recorded in {path.name}")
     done = {(r["id"], r.get("run", 1)) for r in results}
 
@@ -1194,8 +1241,9 @@ def main():
 
     existing = []
     if results_path.exists() and not args.fresh:
-        existing = json.loads(results_path.read_text(encoding="utf-8"))
-        print(f"resuming — {len(existing)} results already recorded")
+        existing = load_resumable(results_path, prompt_version=PROMPT_VERSION,
+                                  source_format=SOURCE_FORMAT, model=MODEL)
+        print(f"resuming — {len(existing)} results already recorded for {PROMPT_VERSION}")
     done = {(r["id"], r["arm"], r["run"]) for r in existing}
     results = list(existing)
 
