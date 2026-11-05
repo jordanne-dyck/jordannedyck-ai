@@ -904,8 +904,8 @@ def run_checks(q, arm, context, retrieved, gen):
 
 # ── career timeline ───────────────────────────────────────────────────────────
 # MUST STAY IN SYNC with FIXED_LEAD, TIMELINE_REPLAY, isTimelineReplay(),
-# asksForTimeline(), asksForOverview(), MARKER_RE and CAREER_CHUNKS in
-# jordannedyck-ai-web/lib/timeline.ts (frontend branch feat/career-timeline,
+# asksForTimeline(), asksForOverview(), asksForCareerHistory(), MARKER_RE and
+# CAREER_CHUNKS in jordannedyck-ai-web/lib/timeline.ts (frontend branch feat/career-timeline,
 # d0d7ce2). timeline_drift() compares.
 # Since 2026-11-04 (option D) route.ts does not call the answer model for an
 # overview question: it streams FIXED_LEAD, Jordanne's own text, with the
@@ -913,6 +913,9 @@ def run_checks(q, arm, context, retrieved, gen):
 # TIMELINE_REPLAY). TIMELINE_NOTE is gone. The overview cases (fixed_lead in
 # timeline_cases, TL01-TL04) test the route, so run_e2e.py checks them (T2.13);
 # --timeline here runs the rest (TL05, TL06) through the model.
+# Since 2026-11-05 a career-history question (asksForCareerHistory) also gets
+# the card, flagged timeline 'asked', whatever the answer cites. It does not get
+# FIXED_LEAD. run_e2e.py checks that the card arrives (T2.17, TL05).
 TIMELINE_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "timeline.ts"
 RESULTS_TIMELINE = HERE / "eval_results_timeline.json"
 TIMELINE_MARKER = "{{timeline}}"
@@ -930,6 +933,10 @@ TIMELINE_REPLAY = f"Here's her timeline again.\n\n{TIMELINE_MARKER}"
 _ASKS_TIMELINE = r"\btime ?line\b"
 _ASKS_OVERVIEW = (r"\bcareer\s+(?:history|path|journey|story|arc|overview|so far)\b|\bwork\s+history\b"
                   r"|\bwalk\s+(?:me|us)\s+through\s+(?:her|jordanne'?s?)\s+(?:career|experience|background)\b")
+_ASKS_CAREER_HISTORY = (r"\bwhere\s+(?:did|has|had)\s+(?:she|jordanne)\s+(?:work|worked)\b"
+                        r"|\bwhat\s+did\s+(?:she|jordanne)\s+do\s+before\b"
+                        r"|\b(?:previous|past|former|prior)\s+(?:employers?|roles?|jobs?|positions?|companies)\b"
+                        r"|\b(?:what|which)\s+(?:companies|employers)\s+(?:has|did)\s+(?:she|jordanne)\s+work")
 _MARKER = r"[ \t]*\{\{\s*timeline\s*\}\}[ \t]*"
 MARKER_RE = re.compile(_MARKER, re.IGNORECASE)
 # An answer citing one of these gets the timeline card. Not exp-031, education:
@@ -943,6 +950,11 @@ def asks_for_timeline(query):
 
 def asks_for_overview(query):
     return asks_for_timeline(query) or bool(re.search(_ASKS_OVERVIEW, query, re.IGNORECASE))
+
+
+def asks_for_career_history(query):
+    """asksForCareerHistory(): the card, not FIXED_LEAD, whatever the answer cites."""
+    return bool(re.search(_ASKS_CAREER_HISTORY, query, re.IGNORECASE))
 
 
 def is_timeline_replay(query, timeline_shown):
@@ -990,8 +1002,8 @@ def timeline_drift(path=TIMELINE_TS):
     if "return timelineShown && asksForTimeline(query);" not in ts:
         out.append("isTimelineReplay differs")
     tests = re.findall(r"/(.+?)/i\.test\(query\)", ts)
-    if tests != [_ASKS_TIMELINE, _ASKS_OVERVIEW]:
-        out.append(f"asksForTimeline/asksForOverview regexes differ: {tests}")
+    if tests != [_ASKS_TIMELINE, _ASKS_OVERVIEW, _ASKS_CAREER_HISTORY]:
+        out.append(f"asksForTimeline/asksForOverview/asksForCareerHistory regexes differ: {tests}")
     marker = re.search(r"const MARKER_RE = /(.+?)/i;", ts)
     if not marker or marker.group(1) != _MARKER:
         out.append(f"MARKER_RE differs: {marker.group(1) if marker else 'missing'}")
