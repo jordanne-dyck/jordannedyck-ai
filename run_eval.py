@@ -894,7 +894,7 @@ def timeline_drift(path=TIMELINE_TS):
 
 
 def _sentences(text):
-    return [s for s in _SENTENCE_END.split(strip_citations(text).strip()) if re.search(r"[a-z]{3}", s, re.I)]
+    return [s for s in _SENTENCE_END.split(strip_citations(text).strip()) if re.search(r"[a-z]{3}", s, re.IGNORECASE)]
 
 
 # Employers and schools on the timeline card: more than two named in a
@@ -905,7 +905,7 @@ TIMELINE_ORGS = {"Warai Neko": r"warai neko", "DECIEM": r"\bdeciem\b", "Loblaw":
                  "Product Faculty": r"product faculty"}
 _MONTHS = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?"
 _DATE_RANGE = re.compile(rf"\b(?:{_MONTHS}\s+)?(?:19|20)\d{{2}}\s*(?:-|–|—|to)\s*(?:{_MONTHS}\s+)?"
-                         rf"(?:(?:19|20)\d{{2}}|present|now|today)\b|\b{_MONTHS}\s+(?:19|20)\d{{2}}\b", re.I)
+                         rf"(?:(?:19|20)\d{{2}}|present|now|today)\b|\b{_MONTHS}\s+(?:19|20)\d{{2}}\b", re.IGNORECASE)
 
 
 def timeline_checks(q, gen):
@@ -940,9 +940,9 @@ def timeline_checks(q, gen):
         out["T2.10_timeline_shape"] = None
 
     visible = strip_citations(without_timeline_marker(raw))
-    spans = re.findall(r"^[ \t]*(?:[-*•]|\d+[.)]|#+)\s.*$", visible, re.M)
+    spans = re.findall(r"^[ \t]*(?:[-*•]|\d+[.)]|#+)\s.*$", visible, re.MULTILINE)
     spans += [m.group(0) for m in _DATE_RANGE.finditer(visible)]
-    orgs = sorted(name for name, rx in TIMELINE_ORGS.items() if re.search(rx, visible, re.I))
+    orgs = sorted(name for name, rx in TIMELINE_ORGS.items() if re.search(rx, visible, re.IGNORECASE))
     out["_role_list_spans"], out["_orgs"] = spans, orgs
     out["T2.11_no_role_list"] = not spans and len(orgs) <= 2
     out["T2.12_cited"] = bool(segments) and not uncited
