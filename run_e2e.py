@@ -310,7 +310,25 @@ def build_stamp(args, source_system):
             "truncate": "unknown", "embedding_model": "unknown",
             "chunk_count": "unknown", "index_bytes": "unknown",
         })
+    if source_system in ("dev", "prod"):
+        # 2026-11-05 (release gate): /api/health reports the prompt id the
+        # deployed bundle was built with, once the site has that field. It is
+        # what the site says it serves, read at run time, so it replaces
+        # "unknown"; an older bundle without the field stays "unknown".
+        served = served_prompt_version(args.base_url)
+        if served:
+            stamp["site_prompt_version"] = served
     return stamp
+
+
+def served_prompt_version(base_url):
+    try:
+        with urllib.request.urlopen(base_url.rstrip("/") + "/api/health", timeout=15) as r:
+            body = json.load(r)
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return None
+    v = body.get("prompt_version")
+    return v if isinstance(v, str) and re.fullmatch(r"[0-9a-f]{8}", v) else None
 
 
 def run_preflights(args, source_system, harness, stamp):
