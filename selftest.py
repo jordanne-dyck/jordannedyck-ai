@@ -343,6 +343,23 @@ for name, ans, want in [
     c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T1.6_voice"], want)
 
+print("\n--- T1.6 'the context' as background she gives (R-20261104-18) ---")
+for name, ans, want in [
+    # W14, eval_runs/main-B_7c165b7e_2026-11-04.json (gpt-4o, 2fa2c4bb).
+    ("W14 'providing the context and why' passes",
+     'In practice, she focuses on providing the context and "why" behind decisions, not just the "what."', True),
+    # W15 and M03, eval_results_models.json and redecide-ff4d_multiturn_2026-10-22 backup.
+    ("'give them the context to make' passes",
+     "She identifies what each stakeholder needs to decide and gives them the context to make that decision.", True),
+    ("'became the context the agents reasoned over' passes",
+     "The customer data model became the context the agents reasoned over.", True),
+    ("'the context I have doesn't' caught", "The context I have doesn't include contact details for her.", False),
+    ("'not detailed in the context' caught", "Specific projects are not detailed in the context.", False),
+    ("'based on the context' caught", "I can answer questions based on the context I have.", False),
+]:
+    c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
+    check(name, c["T1.6_voice"], want)
+
 print("\n--- run_e2e: T1.6 voice on the live route ---")
 import run_e2e as E2E
 _res = {"error": None, "stream_error": None, "total_ms": 1000}

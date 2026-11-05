@@ -669,10 +669,17 @@ def speculation_spans(ans):
 # built (Regimen Builder's central knowledge base, this site's), so it is
 # flagged only in source-narration phrasing: "the knowledge base doesn't
 # show", "knowledge base context", "provided knowledge base" (2026-10-21).
+# 2026-11-04 (R-20261104-18): "the context" is also background she gives
+# people. W14 "she focuses on providing the context and why" was flagged.
+# Of 261 stored matches, every ordinary use follows one of these words:
+# "give them the context to make", "became the context the agents reasoned
+# over", "before the context is complete". Narration never does.
+_CONTEXT_GIVEN = ("provide", "provides", "providing", "give", "gives", "giving", "gave", "them",
+                  "have", "has", "having", "establish", "became", "become", "before")
 VOICE_RE = {
     "names_source": re.compile(
         r"(?<!track )(?<!on )\bthe record\b"
-        r"|\bthe context\b(?! of)"
+        r"|" + "".join(rf"(?<!\b{w} )" for w in _CONTEXT_GIVEN) + r"\bthe context\b(?! of)"
         r"|\bknowledge base (?:also |only |never )?(?:context|text|prompts?|doesn't|does not|shows"
         r"|says|mentions|notes|states|indicates|has no|contains|provides|lists|describes|records)\b"
         r"|\b(?:in|from|per|according to|based on|provided|underlying|internal|outside)"
