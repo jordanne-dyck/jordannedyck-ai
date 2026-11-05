@@ -481,10 +481,10 @@
       "q": "Give me an overview of her work history.",
       "expect": ["exp-042", "exp-001", "exp-027", "exp-030"],
       "regression_note": "Added 2026-11-04 with the career timeline. Triggers on 'work history'. Correct: as TL01 (FIXED_LEAD). FAILURE as TL01." },
-    { "id": "TL05", "tag": "timeline", "req": [], "themes": [], "fixed_lead": false,
+    { "id": "TL05", "tag": "timeline", "req": [], "themes": [], "fixed_lead": false, "timeline_card": true,
       "q": "Where did Jordanne work before DECIEM?",
       "expect": ["exp-028", "exp-029"],
-      "regression_note": "Added 2026-11-04 from dev: the answer came back with no citations at all, so neither the timeline card (cites exp-027 to exp-030) nor a project card could show. Not an overview question: no note. Correct: Loblaw Digital (Feb 2016 - May 2019, Growth Marketing Manager and Specialist, Demand Generation) and, before it, Loblaw Companies (Marketing Coordinator, National Wholesale; Marketing Analyst, Shoppers Drug Mart), cited to exp-028 and exp-029. FAILURE if it cites nothing, or cites neither expected chunk (T2.12). FAILURE if it writes the timeline marker (T2.9)." },
+      "regression_note": "Added 2026-11-04 from dev: the answer came back with no citations at all, so neither the timeline card (cites exp-027 to exp-030) nor a project card could show. Not an overview question: no note. Correct: Loblaw Digital (Feb 2016 - May 2019, Growth Marketing Manager and Specialist, Demand Generation) and, before it, Loblaw Companies (Marketing Coordinator, National Wholesale; Marketing Analyst, Shoppers Drug Mart), cited to exp-028 and exp-029. FAILURE if it cites nothing, or cites neither expected chunk (T2.12). FAILURE if it writes the timeline marker (T2.9). 2026-11-05 dev (dd326013): cited only exp-001 in 3 of 3 runs (rows 352, 354, 355), so no card showed. FAILURE if no data-timeline part arrives (T2.17)." },
     { "id": "TL06", "tag": "timeline", "req": [], "themes": [], "fixed_lead": false,
       "q": "What roles did she hold at Loblaw Digital?",
       "expect": ["exp-028"],
@@ -515,7 +515,8 @@
       "T2.11": { "name": "No role list",             "type": "A", "pass": "RETIRED 2026-11-04 with option D, as T2.10. Checked no bullets, date ranges or more than two employers in a generated overview answer. Do not reuse the number" },
       "T2.12": { "name": "Timeline answer cited",    "type": "A", "pass": "timeline_cases run through the model (--timeline, not fixed_lead): cites at least one chunk, including one in expect. The timeline and project cards depend on citations. Added 2026-11-04 from dev answers to TL05 and TL06 that cited nothing. No pass bar set" },
       "T2.13": { "name": "Fixed lead",               "type": "A", "pass": "run_e2e.py, fixed_lead cases only: the streamed text equals FIXED_LEAD in run_eval.py (mirrored from lib/timeline.ts, marker included) and the stream carries a data-timeline part. Added 2026-11-04 with option D. No pass bar set" },
-      "T2.14": { "name": "Answer cited",             "type": "A", "pass": "Every single-turn answer and every first turn of a conversation, except adversarial cases: cites at least one chunk. Follow-ups are T2.7. Added 2026-11-05: gpt-4o left no stored first turn uncited on ff4d5612 or f6a61205 (0 of 285), then 14-18% from 09b85beb on, which hides the timeline and project cards (R-20261105-03). No pass bar set" }
+      "T2.14": { "name": "Answer cited",             "type": "A", "pass": "Every single-turn answer and every first turn of a conversation, except adversarial cases: cites at least one chunk. Follow-ups are T2.7. Added 2026-11-05: gpt-4o left no stored first turn uncited on ff4d5612 or f6a61205 (0 of 285), then 14-18% from 09b85beb on, which hides the timeline and project cards (R-20261105-03). No pass bar set" },
+      "T2.17": { "name": "Timeline card",            "type": "A", "pass": "run_e2e.py, timeline_card cases only (TL05): the stream carries a data-timeline part. Added 2026-11-05: on dd326013 TL05 cited only exp-001 in 3 of 3 dev runs, so no card showed; lib/timeline.ts asksForCareerHistory() now gives the card from the question. No pass bar set" }
     },
     "tier3": {
       "note": "Human, blind: D1-D5 (accuracy, specificity, positioning, tradeoffs, voice, 1 to 5), scored outside this file; see EVALS.md. Replaced T3.1-T3.6 on 2026-11-01: no code read them, and the blind rounds were scored on D1-D5."

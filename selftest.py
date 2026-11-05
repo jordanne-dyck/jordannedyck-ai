@@ -982,6 +982,14 @@ check("overview triggers", [R.asks_for_overview(q) for q in (
     "Walk me through her career", "career so far?", "her WORK HISTORY", "show the time line",
     "walk us through Jordanne's background", "Where did she work before DECIEM?", "her career at DECIEM")],
       [True, True, True, True, True, False, False])
+# asksForCareerHistory (2026-11-05): the card from the question, not FIXED_LEAD.
+_history_yes = ("Where did Jordanne work before DECIEM?", "Where has she worked?", "What did she do before DECIEM?",
+                "What were her previous roles?", "Which companies has she worked for?")
+_history_no = ("Where did she study?", "What is she doing now?", "Where does she work now?",
+               "What did she do at DECIEM?", "What roles did she hold at Loblaw Digital?")
+check("career-history triggers", [R.asks_for_career_history(q) for q in _history_yes + _history_no],
+      [True] * 5 + [False] * 5)
+check("career-history questions get no fixed lead", [R.asks_for_overview(q) for q in _history_yes], [False] * 5)
 check("replay only when shown and the timeline is named",
       [R.is_timeline_replay(q, shown) for q, shown in (
           ("Show the timeline again", True), ("Show the timeline again", False),
@@ -1015,6 +1023,7 @@ _ts = (_ts_array("FIXED_LEAD", _lead)
        + _ts_array("TIMELINE_REPLAY", ["Here's her timeline again.", "TIMELINE_MARKER"])
        + "  return timelineShown && asksForTimeline(query);\n"
        f"  return /{R._ASKS_TIMELINE}/i.test(query);\n    /{R._ASKS_OVERVIEW}/i.test(query)\n"
+       f"  return /{R._ASKS_CAREER_HISTORY}/i.test(query);\n"
        f"const MARKER_RE = /{R._MARKER}/i;\n"
        "const CAREER_CHUNKS = new Set(['exp-027', 'exp-028', 'exp-029', 'exp-030', 'exp-042']);\n")
 _tsp = Path(R.HERE / "__pycache__" / "selftest-timeline.ts")
@@ -1038,6 +1047,14 @@ check("T2.13: replay line fails", _e2e(R.TIMELINE_REPLAY, {"explicit": True}), (
 check("T2.13: no timeline part fails", _e2e(R.FIXED_LEAD, None), (False, None, "missing"))
 check("T2.13: n/a elsewhere", E2E.check_answer(R, {"tag": "timeline"}, {"answer": "x", "error": None,
       "stream_error": None, "total_ms": 1})["T2.13_fixed_lead"], "n/a")
+def _e2e_card(q, timeline):
+    c = E2E.check_answer(R, {"tag": "timeline", **q}, {"answer": "She worked at Loblaw. [exp-001]", "error": None,
+                                                      "stream_error": None, "total_ms": 1, "timeline": timeline})
+    return c["T2.17_timeline_card"], c.get("T2.17_timeline_data")
+check("T2.17: card arrives", _e2e_card({"timeline_card": True}, {"explicit": False}), (True, {"explicit": False}))
+check("T2.17: no card fails", _e2e_card({"timeline_card": True}, None), (False, None))
+check("T2.17: n/a elsewhere", _e2e_card({}, {"explicit": False}), ("n/a", None))
+check("T2.17: only TL05 sets timeline_card", [c["id"] for c in tl_cases if c.get("timeline_card")], ["TL05"])
 check("e2e --only reaches timeline_cases", [q["id"] for q in E2E.expand_questions(
       json.load(open(R.EVAL_SET, encoding="utf-8")), {"TL01", "TL03"})], ["TL01", "TL03"])
 

@@ -591,6 +591,15 @@ def check_answer(harness, question, res):
                 checks["T2.13_timeline_part"] = "missing"
     else:
         checks["T2.13_fixed_lead"] = "n/a"
+    # T2.17 — 2026-11-05: TL05 cited only exp-001 on dd326013 (3 of 3 dev runs),
+    # so the citation rule gave no card. asksForCareerHistory() in lib/timeline.ts
+    # now gives it from the question. Only the route sends the part, so run_eval.py
+    # --timeline cannot check this. The data is kept so a run shows what arrived.
+    if question.get("timeline_card"):
+        checks["T2.17_timeline_card"] = res.get("timeline") is not None
+        checks["T2.17_timeline_data"] = res.get("timeline")
+    else:
+        checks["T2.17_timeline_card"] = "n/a"
     return checks
 
 
@@ -783,6 +792,8 @@ def main():
                 flag = f"  !! {res['error'][:90]}"
             elif res["stream_error"]:
                 flag = f"  !! stream: {res['stream_error'][:90]}"
+            elif q.get("timeline_card"):
+                flag = f"  timeline={res['timeline']}"
             print(f"  [{i + 1}/{len(queue)}] {q['record_id']:<8} "
                   f"ttft={res['ttft_ms'] or '-':>6}ms  total={res['total_ms'] or '-':>6}ms  "
                   f"chars={len(res['answer']):>5}{flag}")
