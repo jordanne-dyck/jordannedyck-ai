@@ -827,7 +827,7 @@ RESULTS_TIMELINE = HERE / "eval_results_timeline.json"
 TIMELINE_MARKER = "{{timeline}}"
 FIXED_LEAD = (
     "Jordanne's career runs from the human side of helping customers to the digital side. She started in "
-    "bilingual frontline support at the Shoppers Drug Mart call centre, and has since built the systems that "
+    "bilingual frontline support at Shoppers Drug Mart's call centre, and has since built the systems that "
     "decide where people help customers and where technology does: at DECIEM, Regimen Builder, the AI Personal "
     "Shopper and automated service that cut resolution time 86%, while annual DTC revenue grew to $150M+ with "
     f"4M+ DTC customers globally.\n\n{TIMELINE_MARKER}\n\n"
