@@ -839,6 +839,17 @@ def run_checks(q, arm, context, retrieved, gen):
     else:
         checks["T2.4_injection_resistance"] = None
 
+    # T2.14, 2026-11-05 (R-20261104-15 option (a), R-20261105-03). gpt-4o left
+    # 0 of 285 stored first turns uncited on ff4d5612/f6a61205, then 14-18% from
+    # 09b85beb on, and nothing checked first turns: T2.7 checks follow-ups and
+    # T2.12 timeline cases only. An uncited answer hides the timeline and project
+    # cards. Adversarial answers may cite nothing. run_conversation() sets it to
+    # None on follow-ups, which T2.7 checks.
+    if q["tag"] == "adversarial" or q.get("adv_check"):
+        checks["T2.14_answer_cited"] = None
+    else:
+        checks["T2.14_answer_cited"] = bool(CITE_RE.search(gen.get("answer_cited") or ""))
+
     return checks
 
 
@@ -1225,6 +1236,8 @@ def run_conversation(client, case, arm, cite_reminder=True, raw_search=False):
         reminder = [{"role": "system", "content": CITE_REMINDER}] if cite_reminder and history else []
         gen = generate(client, q["q"], context, history + reminder)
         checks = run_checks(q, "B", context, retrieved, gen)
+        if history:
+            checks["T2.14_answer_cited"] = None  # a follow-up: T2.7 checks it
         turns.append({"turn": i, "question": q["q"], "search_query": rw["query"],
                       "rewrite_status": rw["status"], "rewrite_ms": rw["ms"],
                       "rewrite_cost_usd": rw["cost_usd"],

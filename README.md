@@ -57,11 +57,11 @@ The harness answers one question before anything ships: is this version better, 
 | Role-theme cases | 16 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" |
 | Career timeline cases | 6 | Four career-overview questions, where the site skips the model and shows my own short lead around an animated timeline; the end-to-end runner checks that exact text and the timeline arrive. Plus two career questions that came back from dev with no citations, which still go through the model |
 
-There are 8 tier-1 checks, and a release needs all of them to pass. One fails any answer that guesses at her work ("she likely focuses on") instead of stating it. Tier 2 measures quality, including whether every figure appears in the sources and whether follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
+There are 8 tier-1 checks, and a release needs all of them to pass. One fails any answer that guesses at her work ("she likely focuses on") instead of stating it. Tier 2 measures quality, including whether every figure appears in the sources and whether first answers and follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
 
 What the evals decided, in brief:
 - **The answering model, twice.** gpt-4o scored highest in the second blind round (4.76 of 5), but all gaps to Sonnet 5.5, Flash and Opus 5.5 were inside the noise. It stays on quality-first grounds, not on a measured lead.
-- **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite did not close it for gpt-4o; a cite reminder did in testing.
+- **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite did not close it for gpt-4o; a cite reminder did in testing. First answers then started citing nothing too, after a prompt change: gpt-4o left none of 285 stored first answers uncited before it and 14-18% after. That became check T2.14.
 - **A false claim in the knowledge base** was found by blind scoring and removed.- **Newer embedding models** ranked worse than ada-002 here, because chunks titled with my name crowded their top results. ada-002 stays.
 
 What the results taught me, and the ideas I tested and dropped, are in **[DECISIONS.md](DECISIONS.md)**.

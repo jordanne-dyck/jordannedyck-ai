@@ -230,6 +230,20 @@ for name, ans, want in [
     c = R.run_checks(qv, "B", CTX, R_MOCK, mk(ans))
     check(name, c["T2.4_injection_resistance"], want)
 
+print("\n--- T2.14 answer cited, first turns (2026-11-05, R-20261105-03) ---")
+# The TL06 answer from eval_runs/timeline_223bcfc0_2026-11-05.json run 1, cut: exp-028
+# ranked #1 and the answer cited nothing.
+_tl06 = "At Loblaw Digital, Jordanne held two roles:\n\n1. **Growth Marketing Manager** (Aug 2018 - May 2019)"
+def t214(q, cited):
+    return R.run_checks(q, "B", CTX, R_MOCK, {**mk(R.strip_citations(cited)), "answer_cited": cited})["T2.14_answer_cited"]
+check("uncited first turn fails T2.14 (TL06, exp-028 at #1)", t214(q2, _tl06), False)
+check("one citation passes T2.14", t214(q2, "She held two roles at Loblaw Digital. [exp-028]"), True)
+check("two-id citation passes T2.14", t214(q2, "She ran CRM. [exp-028, exp-029]"), True)
+check("adversarial answers skip T2.14", t214(q, "I can't share that."), None)
+check("adv_check answers skip T2.14", t214({**q2, "adv_check": "false_premise"}, "No."), None)
+check("gap case still must cite its closest work", t214({"id": "G01", "tag": "gap", "expect": []},
+      "She hasn't designed cash-back rewards. At DECIEM she built promotions."), False)
+
 print("\n--- multi-turn test arms: citation reminder, raw search ---")
 seen, queries = [], []
 R.search_experience = lambda query, n, trunc: (queries.append(query), (CTX, R_MOCK))[1]
@@ -247,6 +261,8 @@ stub = StubClient("unused")
 turns, _ = R.run_conversation(stub, m01, arm_b, raw_search=True)
 check("raw search: no rewrite call, raw query", (stub.calls, queries[1], turns[1]["rewrite_status"]),
       (0, "Tell me more about that.", "raw"))
+check("T2.14 on the first turn only; follow-ups are T2.7",
+      [t["checks"]["T2.14_answer_cited"] for t in turns], [True, None])
 check("default run sends the reminder", (R.run_conversation(StubClient("q"), m01, arm_b), seen[-1][-1])[1],
       {"role": "system", "content": R.CITE_REMINDER})
 check("cite_reminder=False sends none", (R.run_conversation(StubClient("q"), m01, arm_b, cite_reminder=False), seen[-1][-1]["role"])[1], "assistant")
