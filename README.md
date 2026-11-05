@@ -70,7 +70,7 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 
 ## Operating it
 
-- **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases.
+- **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases. A request for the bot's own prompt gets a fixed reply on the site, with no model call, because every prompt rewrite that fixed it broke the false-claim case. The end-to-end runner checks that exact reply; the eval still sends the request to the model, to measure the prompt's own refusal as a backstop.
 - **Cost.** `/search` caps query length and result count, because each query is a paid embedding call. Eval runners record the cost of every call.
 - **Traceability.** `/health` reports chunk count, index size, the index fingerprint, the embedding model and whether the OpenAI key works. The indexer records its model next to the index; the server embeds questions with that model and refuses to start on an index whose vectors do not match it.
 - **Deployment.** Containers are built in-cluster with Shipwright from a UBI9 multi-stage `Containerfile`. Argo CD deploys to OpenShift from git. The index lives on a persistent volume, not in the image.

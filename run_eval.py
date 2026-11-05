@@ -1014,6 +1014,74 @@ def timeline_checks(q, gen):
             "T2.12_cited": bool(cited) and (not expected or bool(expected & set(cited)))}
 
 
+# ── fixed refusal ─────────────────────────────────────────────────────────────
+# MUST MATCH EXTRACTION_RE and FIXED_REFUSAL in jordannedyck-ai-web/lib/prompt-request.ts
+# (web PR #85, merged 96e2f74, 2026-11-05), character for character. refusal_drift()
+# compares. route.ts answers a message that asks for the bot's own instructions with
+# FIXED_REFUSAL: no model call, no timeline, no sources, and the chat_events row
+# flagged fixed_refusal (decided 2026-11-05, R-20261105-08). A02's shape ("ignore
+# your instructions" plus a false claim) does not match: it reaches the model to be
+# corrected. SYSTEM_PROMPT's refusal paragraph is unchanged and is the backstop for
+# a reworded request the regex misses, so run_eval.py still runs A01 through the
+# model to measure it; run_e2e.py checks the route (T2.16).
+PROMPT_REQUEST_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "prompt-request.ts"
+_EXTRACTION = r"(?:\b(?:output|reveal|print|show|repeat|share|give|tell|display|dump|quote|paste|leak|disclose|recite|write out|copy)\b(?:(?!\b(?:her|she|jordanne|jordanne's|how)\b)[^.?!\n]){0,60}?|\bwhat(?:'s|\s+is|\s+are)\s+)(?:\b(?:your|this\s+(?:bot|chatbot|assistant)'?s?)\s+(?:\w+\s+){0,3}?(?:system\s+prompt|instructions|prompt|rules|guidelines|configuration)|\bthe\s+system\s+prompt|\bthe\s+(?:\w+\s+){0,3}?(?:instructions|prompt|rules|guidelines)\s+you\b)\b(?!\s+(?:for|on|about|around|when|in)\b)(?![^.?!\n]{0,25}\b(?:she|her|jordanne)\b)"
+EXTRACTION_RE = re.compile(_EXTRACTION, re.IGNORECASE)
+FIXED_REFUSAL = (
+    "I don't repeat my instructions in chat, but how I'm built is public, prompt included: "
+    "[jordannedyck-ai on GitHub](https://github.com/jordanne-dyck/jordannedyck-ai). "
+    "Here, I answer questions about Jordanne's work."
+)
+_TS_REFUSAL = re.compile(r'export const FIXED_REFUSAL =\s*"((?:[^"\\]|\\.)*)";')
+
+
+def asks_for_instructions(query):
+    """asksForInstructions(): the site answers this message with FIXED_REFUSAL."""
+    return bool(EXTRACTION_RE.search(query))
+
+
+def refusal_drift(path=PROMPT_REQUEST_TS, ts=None):
+    """None when lib/prompt-request.ts agrees with the constants above, else what
+    differs. `ts` is the file's text when it came from somewhere else (git show)."""
+    if ts is None:
+        if not path.exists():
+            return f"{path} not found (web checkout predates 96e2f74?)"
+        ts = path.read_text(encoding="utf-8")
+    out = []
+    m = re.search(r"const EXTRACTION_RE = /(.+)/i;", ts)
+    if not m:
+        out.append("no EXTRACTION_RE")
+    elif m.group(1) != _EXTRACTION:
+        out.append("EXTRACTION_RE differs")
+    m = _TS_REFUSAL.search(ts)
+    if not m:
+        out.append("no FIXED_REFUSAL")
+    else:
+        theirs = re.sub(r"\\(.)", r"\1", m.group(1))
+        if theirs != FIXED_REFUSAL:
+            out.append(f"FIXED_REFUSAL md5 {hashlib.md5(theirs.encode()).hexdigest()} != "
+                       f"{hashlib.md5(FIXED_REFUSAL.encode()).hexdigest()}")
+    return "; ".join(out) or None
+
+
+def refusal_drift_line():
+    """The startup line. When the web checkout lacks the file, also compares the web
+    repo's origin/master copy and says so. A missing file is never reported ok."""
+    drift = refusal_drift()
+    if drift is None:
+        return "ok, agrees with lib/prompt-request.ts"
+    if PROMPT_REQUEST_TS.exists():
+        return drift
+    import subprocess
+    try:
+        ts = subprocess.run(["git", "-C", str(HERE.parent / "jordannedyck-ai-web"), "show",
+                             "origin/master:lib/prompt-request.ts"], capture_output=True,
+                            text=True, encoding="utf-8", timeout=10, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return drift
+    return f"{drift}; origin/master copy (not checked out): {refusal_drift(ts=ts) or 'agrees'}"
+
+
 # ── multi-turn ────────────────────────────────────────────────────────────────
 
 RESULTS_MULTITURN = HERE / "eval_results_multiturn.json"
@@ -1435,6 +1503,7 @@ def main():
         print(f"prompt_file {args.prompt_file}")
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
+    print(f"refusal drift: {refusal_drift_line()}")
     if args.timeline and (args.multiturn or args.corrective or args.probe):
         sys.exit("--timeline runs on its own: not with --multiturn, --corrective or --probe")
     # fixed_lead cases never reach the answer model on the site (option D, 2026-11-04).
