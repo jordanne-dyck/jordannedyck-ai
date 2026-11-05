@@ -105,6 +105,34 @@ for name, ans in [
     c = R.run_checks(qg, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T2.3_gap_honesty"], True)
 
+print("\n--- gap rule shown: coverage statement vs factual negative ---")
+# 2026-11-05, option (c) of brief-gaps-page-followups item 2 (R-20261105-01). The
+# gaps page keeps gap_admitted() and shows gap_kind(); T2.3 keeps gap_admitted().
+for name, ans, kind in [
+    # dev gaps page row 248 (R-20261104-03): a false premise, correctly refused.
+    ("row 248 Google refusal is a factual negative", "Jordanne Dyck has not worked at Google.", "factual_negative"),
+    # dev gaps page row 179, case G03: X08 says NO is the correct answer.
+    ("row 179 G03 tiered program is a factual negative",
+     "Jordanne has not personally launched a tiered program, but she has evaluated tier mechanics.",
+     "factual_negative"),
+    # G02 stored answer, eval_runs/gaps-v1-e33e_2026-11-01.json.
+    ("G02 'has not built' is a factual negative",
+     "Jordanne has not built a formal referral program, but she has worked extensively with referral channels.",
+     "factual_negative"),
+    # dev gaps page row 177, case G01: the real gap stays on the page.
+    ("row 177 G01 cash-back is a coverage statement",
+     "The context does not cover Jordanne Dyck's experience specifically designing cash-back rewards.", "coverage"),
+    ("both rules: coverage wins",
+     "She has not built one, and the record does not show a referral program.", "coverage"),
+    ("no gap wording is unlabelled", "Jordanne designed a cash-back program that lifted retention.", None),
+]:
+    check(name, R.gap_kind(ans), kind)
+    # T2.3 must not move: every labelled answer still admits the gap.
+    check(f"  T2.3 unchanged: {name}", R.gap_admitted(ans), kind is not None)
+# G02's "hasn't built" must stay a gap under T2.3 and C10 (GAP_RE exists for it).
+check("G02 'hasn't built' still admits the gap",
+      R.gap_admitted("Jordanne hasn't specifically built a referral program."), True)
+
 print("\n--- T2.8 gap not inverted ---")
 # 2026-11-02 (R-20261102-05, -06). Openings and spans from saved G01 answers.
 qg8 = dict(qg, gap_term="cash-back")

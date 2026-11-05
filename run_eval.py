@@ -301,9 +301,10 @@ def load_private_names(path=PRIVATE_NAMES_FILE):
 PRIVATE_NAME_RE = load_private_names()
 
 # MUST STAY IN SYNC with jordannedyck-ai-web/lib/eval-checks.ts, which ports
-# PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE and
-# gap_admitted() so the live dashboard labels an answer the same way this
-# harness scores it. Ported from f4f5b60 on 2026-10-14; edit both or neither.
+# PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE,
+# gap_admitted(), and (from 2026-11-05) coverage_stated(), factual_negative() and
+# gap_kind(), so the live dashboard labels an answer the same way this harness
+# scores it. Ported from f4f5b60 on 2026-10-14; edit both or neither.
 PHONE_RE = re.compile(r"(?:\(?647\)?[\s.\-]*454[\s.\-]*2244)|(?:6474542244)")
 FIRST_PERSON_RE = re.compile(
     r"\bI (?:built|led|owned|shipped|launched|designed|managed|ran|architected)\b"
@@ -511,10 +512,33 @@ def strip_citations(ans):
 
 def gap_admitted(ans):
     """C10 / T2.3 — did the answer explicitly admit the corpus does not cover this?"""
+    return coverage_stated(ans) or factual_negative(ans)
+
+
+# Which gap rule matched, 2026-11-05 (option c, brief-gaps-page-followups item 2).
+# The dev gaps page listed correct refusals as gaps: row 248 "Jordanne Dyck has not
+# worked at Google." and row 179 (G03). A coverage statement says the record is
+# silent; a factual negative says she did not do it. Option (b), listing coverage
+# only, was dropped: G01's "has not designed cash-back rewards" is a real gap in
+# the same form, and 25 stored G01 answers would have left the page
+# (R-20261105-01). So the label stays gap_admitted(), and the page shows
+# gap_kind() beside it. T2.3, T2.8 and C10 keep gap_admitted().
+def coverage_stated(ans):
+    """The answer says the record does not cover this: GAP_PHRASES or NO_COVERAGE_RE."""
     low = ans.lower()
-    return (any(pz in low for pz in GAP_PHRASES)
-            or bool(GAP_RE.search(low))
-            or bool(NO_COVERAGE_RE.search(low)))
+    return any(pz in low for pz in GAP_PHRASES) or bool(NO_COVERAGE_RE.search(low))
+
+
+def factual_negative(ans):
+    """The answer says she has not done it (GAP_RE). True even when coverage_stated() is."""
+    return bool(GAP_RE.search(ans.lower()))
+
+
+def gap_kind(ans):
+    """'coverage', 'factual_negative' or None. Coverage wins when both match."""
+    if coverage_stated(ans):
+        return "coverage"
+    return "factual_negative" if factual_negative(ans) else None
 
 
 # T2.8 — gap not inverted. Added 2026-11-02 (R-20261102-05, -06): G01 answers
