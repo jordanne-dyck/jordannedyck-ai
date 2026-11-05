@@ -403,7 +403,7 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
         "usage": None, "finish_reason": None,
         "ttfb_ms": None, "ttft_ms": None, "total_ms": None,
         "parts_seen": {}, "unparsed_lines": 0, "raw_bytes": 0,
-        "protocol": None, "retrieval": None,
+        "protocol": None, "retrieval": None, "timeline": None,
     }
 
     def text_part(value, now):
@@ -472,6 +472,8 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
                     out["stream_error"] = str(part.get("errorText"))
                 elif kind == "data-retrieval" and isinstance(part.get("data"), dict):
                     out["retrieval"] = part["data"]
+                elif kind == "data-timeline":
+                    out["timeline"] = part.get("data")
                 elif kind == "finish":
                     if part.get("finishReason"):
                         out["finish_reason"] = part["finishReason"]
@@ -573,6 +575,22 @@ def check_answer(harness, question, res):
         checks["C18_injection_resistance"] = "n/a" if verdict is None else verdict
     else:
         checks["C18_injection_resistance"] = "n/a"
+    # T2.13 — option D (2026-11-04): an overview question gets Jordanne's fixed
+    # lead, not a generated answer, with the timeline. FIXED_LEAD in run_eval.py
+    # mirrors lib/timeline.ts (timeline_drift). This runner sends no timelineShown,
+    # so the replay line is never the right answer here.
+    if question.get("fixed_lead"):
+        lead = getattr(harness, "FIXED_LEAD", None)
+        if lead is None:
+            checks["T2.13_fixed_lead"] = "unavailable_no_checkers"
+        else:
+            checks["T2.13_fixed_lead"] = a == lead and res.get("timeline") is not None
+            if a != lead:
+                checks["T2.13_lead_mismatch"] = "replay line" if a == harness.TIMELINE_REPLAY else "text differs"
+            if res.get("timeline") is None:
+                checks["T2.13_timeline_part"] = "missing"
+    else:
+        checks["T2.13_fixed_lead"] = "n/a"
     return checks
 
 
@@ -582,7 +600,8 @@ def check_answer(harness, question, res):
 # --only also looks in these groups. Added 2026-11-04 (brief-gaps-page-followups,
 # item 3): X08, X18 and P16 live outside "questions", so no runner could ask them.
 # A run without --only still asks "questions" alone, so full runs stay comparable.
-ONLY_GROUPS = ("questions", "additive_cases", "theme_cases")
+# timeline_cases added 2026-11-04 for T2.13: --only TL01,TL02,TL03,TL04.
+ONLY_GROUPS = ("questions", "additive_cases", "theme_cases", "timeline_cases")
 
 
 def expand_questions(eval_set, only=None):
@@ -752,6 +771,8 @@ def main():
                 },
                 # Only sent with EMIT_RETRIEVAL or a monitor token; None otherwise.
                 "retrieval": res["retrieval"],
+                # The data-timeline part's data, e.g. {"explicit": true}; None when absent.
+                "timeline": res["timeline"],
                 "checks": check_answer(harness, q, res),
                 "stamp": stamp,
             }

@@ -113,6 +113,10 @@ ANSWER_MAX_TOKENS = 1000
 # 2026-11-04: A02 still failed 10/10 on 579d0ced (R-20261104-14), so the refusal
 # paragraph is back to 2fa2c4bb's text and the prompt is 2fa2c4bb again. The
 # widened T1.6 and A02 checks stay.
+# 2026-11-04, prompt 7142b895: 2fa2c4bb with the Career Arc starting where she
+# started, frontline support at Shoppers Drug Mart (web brief
+# nimbalyst-local/web-brief-career-timeline-fixed-lead-2026-11-04.md, item 4).
+# Made in lib/system-prompt.ts first (web d0d7ce2); copied here.
 SYSTEM_PROMPT = """You are an AI assistant answering questions about Jordanne Dyck for product leaders assessing her for a role. Represent her record accurately. A reader should finish an answer knowing what she did and what followed from it.
 
 # CORE POSITIONING
@@ -120,7 +124,7 @@ SYSTEM_PROMPT = """You are an AI assistant answering questions about Jordanne Dy
 **Positioning**: Sr. Product Manager. She builds DTC products that bridge human and digital moments at scale: she decides where people guide the customer and where technology does, then builds both sides.
 **Current Role**: Digital Strategist at Warai Neko, her independent practice (since June 2026)
 **Most Recent In-House Role**: Director of Digital Product Management at DECIEM (2022-2025)
-**Career Arc**: Consumer research → Growth and CRM (Loblaw Digital) → DTC platform and customer experience (DECIEM) → Human and AI service and commerce at scale
+**Career Arc**: Frontline customer support and consumer research (Shoppers Drug Mart) → Digital marketing (Wholesale Club) → Growth and CRM (Loblaw Digital) → DTC platform and customer experience (DECIEM) → Human and AI service and commerce at scale
 **Contact**: email jordanne.dyck@gmail.com, LinkedIn www.linkedin.com/in/jordannedyck, GitHub github.com/jordanne-dyck
 
 Five themes run through her work. Use them to choose what to emphasise. They are not facts to state, and they carry no citation:
@@ -428,17 +432,14 @@ def search_experience(query, n_results, truncate, results=None):
     return "\n\n".join(parts), meta
 
 
-def generate(client, question, context, history=(), timeline=False):
+def generate(client, question, context, history=()):
     """`history` is the earlier turns as the site resends them: user and
     assistant messages, assistant text with citations already stripped.
-    `timeline` adds TIMELINE_NOTE, as route.ts does for an overview question.
 
     Streamed since 2026-10-30 (plan A.6), as route.ts streams, so time to first
     token is measured. The clock starts on each attempt: until then a retried
     answer's latency included the 10-30 s retry waits."""
     system = SYSTEM_PROMPT.format(context=context)
-    if timeline:
-        system = with_timeline_note(system)
     for attempt in range(4):
         try:
             t0, ttft, parts, usage, finish = time.time(), None, [], None, None
@@ -478,8 +479,7 @@ def generate(client, question, context, history=(), timeline=False):
     return {
         # The checks score what a visitor sees, which has no citations; the
         # cited text is kept so citations can be checked against their chunks.
-        # A timeline answer is checked as route.ts logs it, without the marker.
-        "answer": strip_citations(without_timeline_marker(text) if timeline else text),
+        "answer": strip_citations(text),
         "answer_cited": text,
         "latency_s": round(latency, 2),
         "ttft_s": round(ttft, 2) if ttft else None,
@@ -812,39 +812,38 @@ def run_checks(q, arm, context, retrieved, gen):
 
 
 # ── career timeline ───────────────────────────────────────────────────────────
-# MUST STAY IN SYNC with TIMELINE_NOTE, asksForTimeline(), asksForOverview(),
-# MARKER_RE and CAREER_CHUNKS in jordannedyck-ai-web/lib/timeline.ts (frontend
-# branch feat/career-timeline, 2026-11-04). For an overview question route.ts adds
-# TIMELINE_NOTE to the system prompt just before # KNOWLEDGE BASE CONTEXT and
-# flags the chat_events row timeline_prompt; prompt_version still hashes the base
-# prompt. --timeline runs timeline_cases the same way. timeline_drift() compares.
+# MUST STAY IN SYNC with FIXED_LEAD, TIMELINE_REPLAY, isTimelineReplay(),
+# asksForTimeline(), asksForOverview(), MARKER_RE and CAREER_CHUNKS in
+# jordannedyck-ai-web/lib/timeline.ts (frontend branch feat/career-timeline,
+# d0d7ce2). timeline_drift() compares.
+# Since 2026-11-04 (option D) route.ts does not call the answer model for an
+# overview question: it streams FIXED_LEAD, Jordanne's own text, with the
+# timeline, and flags the chat_events row timeline_lead 'fixed' ('replay' for
+# TIMELINE_REPLAY). TIMELINE_NOTE is gone. The overview cases (fixed_lead in
+# timeline_cases, TL01-TL04) test the route, so run_e2e.py checks them (T2.13);
+# --timeline here runs the rest (TL05, TL06) through the model.
 TIMELINE_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "timeline.ts"
 RESULTS_TIMELINE = HERE / "eval_results_timeline.json"
 TIMELINE_MARKER = "{{timeline}}"
-TIMELINE_NOTE = """# THIS ANSWER
-
-An animated timeline of her whole career, with every role, employer, date and school, plays inside this answer. Build the answer around it, in exactly this shape:
-
-1. One or two sentences on the arc of her career: where she started, what she moved toward, and the thread that connects it. Cite as usual.
-2. The line {{timeline}} on its own, written exactly like that.
-3. One sentence on where she is now, or what the arc adds up to. Cite as usual.
-
-Do not list roles, employers, dates or schools, and do not walk through her jobs one by one: the timeline shows them. No headings or bullets.
-
-The shape, with placeholder content:
-
-She moved from A to B, and the thread through it is C. [chunk id]
-{{timeline}}
-Today she does D. [chunk id]"""
-TIMELINE_VERSION = hashlib.sha256(TIMELINE_NOTE.encode("utf-8")).hexdigest()[:8]
+FIXED_LEAD = (
+    "Jordanne's career runs from the human side of helping customers to the digital side. She started in "
+    "bilingual frontline support at Shoppers Drug Mart's call centre, and has since built the systems that "
+    "decide where people help customers and where technology does: at DECIEM, Regimen Builder, the AI Personal "
+    "Shopper and automated service that cut resolution time 86%, while annual DTC revenue grew to $150M+ with "
+    f"4M+ DTC customers globally.\n\n{TIMELINE_MARKER}\n\n"
+    "Today she runs Warai Neko, her independent practice, bringing that work to small businesses while "
+    "continuing to refine her AI building skills with this AI-powered resume and portfolio system among "
+    "other hobby projects."
+)
+TIMELINE_REPLAY = f"Here's her timeline again.\n\n{TIMELINE_MARKER}"
 _ASKS_TIMELINE = r"\btime ?line\b"
 _ASKS_OVERVIEW = (r"\bcareer\s+(?:history|path|journey|story|arc|overview|so far)\b|\bwork\s+history\b"
                   r"|\bwalk\s+(?:me|us)\s+through\s+(?:her|jordanne'?s?)\s+(?:career|experience|background)\b")
 _MARKER = r"[ \t]*\{\{\s*timeline\s*\}\}[ \t]*"
 MARKER_RE = re.compile(_MARKER, re.IGNORECASE)
-# An answer citing one of these gets the timeline card. exp-030 is below the
-# indexer's 0.3 weight floor, so it is never retrieved and never cited.
-CAREER_CHUNKS = {"exp-027", "exp-028", "exp-029", "exp-030"}
+# An answer citing one of these gets the timeline card. Not exp-031, education:
+# an education answer would always bring up the whole timeline (Jordanne, 2026-11-04).
+CAREER_CHUNKS = {"exp-027", "exp-028", "exp-029", "exp-030", "exp-042"}
 
 
 def asks_for_timeline(query):
@@ -855,17 +854,33 @@ def asks_for_overview(query):
     return asks_for_timeline(query) or bool(re.search(_ASKS_OVERVIEW, query, re.IGNORECASE))
 
 
-def with_timeline_note(prompt):
-    """route.ts: the note goes just before the context heading. JS replace()
-    with a string changes the first match only, hence count=1."""
-    if "# KNOWLEDGE BASE CONTEXT" in prompt:
-        return prompt.replace("# KNOWLEDGE BASE CONTEXT", f"{TIMELINE_NOTE}\n\n# KNOWLEDGE BASE CONTEXT", 1)
-    return f"{prompt}\n\n{TIMELINE_NOTE}"
+def is_timeline_replay(query, timeline_shown):
+    """isTimelineReplay(): the page sends timelineShown once it has shown the
+    timeline this visit. The runners never send it, so they get FIXED_LEAD."""
+    return bool(timeline_shown) and asks_for_timeline(query)
 
 
 def without_timeline_marker(answer):
     """withoutTimelineMarker(): the answer as it is logged, labelled and judged."""
     return re.sub(_MARKER + r"(?:\r?\n)?", "", answer, flags=re.IGNORECASE)
+
+
+_TS_PART = re.compile(r'"((?:[^"\\]|\\.)*)"|\'((?:[^\'\\]|\\.)*)\'|(TIMELINE_MARKER)')
+
+
+def _ts_joined(ts, name):
+    """The text of `export const NAME = [...].join('\\n\\n')` in timeline.ts, or None."""
+    m = re.search(rf"export const {name} = \[(.*?)\]\.join\('\\n\\n'\)", ts, re.DOTALL)
+    if not m:
+        return None
+    parts = []
+    for part in _TS_PART.finditer(m.group(1)):
+        if part.group(3):
+            parts.append(TIMELINE_MARKER)
+        else:
+            literal = part.group(1) if part.group(1) is not None else part.group(2)
+            parts.append(re.sub(r"\\(.)", r"\1", literal))
+    return "\n\n".join(parts)
 
 
 def timeline_drift(path=TIMELINE_TS):
@@ -874,13 +889,15 @@ def timeline_drift(path=TIMELINE_TS):
         return f"{path} not found (web branch not merged here?)"
     ts = path.read_text(encoding="utf-8")
     out = []
-    m = re.search(r"export const TIMELINE_NOTE = `([^`]*)`", ts)
-    note = m.group(1).replace("${TIMELINE_MARKER}", TIMELINE_MARKER) if m else None
-    if note is None:
-        out.append("no TIMELINE_NOTE template literal")
-    elif note != TIMELINE_NOTE:
-        out.append(f"TIMELINE_NOTE md5 {hashlib.md5(note.encode()).hexdigest()} != "
-                   f"{hashlib.md5(TIMELINE_NOTE.encode()).hexdigest()}")
+    for name, ours in (("FIXED_LEAD", FIXED_LEAD), ("TIMELINE_REPLAY", TIMELINE_REPLAY)):
+        theirs = _ts_joined(ts, name)
+        if theirs is None:
+            out.append(f"no {name} array")
+        elif theirs != ours:
+            out.append(f"{name} md5 {hashlib.md5(theirs.encode()).hexdigest()} != "
+                       f"{hashlib.md5(ours.encode()).hexdigest()}")
+    if "return timelineShown && asksForTimeline(query);" not in ts:
+        out.append("isTimelineReplay differs")
     tests = re.findall(r"/(.+?)/i\.test\(query\)", ts)
     if tests != [_ASKS_TIMELINE, _ASKS_OVERVIEW]:
         out.append(f"asksForTimeline/asksForOverview regexes differ: {tests}")
@@ -893,60 +910,21 @@ def timeline_drift(path=TIMELINE_TS):
     return "; ".join(out) or None
 
 
-def _sentences(text):
-    return [s for s in _SENTENCE_END.split(strip_citations(text).strip()) if re.search(r"[a-z]{3}", s, re.IGNORECASE)]
-
-
-# Employers and schools on the timeline card: more than two named in a
-# three-sentence answer is a walk through her jobs (T2.11).
-TIMELINE_ORGS = {"Warai Neko": r"warai neko", "DECIEM": r"\bdeciem\b", "Loblaw": r"\bloblaw",
-                 "Shoppers Drug Mart": r"\bshoppers\b", "Kenna": r"\bkenna\b", "Guelph": r"\bguelph\b",
-                 "University of Toronto": r"university of toronto|\bu of t\b",
-                 "Product Faculty": r"product faculty"}
-_MONTHS = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?"
-_DATE_RANGE = re.compile(rf"\b(?:{_MONTHS}\s+)?(?:19|20)\d{{2}}\s*(?:-|–|—|to)\s*(?:{_MONTHS}\s+)?"
-                         rf"(?:(?:19|20)\d{{2}}|present|now|today)\b|\b{_MONTHS}\s+(?:19|20)\d{{2}}\b", re.IGNORECASE)
-
-
 def timeline_checks(q, gen):
-    """T2.9-T2.12, on the cited answer as the model wrote it. Added 2026-11-04
-    with the frontend's career timeline. An overview answer (timeline_prompt)
-    must take TIMELINE_NOTE's shape and cite every claim; any other answer must
-    never write the marker, and must cite (TL05 and TL06 came back from dev
-    with no citations at all)."""
+    """T2.9 and T2.12, on the cited answer as the model wrote it. Added 2026-11-04
+    with the frontend's career timeline. Only questions the model answers get
+    here (not fixed_lead): they must never write the marker, and must cite (TL05
+    and TL06 came back from dev with no citations at all). T2.10 and T2.11
+    checked generated overview answers; retired with option D, 2026-11-04."""
     from citation_checks import parse_citations  # imports this module
     raw = gen.get("answer_cited") or ""
     markers = MARKER_RE.findall(raw)
-    segments, cited = parse_citations(without_timeline_marker(raw))
-    uncited = [s["text"] for s in segments if not s["ids"]]
-    out = {"_markers": len(markers), "_cited_ids": cited, "_uncited_segments": uncited,
-           "_timeline_card_cited": bool(set(cited) & CAREER_CHUNKS)}
-    if not q.get("timeline_prompt"):
-        out["T2.9_timeline_marker"] = not markers
-        out["T2.10_timeline_shape"] = None
-        out["T2.11_no_role_list"] = None
-        expected = set(q.get("expect") or [])
-        out["T2.12_cited"] = bool(cited) and (not expected or bool(expected & set(cited)))
-        return out
-
-    own_line = [line for line in raw.split("\n") if line.strip() and MARKER_RE.fullmatch(line.rstrip("\r"))]
-    out["T2.9_timeline_marker"] = len(markers) == 1 and len(own_line) == 1
-    if markers:
-        m = MARKER_RE.search(raw)
-        before, after = _sentences(raw[:m.start()]), _sentences(raw[m.end():])
-        out["_sentences"] = [len(before), len(after)]
-        out["T2.10_timeline_shape"] = 1 <= len(before) <= 2 and len(after) == 1
-    else:
-        out["T2.10_timeline_shape"] = None
-
-    visible = strip_citations(without_timeline_marker(raw))
-    spans = re.findall(r"^[ \t]*(?:[-*•]|\d+[.)]|#+)\s.*$", visible, re.MULTILINE)
-    spans += [m.group(0) for m in _DATE_RANGE.finditer(visible)]
-    orgs = sorted(name for name, rx in TIMELINE_ORGS.items() if re.search(rx, visible, re.IGNORECASE))
-    out["_role_list_spans"], out["_orgs"] = spans, orgs
-    out["T2.11_no_role_list"] = not spans and len(orgs) <= 2
-    out["T2.12_cited"] = bool(segments) and not uncited
-    return out
+    _, cited = parse_citations(without_timeline_marker(raw))
+    expected = set(q.get("expect") or [])
+    return {"_markers": len(markers), "_cited_ids": cited,
+            "_timeline_card_cited": bool(set(cited) & CAREER_CHUNKS),
+            "T2.9_timeline_marker": not markers,
+            "T2.12_cited": bool(cited) and (not expected or bool(expected & set(cited)))}
 
 
 # ── multi-turn ────────────────────────────────────────────────────────────────
@@ -1329,8 +1307,8 @@ def main():
     ap.add_argument("--multiturn", action="store_true",
                     help="run the multiturn cases (arm B) instead of the 34-question series")
     ap.add_argument("--timeline", action="store_true",
-                    help="run timeline_cases (arm B) instead of the 34-question series; overview "
-                         "questions get TIMELINE_NOTE as route.ts adds it, and checks T2.9-T2.12 run")
+                    help="run timeline_cases (arm B) instead of the 34-question series, except the "
+                         "fixed_lead ones (run_e2e.py checks those); checks T2.9 and T2.12 run")
     ap.add_argument("--source-format", choices=["document", "labelled"], default="labelled",
                     help="source layout; 'labelled' is the layout to land in route.ts, "
                          "'document' is the ab60e8aa comparison layout")
@@ -1370,7 +1348,9 @@ def main():
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     if args.timeline and (args.multiturn or args.corrective or args.probe):
         sys.exit("--timeline runs on its own: not with --multiturn, --corrective or --probe")
-    questions = spec["timeline_cases"] if args.timeline else spec["questions"]
+    # fixed_lead cases never reach the answer model on the site (option D, 2026-11-04).
+    questions = ([q for q in spec["timeline_cases"] if not q.get("fixed_lead")] if args.timeline
+                 else spec["questions"])
     if args.only:
         want = {s.strip().upper() for s in args.only.split(",")}
         questions = [q for q in questions if q["id"] in want]
@@ -1380,7 +1360,7 @@ def main():
                 "C": {**spec["arms"]["B"], "name": "corrective", "corrective": True}}
     if args.timeline:
         arms = {"B": spec["arms"]["B"]}  # n_results 5, no truncation: what route.ts does
-        print(f"timeline note {TIMELINE_VERSION}, drift: {timeline_drift() or 'ok, agrees with lib/timeline.ts'}")
+        print(f"timeline drift: {timeline_drift() or 'ok, agrees with lib/timeline.ts'}")
     results_path = Path(args.out) if args.out else RESULTS_TIMELINE if args.timeline else RESULTS
     runs_of = lambda q: max(q.get("runs", 1), args.reps)
 
@@ -1427,10 +1407,8 @@ def main():
 
     existing = []
     if results_path.exists() and not args.fresh:
-        # A timeline row also depends on the note, which prompt_version does not hash.
         existing = load_resumable(results_path, prompt_version=PROMPT_VERSION,
-                                  source_format=SOURCE_FORMAT, model=MODEL,
-                                  **({"timeline_version": TIMELINE_VERSION} if args.timeline else {}))
+                                  source_format=SOURCE_FORMAT, model=MODEL)
         print(f"resuming — {len(existing)} results already recorded for {PROMPT_VERSION}")
     done = {(r["id"], r["arm"], r["run"]) for r in existing}
     results = list(existing)
@@ -1466,12 +1444,10 @@ def main():
                     print(f"    rewrite {rw['status']} +{added_ms}ms -> {rw['query'][:80]!r}", flush=True)
                 else:
                     context, retrieved = search_experience(q["q"], arm["n_results"], arm["truncate"])
-                    gen = generate(client, q["q"], context, timeline=bool(q.get("timeline_prompt")))
+                    gen = generate(client, q["q"], context)
                 checks = run_checks(q, arm_id, context, retrieved, gen)
                 if args.timeline:
                     checks.update(timeline_checks(q, gen))
-                    extra = {"timeline_prompt": bool(q.get("timeline_prompt")),
-                             "timeline_version": TIMELINE_VERSION}
 
                 total_cost += gen["cost_usd"]
                 fails = [k for k, v in checks.items()
@@ -1507,7 +1483,7 @@ def main():
         run_metrics.record_run(results, runner="run_eval", source=results_path.name,
                                label=f"{PROMPT_VERSION} {SOURCE_FORMAT}"
                                      + (" corrective A/B" if args.corrective else "")
-                                     + (f" timeline {TIMELINE_VERSION}" if args.timeline else ""),
+                                     + (" timeline" if args.timeline else ""),
                                scope="partial" if args.only else "full")
 
 
