@@ -892,60 +892,69 @@ check("TTFT recorded", gen["ttft_s"], 1.0)
 check("latency excludes the 10 s retry wait", gen["latency_s"], 3.0)
 check("cost from streamed usage", gen["cost_usd"], round(1000 / 1e6 * 2.5 + 100 / 1e6 * 10, 5))
 
-print("\n--- career timeline: TIMELINE_NOTE as route.ts adds it, T2.9-T2.12 (2026-11-04) ---")
-sc_tl = types.SimpleNamespace(calls=0)
-def _tl_create(**kw):
-    sc_tl.kw = kw
-    return iter([_D(usage=None, choices=[_D(delta=_D(content="A. [exp-001]\n{{timeline}}\nB. [exp-040]"),
-                                              finish_reason="stop")]),
-                 _D(usage=_D(prompt_tokens=1, completion_tokens=1), choices=[])])
-sc_tl.chat = types.SimpleNamespace(completions=types.SimpleNamespace(create=_tl_create))
-gen_tl = R.generate(sc_tl, "Walk me through her career.", "CTX", timeline=True)
-system_tl = sc_tl.kw["messages"][0]["content"]
-check("note once, just before the context heading",
-      (system_tl.count(R.TIMELINE_NOTE), system_tl.index(R.TIMELINE_NOTE) < system_tl.index("# KNOWLEDGE BASE CONTEXT"),
-       system_tl.count("# KNOWLEDGE BASE CONTEXT")), (1, True, 1))
-check("timeline answer checked without the marker", gen_tl["answer"], "A.\nB.")
-check("no note without timeline", R.TIMELINE_NOTE in R.with_timeline_note("no heading"), True)
-check("JS replace(): first heading only", R.with_timeline_note("# KNOWLEDGE BASE CONTEXT\n# KNOWLEDGE BASE CONTEXT").count(R.TIMELINE_NOTE), 1)
+print("\n--- career timeline: fixed lead (option D), T2.9, T2.12, T2.13 (2026-11-04) ---")
 check("overview triggers", [R.asks_for_overview(q) for q in (
     "Walk me through her career", "career so far?", "her WORK HISTORY", "show the time line",
     "walk us through Jordanne's background", "Where did she work before DECIEM?", "her career at DECIEM")],
       [True, True, True, True, True, False, False])
+check("replay only when shown and the timeline is named",
+      [R.is_timeline_replay(q, shown) for q, shown in (
+          ("Show the timeline again", True), ("Show the timeline again", False),
+          ("What is her career history?", True))], [True, False, False])
+check("fixed lead: one marker, on its own paragraph", R.FIXED_LEAD.split("\n\n")[1], R.TIMELINE_MARKER)
+check("fixed lead logged without the marker",
+      R.without_timeline_marker(R.FIXED_LEAD).count("{{"), 0)
 tl_cases = json.load(open(R.EVAL_SET, encoding="utf-8"))["timeline_cases"]
-check("timeline_cases: timeline_prompt matches asks_for_overview",
-      [c["id"] for c in tl_cases if c["timeline_prompt"] != R.asks_for_overview(c["q"])], [])
+check("timeline_cases: fixed_lead matches asks_for_overview",
+      [c["id"] for c in tl_cases if c["fixed_lead"] != R.asks_for_overview(c["q"])], [])
 check("marker removed with its line", R.without_timeline_marker("A.\n  {{ Timeline }} \nB."), "A.\nB.")
-qo, qn = {"timeline_prompt": True}, {"timeline_prompt": False, "expect": ["exp-028"]}
+qn = {"fixed_lead": False, "expect": ["exp-028"]}
 def tl(q, a):
     c = R.timeline_checks(q, {"answer_cited": a})
-    return [c[k] for k in ("T2.9_timeline_marker", "T2.10_timeline_shape", "T2.11_no_role_list", "T2.12_cited")]
-check("overview in shape passes", tl(qo, "She moved from research into growth. [exp-001]\n{{timeline}}\n"
-                                         "Today she runs Warai Neko. [exp-040]"), [True, True, True, True])
-check("marker inline fails T2.9", tl(qo, "Arc. [exp-001] {{timeline}}\nNow. [exp-040]")[0], False)
-check("marker twice fails T2.9", tl(qo, "Arc. [exp-001]\n{{timeline}}\n{{timeline}}\nNow. [exp-040]")[0], False)
-check("no marker: T2.10 not measured", tl(qo, "Arc. [exp-001] Now. [exp-040]")[:2], [False, None])
-check("three sentences before fails T2.10", tl(qo, "One a. [exp-001] Two b. [exp-001] Three c. [exp-001]\n"
-                                                   "{{timeline}}\nNow d. [exp-040]")[1], False)
-check("bullets fail T2.11", tl(qo, "Arc. [exp-001]\n{{timeline}}\n- Role one [exp-028]")[2], False)
-check("date range fails T2.11", tl(qo, "At Loblaw Digital (Feb 2016 - May 2019). [exp-028]\n{{timeline}}\nNow. [exp-040]")[2], False)
-check("three employers fail T2.11", tl(qo, "Shoppers Drug Mart, Loblaw, then DECIEM. [exp-001]\n{{timeline}}\nNow. [exp-040]")[2], False)
-check("an uncited sentence fails T2.12", tl(qo, "Arc a.\n{{timeline}}\nNow b. [exp-040]")[3], False)
-check("other question: marker fails T2.9", tl(qn, "Loblaw. [exp-028]\n{{timeline}}")[0], False)
-check("other question: uncited fails T2.12", tl(qn, "She worked at Loblaw Digital."), [True, None, None, False])
-check("other question: wrong chunk fails T2.12", tl(qn, "She worked at Loblaw. [exp-001]")[3], False)
-check("other question: expected chunk passes", tl(qn, "She worked at Loblaw. [exp-028]"), [True, None, None, True])
-_ts = ("export const TIMELINE_NOTE = `" + R.TIMELINE_NOTE.replace(R.TIMELINE_MARKER, "${TIMELINE_MARKER}") + "`;\n"
+    return [c[k] for k in ("T2.9_timeline_marker", "T2.12_cited")]
+check("retired checks gone", sorted(k for k in R.timeline_checks(qn, {"answer_cited": "x"}) if k.startswith("T")),
+      ["T2.12_cited", "T2.9_timeline_marker"])
+check("marker fails T2.9", tl(qn, "Loblaw. [exp-028]\n{{timeline}}")[0], False)
+check("uncited fails T2.12", tl(qn, "She worked at Loblaw Digital."), [True, False])
+check("wrong chunk fails T2.12", tl(qn, "She worked at Loblaw. [exp-001]")[1], False)
+check("expected chunk passes", tl(qn, "She worked at Loblaw. [exp-028]"), [True, True])
+check("exp-042 gets the card, exp-031 does not",
+      [R.timeline_checks(qn, {"answer_cited": f"x. [{i}]"})["_timeline_card_cited"] for i in ("exp-042", "exp-031")],
+      [True, False])
+
+def _ts_array(name, parts):
+    lits = [p if p == "TIMELINE_MARKER" else ('"' + p + '"' if "'" in p else "'" + p + "'") for p in parts]
+    return f"export const {name} = [\n  " + ",\n  ".join(lits) + ",\n].join('\\n\\n');\n"
+_lead = [p if p != R.TIMELINE_MARKER else "TIMELINE_MARKER" for p in R.FIXED_LEAD.split("\n\n")]
+_ts = (_ts_array("FIXED_LEAD", _lead)
+       + _ts_array("TIMELINE_REPLAY", ["Here's her timeline again.", "TIMELINE_MARKER"])
+       + "  return timelineShown && asksForTimeline(query);\n"
        f"  return /{R._ASKS_TIMELINE}/i.test(query);\n    /{R._ASKS_OVERVIEW}/i.test(query)\n"
-       f"const MARKER_RE = /{R._MARKER}/i;\nconst CAREER_CHUNKS = new Set(['exp-027', 'exp-028', 'exp-029', 'exp-030']);\n")
+       f"const MARKER_RE = /{R._MARKER}/i;\n"
+       "const CAREER_CHUNKS = new Set(['exp-027', 'exp-028', 'exp-029', 'exp-030', 'exp-042']);\n")
 _tsp = Path(R.HERE / "__pycache__" / "selftest-timeline.ts")
 _tsp.parent.mkdir(exist_ok=True)
 _tsp.write_text(_ts, encoding="utf-8")
 check("timeline drift: agrees", R.timeline_drift(_tsp), None)
-_tsp.write_text(_ts.replace("One or two sentences", "Two sentences").replace("'exp-030'", "'exp-031'"), encoding="utf-8")
-check("timeline drift: note and chunks reported", [p.split(" ")[0] for p in R.timeline_drift(_tsp).split("; ")],
-      ["TIMELINE_NOTE", "CAREER_CHUNKS"])
+_tsp.write_text(_ts.replace("cut resolution time 86%", "cut resolution time 85%").replace("'exp-042'", "'exp-031'"),
+                encoding="utf-8")
+check("timeline drift: lead and chunks reported", [p.split(" ")[0] for p in R.timeline_drift(_tsp).split("; ")],
+      ["FIXED_LEAD", "CAREER_CHUNKS"])
 _tsp.unlink()
+
+def _e2e(answer, timeline):
+    res = {"answer": answer, "error": None, "stream_error": None, "total_ms": 1000, "timeline": timeline}
+    c = E2E.check_answer(R, {"fixed_lead": True, "tag": "timeline"}, res)
+    return c["T2.13_fixed_lead"], c.get("T2.13_lead_mismatch"), c.get("T2.13_timeline_part")
+check("T2.13: lead and timeline pass", _e2e(R.FIXED_LEAD, {"explicit": True}), (True, None, None))
+check("T2.13: generated text fails", _e2e("She moved from research into growth.", {"explicit": True}),
+      (False, "text differs", None))
+check("T2.13: replay line fails", _e2e(R.TIMELINE_REPLAY, {"explicit": True}), (False, "replay line", None))
+check("T2.13: no timeline part fails", _e2e(R.FIXED_LEAD, None), (False, None, "missing"))
+check("T2.13: n/a elsewhere", E2E.check_answer(R, {"tag": "timeline"}, {"answer": "x", "error": None,
+      "stream_error": None, "total_ms": 1})["T2.13_fixed_lead"], "n/a")
+check("e2e --only reaches timeline_cases", [q["id"] for q in E2E.expand_questions(
+      json.load(open(R.EVAL_SET, encoding="utf-8")), {"TL01", "TL03"})], ["TL01", "TL03"])
 
 print("\n--- hybrid ranking (retrieval.py, D.1) ---")
 # Synthetic corpus and a stub index: no FAISS file, no API. The vector side
