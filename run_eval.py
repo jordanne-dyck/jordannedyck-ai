@@ -428,13 +428,17 @@ def search_experience(query, n_results, truncate, results=None):
     return "\n\n".join(parts), meta
 
 
-def generate(client, question, context, history=()):
+def generate(client, question, context, history=(), timeline=False):
     """`history` is the earlier turns as the site resends them: user and
     assistant messages, assistant text with citations already stripped.
+    `timeline` adds TIMELINE_NOTE, as route.ts does for an overview question.
 
     Streamed since 2026-10-30 (plan A.6), as route.ts streams, so time to first
     token is measured. The clock starts on each attempt: until then a retried
     answer's latency included the 10-30 s retry waits."""
+    system = SYSTEM_PROMPT.format(context=context)
+    if timeline:
+        system = with_timeline_note(system)
     for attempt in range(4):
         try:
             t0, ttft, parts, usage, finish = time.time(), None, [], None, None
@@ -445,7 +449,7 @@ def generate(client, question, context, history=()):
                 stream=True,
                 stream_options={"include_usage": True},
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT.format(context=context)},
+                    {"role": "system", "content": system},
                     *history,
                     {"role": "user", "content": question},
                 ],
@@ -474,7 +478,8 @@ def generate(client, question, context, history=()):
     return {
         # The checks score what a visitor sees, which has no citations; the
         # cited text is kept so citations can be checked against their chunks.
-        "answer": strip_citations(text),
+        # A timeline answer is checked as route.ts logs it, without the marker.
+        "answer": strip_citations(without_timeline_marker(text) if timeline else text),
         "answer_cited": text,
         "latency_s": round(latency, 2),
         "ttft_s": round(ttft, 2) if ttft else None,
@@ -804,6 +809,144 @@ def run_checks(q, arm, context, retrieved, gen):
         checks["T2.4_injection_resistance"] = None
 
     return checks
+
+
+# ── career timeline ───────────────────────────────────────────────────────────
+# MUST STAY IN SYNC with TIMELINE_NOTE, asksForTimeline(), asksForOverview(),
+# MARKER_RE and CAREER_CHUNKS in jordannedyck-ai-web/lib/timeline.ts (frontend
+# branch feat/career-timeline, 2026-11-04). For an overview question route.ts adds
+# TIMELINE_NOTE to the system prompt just before # KNOWLEDGE BASE CONTEXT and
+# flags the chat_events row timeline_prompt; prompt_version still hashes the base
+# prompt. --timeline runs timeline_cases the same way. timeline_drift() compares.
+TIMELINE_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "timeline.ts"
+RESULTS_TIMELINE = HERE / "eval_results_timeline.json"
+TIMELINE_MARKER = "{{timeline}}"
+TIMELINE_NOTE = """# THIS ANSWER
+
+An animated timeline of her whole career, with every role, employer, date and school, plays inside this answer. Build the answer around it, in exactly this shape:
+
+1. One or two sentences on the arc of her career: where she started, what she moved toward, and the thread that connects it. Cite as usual.
+2. The line {{timeline}} on its own, written exactly like that.
+3. One sentence on where she is now, or what the arc adds up to. Cite as usual.
+
+Do not list roles, employers, dates or schools, and do not walk through her jobs one by one: the timeline shows them. No headings or bullets.
+
+The shape, with placeholder content:
+
+She moved from A to B, and the thread through it is C. [chunk id]
+{{timeline}}
+Today she does D. [chunk id]"""
+TIMELINE_VERSION = hashlib.sha256(TIMELINE_NOTE.encode("utf-8")).hexdigest()[:8]
+_ASKS_TIMELINE = r"\btime ?line\b"
+_ASKS_OVERVIEW = (r"\bcareer\s+(?:history|path|journey|story|arc|overview|so far)\b|\bwork\s+history\b"
+                  r"|\bwalk\s+(?:me|us)\s+through\s+(?:her|jordanne'?s?)\s+(?:career|experience|background)\b")
+_MARKER = r"[ \t]*\{\{\s*timeline\s*\}\}[ \t]*"
+MARKER_RE = re.compile(_MARKER, re.IGNORECASE)
+# An answer citing one of these gets the timeline card. exp-030 is below the
+# indexer's 0.3 weight floor, so it is never retrieved and never cited.
+CAREER_CHUNKS = {"exp-027", "exp-028", "exp-029", "exp-030"}
+
+
+def asks_for_timeline(query):
+    return bool(re.search(_ASKS_TIMELINE, query, re.IGNORECASE))
+
+
+def asks_for_overview(query):
+    return asks_for_timeline(query) or bool(re.search(_ASKS_OVERVIEW, query, re.IGNORECASE))
+
+
+def with_timeline_note(prompt):
+    """route.ts: the note goes just before the context heading. JS replace()
+    with a string changes the first match only, hence count=1."""
+    if "# KNOWLEDGE BASE CONTEXT" in prompt:
+        return prompt.replace("# KNOWLEDGE BASE CONTEXT", f"{TIMELINE_NOTE}\n\n# KNOWLEDGE BASE CONTEXT", 1)
+    return f"{prompt}\n\n{TIMELINE_NOTE}"
+
+
+def without_timeline_marker(answer):
+    """withoutTimelineMarker(): the answer as it is logged, labelled and judged."""
+    return re.sub(_MARKER + r"(?:\r?\n)?", "", answer, flags=re.IGNORECASE)
+
+
+def timeline_drift(path=TIMELINE_TS):
+    """None when lib/timeline.ts agrees with the constants above, else what differs."""
+    if not path.exists():
+        return f"{path} not found (web branch not merged here?)"
+    ts = path.read_text(encoding="utf-8")
+    out = []
+    m = re.search(r"export const TIMELINE_NOTE = `([^`]*)`", ts)
+    note = m.group(1).replace("${TIMELINE_MARKER}", TIMELINE_MARKER) if m else None
+    if note is None:
+        out.append("no TIMELINE_NOTE template literal")
+    elif note != TIMELINE_NOTE:
+        out.append(f"TIMELINE_NOTE md5 {hashlib.md5(note.encode()).hexdigest()} != "
+                   f"{hashlib.md5(TIMELINE_NOTE.encode()).hexdigest()}")
+    tests = re.findall(r"/(.+?)/i\.test\(query\)", ts)
+    if tests != [_ASKS_TIMELINE, _ASKS_OVERVIEW]:
+        out.append(f"asksForTimeline/asksForOverview regexes differ: {tests}")
+    marker = re.search(r"const MARKER_RE = /(.+?)/i;", ts)
+    if not marker or marker.group(1) != _MARKER:
+        out.append(f"MARKER_RE differs: {marker.group(1) if marker else 'missing'}")
+    chunks = re.search(r"CAREER_CHUNKS = new Set\(\[([^\]]*)\]\)", ts)
+    if not chunks or set(re.findall(r"'([^']+)'", chunks.group(1))) != CAREER_CHUNKS:
+        out.append(f"CAREER_CHUNKS differ: {chunks.group(1) if chunks else 'missing'}")
+    return "; ".join(out) or None
+
+
+def _sentences(text):
+    return [s for s in _SENTENCE_END.split(strip_citations(text).strip()) if re.search(r"[a-z]{3}", s, re.I)]
+
+
+# Employers and schools on the timeline card: more than two named in a
+# three-sentence answer is a walk through her jobs (T2.11).
+TIMELINE_ORGS = {"Warai Neko": r"warai neko", "DECIEM": r"\bdeciem\b", "Loblaw": r"\bloblaw",
+                 "Shoppers Drug Mart": r"\bshoppers\b", "Kenna": r"\bkenna\b", "Guelph": r"\bguelph\b",
+                 "University of Toronto": r"university of toronto|\bu of t\b",
+                 "Product Faculty": r"product faculty"}
+_MONTHS = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?"
+_DATE_RANGE = re.compile(rf"\b(?:{_MONTHS}\s+)?(?:19|20)\d{{2}}\s*(?:-|–|—|to)\s*(?:{_MONTHS}\s+)?"
+                         rf"(?:(?:19|20)\d{{2}}|present|now|today)\b|\b{_MONTHS}\s+(?:19|20)\d{{2}}\b", re.I)
+
+
+def timeline_checks(q, gen):
+    """T2.9-T2.12, on the cited answer as the model wrote it. Added 2026-11-04
+    with the frontend's career timeline. An overview answer (timeline_prompt)
+    must take TIMELINE_NOTE's shape and cite every claim; any other answer must
+    never write the marker, and must cite (TL05 and TL06 came back from dev
+    with no citations at all)."""
+    from citation_checks import parse_citations  # imports this module
+    raw = gen.get("answer_cited") or ""
+    markers = MARKER_RE.findall(raw)
+    segments, cited = parse_citations(without_timeline_marker(raw))
+    uncited = [s["text"] for s in segments if not s["ids"]]
+    out = {"_markers": len(markers), "_cited_ids": cited, "_uncited_segments": uncited,
+           "_timeline_card_cited": bool(set(cited) & CAREER_CHUNKS)}
+    if not q.get("timeline_prompt"):
+        out["T2.9_timeline_marker"] = not markers
+        out["T2.10_timeline_shape"] = None
+        out["T2.11_no_role_list"] = None
+        expected = set(q.get("expect") or [])
+        out["T2.12_cited"] = bool(cited) and (not expected or bool(expected & set(cited)))
+        return out
+
+    own_line = [line for line in raw.split("\n") if line.strip() and MARKER_RE.fullmatch(line.rstrip("\r"))]
+    out["T2.9_timeline_marker"] = len(markers) == 1 and len(own_line) == 1
+    if markers:
+        m = MARKER_RE.search(raw)
+        before, after = _sentences(raw[:m.start()]), _sentences(raw[m.end():])
+        out["_sentences"] = [len(before), len(after)]
+        out["T2.10_timeline_shape"] = 1 <= len(before) <= 2 and len(after) == 1
+    else:
+        out["T2.10_timeline_shape"] = None
+
+    visible = strip_citations(without_timeline_marker(raw))
+    spans = re.findall(r"^[ \t]*(?:[-*•]|\d+[.)]|#+)\s.*$", visible, re.M)
+    spans += [m.group(0) for m in _DATE_RANGE.finditer(visible)]
+    orgs = sorted(name for name, rx in TIMELINE_ORGS.items() if re.search(rx, visible, re.I))
+    out["_role_list_spans"], out["_orgs"] = spans, orgs
+    out["T2.11_no_role_list"] = not spans and len(orgs) <= 2
+    out["T2.12_cited"] = bool(segments) and not uncited
+    return out
 
 
 # ── multi-turn ────────────────────────────────────────────────────────────────
@@ -1185,6 +1328,9 @@ def main():
     ap.add_argument("--fresh", action="store_true", help="ignore existing results")
     ap.add_argument("--multiturn", action="store_true",
                     help="run the multiturn cases (arm B) instead of the 34-question series")
+    ap.add_argument("--timeline", action="store_true",
+                    help="run timeline_cases (arm B) instead of the 34-question series; overview "
+                         "questions get TIMELINE_NOTE as route.ts adds it, and checks T2.9-T2.12 run")
     ap.add_argument("--source-format", choices=["document", "labelled"], default="labelled",
                     help="source layout; 'labelled' is the layout to land in route.ts, "
                          "'document' is the ab60e8aa comparison layout")
@@ -1222,7 +1368,9 @@ def main():
         print(f"prompt_file {args.prompt_file}")
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
-    questions = spec["questions"]
+    if args.timeline and (args.multiturn or args.corrective or args.probe):
+        sys.exit("--timeline runs on its own: not with --multiturn, --corrective or --probe")
+    questions = spec["timeline_cases"] if args.timeline else spec["questions"]
     if args.only:
         want = {s.strip().upper() for s in args.only.split(",")}
         questions = [q for q in questions if q["id"] in want]
@@ -1230,7 +1378,10 @@ def main():
     if args.corrective:
         arms = {"B": spec["arms"]["B"],
                 "C": {**spec["arms"]["B"], "name": "corrective", "corrective": True}}
-    results_path = Path(args.out) if args.out else RESULTS
+    if args.timeline:
+        arms = {"B": spec["arms"]["B"]}  # n_results 5, no truncation: what route.ts does
+        print(f"timeline note {TIMELINE_VERSION}, drift: {timeline_drift() or 'ok, agrees with lib/timeline.ts'}")
+    results_path = Path(args.out) if args.out else RESULTS_TIMELINE if args.timeline else RESULTS
     runs_of = lambda q: max(q.get("runs", 1), args.reps)
 
     if args.probe:
@@ -1276,8 +1427,10 @@ def main():
 
     existing = []
     if results_path.exists() and not args.fresh:
+        # A timeline row also depends on the note, which prompt_version does not hash.
         existing = load_resumable(results_path, prompt_version=PROMPT_VERSION,
-                                  source_format=SOURCE_FORMAT, model=MODEL)
+                                  source_format=SOURCE_FORMAT, model=MODEL,
+                                  **({"timeline_version": TIMELINE_VERSION} if args.timeline else {}))
         print(f"resuming — {len(existing)} results already recorded for {PROMPT_VERSION}")
     done = {(r["id"], r["arm"], r["run"]) for r in existing}
     results = list(existing)
@@ -1313,8 +1466,12 @@ def main():
                     print(f"    rewrite {rw['status']} +{added_ms}ms -> {rw['query'][:80]!r}", flush=True)
                 else:
                     context, retrieved = search_experience(q["q"], arm["n_results"], arm["truncate"])
-                    gen = generate(client, q["q"], context)
+                    gen = generate(client, q["q"], context, timeline=bool(q.get("timeline_prompt")))
                 checks = run_checks(q, arm_id, context, retrieved, gen)
+                if args.timeline:
+                    checks.update(timeline_checks(q, gen))
+                    extra = {"timeline_prompt": bool(q.get("timeline_prompt")),
+                             "timeline_version": TIMELINE_VERSION}
 
                 total_cost += gen["cost_usd"]
                 fails = [k for k, v in checks.items()
@@ -1349,7 +1506,8 @@ def main():
     if results:
         run_metrics.record_run(results, runner="run_eval", source=results_path.name,
                                label=f"{PROMPT_VERSION} {SOURCE_FORMAT}"
-                                     + (" corrective A/B" if args.corrective else ""),
+                                     + (" corrective A/B" if args.corrective else "")
+                                     + (f" timeline {TIMELINE_VERSION}" if args.timeline else ""),
                                scope="partial" if args.only else "full")
 
 

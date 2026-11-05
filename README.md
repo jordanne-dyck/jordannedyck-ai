@@ -47,7 +47,7 @@ flowchart LR
 
 The harness answers one question before anything ships: is this version better, and how do we know? **[EVALS.md](EVALS.md)** has the full account: results, ranges, the decisions the evals drove, and what is left to human judgement.
 
-[`eval_set.json`](eval_set.json) holds 88 cases:
+[`eval_set.json`](eval_set.json) holds 94 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
@@ -55,6 +55,7 @@ The harness answers one question before anything ships: is this version better, 
 | Regression cases | 29 | One per defect found in testing, each tagged with a failure type |
 | Multi-turn conversations | 9 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
 | Role-theme cases | 16 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" |
+| Career timeline cases | 6 | Career-overview questions, where the site plays an animated timeline inside the answer: the short answer shape it needs, no list of roles, every sentence cited. Plus two career questions that came back from dev with no citations |
 
 There are 8 tier-1 checks, and a release needs all of them to pass. One fails any answer that guesses at her work ("she likely focuses on") instead of stating it. Tier 2 measures quality, including whether every figure appears in the sources and whether follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
 

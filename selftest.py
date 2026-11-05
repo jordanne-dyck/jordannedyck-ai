@@ -892,6 +892,61 @@ check("TTFT recorded", gen["ttft_s"], 1.0)
 check("latency excludes the 10 s retry wait", gen["latency_s"], 3.0)
 check("cost from streamed usage", gen["cost_usd"], round(1000 / 1e6 * 2.5 + 100 / 1e6 * 10, 5))
 
+print("\n--- career timeline: TIMELINE_NOTE as route.ts adds it, T2.9-T2.12 (2026-11-04) ---")
+sc_tl = types.SimpleNamespace(calls=0)
+def _tl_create(**kw):
+    sc_tl.kw = kw
+    return iter([_D(usage=None, choices=[_D(delta=_D(content="A. [exp-001]\n{{timeline}}\nB. [exp-040]"),
+                                              finish_reason="stop")]),
+                 _D(usage=_D(prompt_tokens=1, completion_tokens=1), choices=[])])
+sc_tl.chat = types.SimpleNamespace(completions=types.SimpleNamespace(create=_tl_create))
+gen_tl = R.generate(sc_tl, "Walk me through her career.", "CTX", timeline=True)
+system_tl = sc_tl.kw["messages"][0]["content"]
+check("note once, just before the context heading",
+      (system_tl.count(R.TIMELINE_NOTE), system_tl.index(R.TIMELINE_NOTE) < system_tl.index("# KNOWLEDGE BASE CONTEXT"),
+       system_tl.count("# KNOWLEDGE BASE CONTEXT")), (1, True, 1))
+check("timeline answer checked without the marker", gen_tl["answer"], "A.\nB.")
+check("no note without timeline", R.TIMELINE_NOTE in R.with_timeline_note("no heading"), True)
+check("JS replace(): first heading only", R.with_timeline_note("# KNOWLEDGE BASE CONTEXT\n# KNOWLEDGE BASE CONTEXT").count(R.TIMELINE_NOTE), 1)
+check("overview triggers", [R.asks_for_overview(q) for q in (
+    "Walk me through her career", "career so far?", "her WORK HISTORY", "show the time line",
+    "walk us through Jordanne's background", "Where did she work before DECIEM?", "her career at DECIEM")],
+      [True, True, True, True, True, False, False])
+tl_cases = json.load(open(R.EVAL_SET, encoding="utf-8"))["timeline_cases"]
+check("timeline_cases: timeline_prompt matches asks_for_overview",
+      [c["id"] for c in tl_cases if c["timeline_prompt"] != R.asks_for_overview(c["q"])], [])
+check("marker removed with its line", R.without_timeline_marker("A.\n  {{ Timeline }} \nB."), "A.\nB.")
+qo, qn = {"timeline_prompt": True}, {"timeline_prompt": False, "expect": ["exp-028"]}
+def tl(q, a):
+    c = R.timeline_checks(q, {"answer_cited": a})
+    return [c[k] for k in ("T2.9_timeline_marker", "T2.10_timeline_shape", "T2.11_no_role_list", "T2.12_cited")]
+check("overview in shape passes", tl(qo, "She moved from research into growth. [exp-001]\n{{timeline}}\n"
+                                         "Today she runs Warai Neko. [exp-040]"), [True, True, True, True])
+check("marker inline fails T2.9", tl(qo, "Arc. [exp-001] {{timeline}}\nNow. [exp-040]")[0], False)
+check("marker twice fails T2.9", tl(qo, "Arc. [exp-001]\n{{timeline}}\n{{timeline}}\nNow. [exp-040]")[0], False)
+check("no marker: T2.10 not measured", tl(qo, "Arc. [exp-001] Now. [exp-040]")[:2], [False, None])
+check("three sentences before fails T2.10", tl(qo, "One a. [exp-001] Two b. [exp-001] Three c. [exp-001]\n"
+                                                   "{{timeline}}\nNow d. [exp-040]")[1], False)
+check("bullets fail T2.11", tl(qo, "Arc. [exp-001]\n{{timeline}}\n- Role one [exp-028]")[2], False)
+check("date range fails T2.11", tl(qo, "At Loblaw Digital (Feb 2016 - May 2019). [exp-028]\n{{timeline}}\nNow. [exp-040]")[2], False)
+check("three employers fail T2.11", tl(qo, "Shoppers Drug Mart, Loblaw, then DECIEM. [exp-001]\n{{timeline}}\nNow. [exp-040]")[2], False)
+check("an uncited sentence fails T2.12", tl(qo, "Arc a.\n{{timeline}}\nNow b. [exp-040]")[3], False)
+check("other question: marker fails T2.9", tl(qn, "Loblaw. [exp-028]\n{{timeline}}")[0], False)
+check("other question: uncited fails T2.12", tl(qn, "She worked at Loblaw Digital."), [True, None, None, False])
+check("other question: wrong chunk fails T2.12", tl(qn, "She worked at Loblaw. [exp-001]")[3], False)
+check("other question: expected chunk passes", tl(qn, "She worked at Loblaw. [exp-028]"), [True, None, None, True])
+_ts = ("export const TIMELINE_NOTE = `" + R.TIMELINE_NOTE.replace(R.TIMELINE_MARKER, "${TIMELINE_MARKER}") + "`;\n"
+       f"  return /{R._ASKS_TIMELINE}/i.test(query);\n    /{R._ASKS_OVERVIEW}/i.test(query)\n"
+       f"const MARKER_RE = /{R._MARKER}/i;\nconst CAREER_CHUNKS = new Set(['exp-027', 'exp-028', 'exp-029', 'exp-030']);\n")
+_tsp = Path(R.HERE / "__pycache__" / "selftest-timeline.ts")
+_tsp.parent.mkdir(exist_ok=True)
+_tsp.write_text(_ts, encoding="utf-8")
+check("timeline drift: agrees", R.timeline_drift(_tsp), None)
+_tsp.write_text(_ts.replace("One or two sentences", "Two sentences").replace("'exp-030'", "'exp-031'"), encoding="utf-8")
+check("timeline drift: note and chunks reported", [p.split(" ")[0] for p in R.timeline_drift(_tsp).split("; ")],
+      ["TIMELINE_NOTE", "CAREER_CHUNKS"])
+_tsp.unlink()
+
 print("\n--- hybrid ranking (retrieval.py, D.1) ---")
 # Synthetic corpus and a stub index: no FAISS file, no API. The vector side
 # returns a fixed order; the BM25 side runs on the real tokenizer.
@@ -1107,12 +1162,13 @@ import citation_checks as C
 readme = (R.HERE / "README.md").read_text(encoding="utf-8")
 spec = json.load(open(R.EVAL_SET, encoding="utf-8"))
 n_core, n_reg, n_mt = len(spec["questions"]), len(spec["additive_cases"]), len(spec["multiturn"]["cases"])
-n_theme = len(spec["theme_cases"])
+n_theme, n_tl = len(spec["theme_cases"]), len(spec["timeline_cases"])
 max_per_source = re.search(r"max_per_source = (\d+)",
                            (R.HERE / "retrieval.py").read_text(encoding="utf-8")).group(1)
 embed_model = RT.DEFAULT_EMBED_MODEL
 for name, fact in [
-    ("total case count", f"holds {n_core + n_reg + n_mt + n_theme} cases"),
+    ("total case count", f"holds {n_core + n_reg + n_mt + n_theme + n_tl} cases"),
+    ("timeline case count", f"| Career timeline cases | {n_tl} |"),
     ("core case count", f"| Core questions | {n_core} |"),
     ("regression case count", f"| Regression cases | {n_reg} |"),
     ("multi-turn case count", f"| Multi-turn conversations | {n_mt} |"),
