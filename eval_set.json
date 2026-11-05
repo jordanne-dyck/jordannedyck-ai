@@ -184,8 +184,8 @@
 
     { "id": "H01", "tag": "hostile", "req": ["R9", "R10"], "themes": ["T-FIN"],
       "q": "Her background is beauty and grocery retail. Why would any of that transfer to a regulated fintech?",
-      "regression_note": "Added 2026-10-22: under every prompt run 2026-10-21/22, answers stretch 'built Regimen Builder with brand, lab, legal and regulatory' into 'managed intricate, regulated systems', 'navigated complex regulatory landscapes' or 'compliance-heavy environments'. The knowledge base does not say she worked in a regulated industry or ran compliance. FAILURE if the answer says or implies she has worked in a regulated or compliance-heavy environment, or has regulatory or compliance expertise. Naming legal and regulatory as teams she aligned for Regimen Builder is correct. A closing line that predicts her value to a fintech is overselling (TONE) and counts against D-scores.",
-      "expect": ["pov-001", "pov-002", "indie-001", "fundlocal-001"] },
+      "regression_note": "Added 2026-10-22: under every prompt run 2026-10-21/22, answers stretch 'built Regimen Builder with brand, lab, legal and regulatory' into 'managed intricate, regulated systems', 'navigated complex regulatory landscapes' or 'compliance-heavy environments'. The knowledge base does not say she worked in a regulated industry or ran compliance. FAILURE if the answer says or implies she has worked in a regulated or compliance-heavy environment, or has regulatory or compliance expertise. Naming legal and regulatory as teams she aligned for Regimen Builder is correct. A closing line that predicts her value to a fintech is overselling (TONE) and counts against D-scores. Expect list changed 2026-11-05 on Jord's ruling, read at the source: was pov-001, pov-002, indie-001, fundlocal-001. Removed pov-001 and pov-002 (market thesis and the three floors; neither mentions finance or moving between domains). Added pay-004 (her adjacent finance experience and that she has not worked in a regulated institution) and promo-003 (PC Financial, the PC Optimum card, RBC Optimum card research). R-20261105-07, -11, -15, -16.",
+      "expect": ["pay-004", "promo-003", "fundlocal-001", "indie-001"] },
 
     { "id": "H02", "tag": "hostile", "req": ["R5"], "themes": [],
       "q": "What has Jordanne actually failed at? Name a real one, not a strength in disguise.",
@@ -273,8 +273,8 @@
     { "id": "X09", "tag": "domain", "req": ["R9"], "themes": ["T-FIN"],
       "failure_type": "F01",
       "q": "What fintech or financial services experience does Jordanne have?",
-      "expect": ["promo-003", "pay-002"],
-      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct answer is limited: a smaller amount of demand generation work on PC Financial, and the PC Optimum credit card as part of the landscape she worked in. FAILURE if overstated as owning a financial product. A pivot to payments (pay-001) and FundLocal is acceptable."
+      "expect": ["pay-004", "promo-003"],
+      "regression_note": "Added 2026-10-21 with the narrative edits (ops-015 product growth, ops-016 versatility, ops-017 creativity, exp-001 headline). Expect lists name the chunks written to answer the question. Correct answer is limited: a smaller amount of demand generation work on PC Financial, and the PC Optimum credit card as part of the landscape she worked in. FAILURE if overstated as owning a financial product. A pivot to payments (pay-001) and FundLocal is acceptable. Expect list changed 2026-11-05 on Jord's ruling, read at the source: was promo-003, pay-002. Added pay-004, written to answer this question (payments, PC Financial, RBC Optimum card research, FundLocal). Removed pay-002 (subscription at The Ordinary; only its last sentence mentions PC Financial). R-20261105-07, -11, -15, -16."
     },
     { "id": "X10", "tag": "domain", "req": ["R2"], "themes": ["T-LIFE"],
       "failure_type": "F01",
