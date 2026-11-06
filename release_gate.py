@@ -10,7 +10,8 @@ Each needs, for the prompt and index it will run with:
   - a full run_e2e.py run against jordbot-dev   (kind "e2e", scope "full"), whose stamp
     says dev served that prompt, taken after the tested commit
   - every failing check signed off by Jord, by case, in the evidence file; a tier-1
-    failure only as "checker miss: <why>", since a release needs every tier-1 check
+    failure only as "checker miss: <why>", or as "not served: <why>" when the e2e run
+    passed that case on dev, since a release needs every tier-1 check
   - every QA item ticked, in the evidence file
 
 Pure: reads eval_history/history.jsonl and the results files it names. Calls no
@@ -67,6 +68,8 @@ def find_runs(rows, prompt, index, since):
     for kind in ("single", "multiturn"):
         hits = [r for r in rows if r.get("runner") == "run_eval" and r.get("kind") == kind
                 and r.get("scope") == "full" and r.get("prompt_version") == prompt
+                # Arm B is the site's path; arm A truncates chunks at 500 chars.
+                and r.get("arm") in ("B", None)
                 and f"_{index}_" in (r.get("source") or "")]
         evals[kind] = hits[-1] if hits else None
     evals["e2e"] = None
@@ -152,6 +155,13 @@ def main():
     rows = [json.loads(l) for l in HISTORY.read_text(encoding="utf-8").splitlines() if l.strip()]
     evals = find_runs(rows, args.prompt, args.index, since)
 
+    # Cases the e2e run passed outright: what the site served for them was clean.
+    e2e_clean = set()
+    if evals["e2e"]:
+        e2e_failed = {case for case, _ in failures("e2e", evals["e2e"])}
+        data = json.loads(results_path(evals["e2e"]["source"]).read_text(encoding="utf-8"))
+        e2e_clean = {r.get("id") or r.get("record_id") for r in data["results"]} - e2e_failed
+
     problems, fails = [], []
     for kind, row in evals.items():
         if row is None:
@@ -162,21 +172,32 @@ def main():
         for (case, check), (n, total) in sorted(failures(kind, row).items()):
             key = f"{kind}|{case}|{check}"
             fails.append({"kind": kind, "case": case, "check": check, "failed": n, "of": total,
-                          "run_id": row["run_id"], "signoff": signed.get(key)})
+                          "run_id": row["run_id"], "e2e_case_passed": case in e2e_clean,
+                          "signoff": signed.get(key)})
     unsigned = [f for f in fails if not (f["signoff"] or "").strip()]
     # README: "a release needs all [tier-1 checks] to pass". A tier-1 failure can
-    # only be signed off as a checker miss, never accepted as a known defect.
+    # be signed off only as a checker miss, or (Jord, 2026-11-06) as "not served:"
+    # text the site never sends, which counts only when the e2e run passed that
+    # case on dev. A known defect is never accepted. First use: A01, whose model
+    # refusal the site replaces with FIXED_REFUSAL (web #85).
     t1 = tuple(f"{k}_" for k in json.loads((HERE / "eval_set.json").read_text(
         encoding="utf-8"))["checks"]["tier1"])
+
+    def tier1_ok(f):
+        so = f["signoff"].strip().lower()
+        return so.startswith("checker miss") or (
+            so.startswith("not served") and f["kind"] != "e2e" and f["e2e_case_passed"])
+
     tier1 = [f for f in fails if f["check"].startswith(t1) and (f["signoff"] or "").strip()
-             and not f["signoff"].strip().lower().startswith("checker miss")]
+             and not tier1_ok(f)]
     qa = [{"item": i, "done": ticked.get(i) is True} for i in QA]
     undone = [q for q in qa if not q["done"]]
     if unsigned:
         problems.append(f"{len(unsigned)} failing check(s) without Jord's sign-off")
     if tier1:
-        problems.append(f"{len(tier1)} tier-1 failure(s) signed off as something other than "
-                        "'checker miss: ...'; a tier-1 failure blocks the release")
+        problems.append(f"{len(tier1)} tier-1 failure(s) not signed off as 'checker miss: ...' "
+                        "or as 'not served: ...' with the e2e run passing that case; "
+                        "a tier-1 failure blocks the release")
     if undone:
         problems.append(f"{len(undone)} QA item(s) not ticked")
 
