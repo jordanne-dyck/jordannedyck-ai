@@ -147,6 +147,7 @@ def main():
     signed = {f"{f['kind']}|{f['case']}|{f['check']}": f.get("signoff")
               for f in old.get("failures", [])}
     ticked = {q["item"]: q.get("done") for q in old.get("qa", [])}
+    noted = {q["item"]: q.get("note") for q in old.get("qa", []) if q.get("note")}
 
     since = None
     if args.image == "jordbot-web":
@@ -200,7 +201,10 @@ def main():
 
     tier1 = [f for f in fails if f["check"].startswith(t1) and (f["signoff"] or "").strip()
              and not tier1_ok(f)]
-    qa = [{"item": i, "done": ticked.get(i) is True} for i in QA]
+    # "note": what Jord found doing the item, kept across re-runs. A tick with a
+    # note is checked-with-findings, not a clean pass.
+    qa = [{"item": i, "done": ticked.get(i) is True, **({"note": noted[i]} if i in noted else {})}
+          for i in QA]
     undone = [q for q in qa if not q["done"]]
     if unsigned:
         problems.append(f"{len(unsigned)} failing check(s) without Jord's sign-off")
