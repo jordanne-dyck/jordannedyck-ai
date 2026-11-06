@@ -599,7 +599,13 @@
           { "q": "Has Jordanne built a referral program?" },
           { "q": "Tell me more about that." }
         ],
-        "human": "Added 2026-10-30 from C.1 dev flagged questions (web /dashboard/admin/gaps, 2026-10-30), c02: dev rows 88 and 89, 2026-10-23, thumbs down on turn 3 ('repeats stuff from previous message'). The judge marked both claims supported, so grounding checks do not catch this. Turn 3 restated turn 2's DECIEM paragraph. growth-002 is the only referral chunk, so turn 3 has little new to add. Correct: add what turn 2 left out (the refer-a-friend rewards, email and the app as channels, one of the strongest acquisition channels), or say the record has nothing more on it. FAILURE if turn 3 restates turn-2 content as if it were new, or pads with claims no turn-3 chunk supports." }
+        "human": "Added 2026-10-30 from C.1 dev flagged questions (web /dashboard/admin/gaps, 2026-10-30), c02: dev rows 88 and 89, 2026-10-23, thumbs down on turn 3 ('repeats stuff from previous message'). The judge marked both claims supported, so grounding checks do not catch this. Turn 3 restated turn 2's DECIEM paragraph. growth-002 is the only referral chunk, so turn 3 has little new to add. Correct: add what turn 2 left out (the refer-a-friend rewards, email and the app as channels, one of the strongest acquisition channels), or say the record has nothing more on it. FAILURE if turn 3 restates turn-2 content as if it were new, or pads with claims no turn-3 chunk supports." },
+      { "id": "M10", "name": "comparison the record does not rank", "tag": "multiturn", "themes": ["T-CX", "T-AI"],
+        "turns": [
+          { "q": "What did Jordanne build at DECIEM?" },
+          { "q": "Which of those reached the most customers?" }
+        ],
+        "human": "Added 2026-11-06 from the release-gate signing check on dev (web master bbed85c, prompt dd326013, index fc423314): turn 2 opened 'The **AI Personal Shopper** likely reached the most customers because it was scaled globally after a successful pilot', a guess the record does not make. T1.8 passed it: SPECULATION_RE needs a pronoun or a listed verb next to 'likely', and a product name as the subject matches neither. Correct: give the reach figures the record does state, tied to the product they belong to, and say plainly when the record does not rank them. FAILURE if turn 2 names one product as reaching the most customers with likely, probably, presumably or similar, or ranks products by reach without a stated figure for each." }
     ]
   },
   "arms": {

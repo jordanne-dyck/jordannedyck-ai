@@ -718,10 +718,19 @@ CONTACT_RE = re.compile(r"jordanne\.dyck@gmail\.com|linkedin\.com/in/jordannedyc
 # 2026-11-02, by Jord's rule of 11-01 (promote once a fresh full run shows no
 # false positive): 0 matches in 340 answers at index e33e7aae, prompts
 # ff4d5612, fbf934a1 and f6a61205.
+# Widened 2026-11-06 (Jord, case M10, R-20261106-03): a hedge straight before a
+# past-tense claim, whatever the subject: "The AI Personal Shopper likely reached
+# the most customers", "likely contributed to sustained retention". Not after
+# as/more/most/less/would/will, so "twice as likely to buy again" and the KB's
+# "would likely have underperformed" still pass. 2 new matches in 2,794 stored
+# answers, both guesses ("likely helped avoid", "likely contributed").
 SPECULATION_RE = re.compile(
     r"\b(?:jordanne|she|her work|her role|this role|the role|it|they|which|this)\s+"
     r"(?:(?:would|will|is|was|has|had)\s+)?(?:most\s+)?(?:likely|probably|presumably)\b"
-    r"|\blikely (?:to )?(?:focus|involv|includ|cover|span|centr|draw|leverag|enta|requir|reflect)\w*",
+    r"|\blikely (?:to )?(?:focus|involv|includ|cover|span|centr|draw|leverag|enta|requir|reflect)\w*"
+    r"|(?<!\bas )(?<!\bmore )(?<!\bmost )(?<!\bless )(?<!\bwould )(?<!\bwill )"
+    r"\b(?:likely|probably|presumably)\s+(?:\w+ed|reached|drove|grew|made|had|led|won|built|brought"
+    r"|saw|took|was|were|did)\b",
     re.IGNORECASE)
 
 

@@ -380,6 +380,12 @@ for name, ans, want in [
     ("'likely to involve' caught", "Her role is likely to involve strategy.", False),
     ("grounded counterfactual passes", "A points program would have added a permanent liability.", True),
     ("a fact about customers passes", "Regimen Builder users were twice as likely to buy again.", True),
+    # M10 turn 2 on dev, 2026-11-06 (R-20261106-03): a product name as subject.
+    ("M10 hedge on a product caught", "The **AI Personal Shopper** likely reached the most customers "
+     "because it was scaled globally.", False),
+    ("'and likely contributed' caught", "It helped engagement and likely contributed to retention.", False),
+    ("'more likely to' passes", "Programs that were more likely to resonate with customers.", True),
+    ("KB counterfactual passes", "A strategy that would likely have underperformed.", True),
 ]:
     c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T1.8_no_speculation"], want)

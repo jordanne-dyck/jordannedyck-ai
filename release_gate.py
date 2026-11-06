@@ -89,25 +89,27 @@ def find_runs(rows, prompt, index, since):
 
 
 def failures(kind, row):
-    """(case, check) -> [failed, total] from the results file the history row names."""
+    """(case, check) -> [failed, total, questions failed] from the row's results file."""
     data = json.loads(results_path(row["source"]).read_text(encoding="utf-8"))
     records = data["results"] if isinstance(data, dict) else data
     out = {}
 
-    def add(case, checks):
+    def add(case, checks, question=None):
         for k, v in (checks or {}).items():
             if k.startswith("_") or not isinstance(v, bool):
                 continue
-            n = out.setdefault((case, k), [0, 0])
+            n = out.setdefault((case, k), [0, 0, set()])
             n[1] += 1
             n[0] += v is False
+            if v is False and question:
+                n[2].add(question)
 
     for rec in records:
         case = rec.get("id") or rec.get("record_id")
         for t in rec.get("turns") or []:
-            add(case, t.get("checks"))
+            add(case, t.get("checks"), t.get("question"))
         add(case, rec.get("case_checks"))
-        add(case, rec.get("checks"))
+        add(case, rec.get("checks"), rec.get("question"))
     return {k: v for k, v in out.items() if v[0]}
 
 
@@ -155,12 +157,19 @@ def main():
     rows = [json.loads(l) for l in HISTORY.read_text(encoding="utf-8").splitlines() if l.strip()]
     evals = find_runs(rows, args.prompt, args.index, since)
 
-    # Cases the e2e run passed outright: what the site served for them was clean.
-    e2e_clean = set()
+    # Cases, and question texts, the e2e run passed outright: what the site served
+    # for them was clean. By text too, because the site's fixed replies key on the
+    # visitor's words: M04 turn 3 sends A01's text and gets A01's fixed reply, but
+    # the e2e set has no M04 (single turns only).
+    e2e_clean, e2e_clean_q = set(), set()
     if evals["e2e"]:
-        e2e_failed = {case for case, _ in failures("e2e", evals["e2e"])}
         data = json.loads(results_path(evals["e2e"]["source"]).read_text(encoding="utf-8"))
-        e2e_clean = {r.get("id") or r.get("record_id") for r in data["results"]} - e2e_failed
+        for rec in data["results"]:
+            if not any(v is False for k, v in (rec.get("checks") or {}).items()
+                       if not k.startswith("_")):
+                e2e_clean.add(rec.get("id") or rec.get("record_id"))
+                if rec.get("question"):
+                    e2e_clean_q.add(rec["question"].strip())
 
     problems, fails = [], []
     for kind, row in evals.items():
@@ -169,10 +178,11 @@ def main():
                             + (f", index {args.index}" if kind != "e2e" else
                                " served by jordbot-dev" + (f" after {since:%Y-%m-%d %H:%M}Z" if since else "")))
             continue
-        for (case, check), (n, total) in sorted(failures(kind, row).items()):
+        for (case, check), (n, total, qs) in sorted(failures(kind, row).items()):
             key = f"{kind}|{case}|{check}"
+            passed = case in e2e_clean or (bool(qs) and all(q.strip() in e2e_clean_q for q in qs))
             fails.append({"kind": kind, "case": case, "check": check, "failed": n, "of": total,
-                          "run_id": row["run_id"], "e2e_case_passed": case in e2e_clean,
+                          "run_id": row["run_id"], "e2e_case_passed": passed,
                           "signoff": signed.get(key)})
     unsigned = [f for f in fails if not (f["signoff"] or "").strip()]
     # README: "a release needs all [tier-1 checks] to pass". A tier-1 failure can
