@@ -139,6 +139,12 @@ def main():
         ap.error("--image needs --tag and --sha")
     if args.tag and not re.fullmatch(r"v\d+\.\d+(\.\d+)?", args.tag):
         ap.error("--tag must be vX.Y")
+    # Git Bash rewrites a leading /faiss/ into C:/Program Files/Git/faiss/ when it
+    # starts a Windows python (2026-11-07: CI caught it in the kb-762b34e evidence).
+    # Set MSYS_NO_PATHCONV=1 there.
+    if args.faiss_dir and not re.fullmatch(r"/faiss/kb-[0-9a-f]{7,40}", args.faiss_dir):
+        ap.error(f"--faiss-dir must look like /faiss/kb-<commit>, got {args.faiss_dir!r} "
+                 "(Git Bash: set MSYS_NO_PATHCONV=1)")
 
     name = (f"{args.image}-{args.tag}" if args.image
             else "faiss-" + args.faiss_dir.rstrip("/").rsplit("/", 1)[-1])
