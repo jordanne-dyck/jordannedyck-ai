@@ -93,7 +93,9 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 api_server.py                 /search and /health
 scripts/embed_knowledge_faiss.py   builds the FAISS index from the knowledge base
 mcp_server/server_faiss.py    MCP server over the same index
-engine/                       the answer pipeline: prompt, fixed replies, follow-up rewrite, context layout, model call
+engine/                       the answer pipeline: prompt, fixed replies, follow-up rewrite, context layout, model call,
+                              citations and sources, project card, timeline card, live-answer labels, cost
+scripts/engine_parity.py      engine/ against the site's own TypeScript, on every saved answer
 EVALS.md                      how jordbot is evaluated, with results and decisions
 DECISIONS.md                  what the results taught, and rejected ideas with their evidence
 eval_set.json                 eval cases, requirements and check definitions

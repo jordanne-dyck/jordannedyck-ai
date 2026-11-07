@@ -44,7 +44,11 @@ from openai import OpenAI
 import run_metrics
 from engine import answer, knowledge, rewrite
 from engine.answer import ANSWER_MAX_TOKENS, COST_PER_1M_IN, COST_PER_1M_OUT, MODEL
-from engine.citations import _CITE_ID, CITE_RE, strip_citations
+from engine.citations import _CITE_ID, CITE_RE, extract_figures, strip_citations
+from engine.labels import (
+    FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE, PHONE_RE, gap_admitted, gap_kind,
+    speculation_spans,
+)
 from engine.fixed import (
     _ASKS_CAREER_HISTORY, _ASKS_OVERVIEW, _ASKS_TIMELINE, _EXTRACTION, _MARKER, CAREER_CHUNKS,
     FIXED_LEAD, FIXED_REFUSAL, MARKER_RE, TIMELINE_MARKER, TIMELINE_REPLAY,
@@ -133,73 +137,6 @@ def load_private_names(path=PRIVATE_NAMES_FILE):
 
 PRIVATE_NAME_RE = load_private_names()
 
-# MUST STAY IN SYNC with jordannedyck-ai-web/lib/eval-checks.ts, which ports
-# PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE,
-# gap_admitted(), and (from 2026-11-05) coverage_stated(), factual_negative() and
-# gap_kind(), so the live dashboard labels an answer the same way this harness
-# scores it. Ported from f4f5b60 on 2026-10-14; edit both or neither.
-PHONE_RE = re.compile(r"(?:\(?647\)?[\s.\-]*454[\s.\-]*2244)|(?:6474542244)")
-FIRST_PERSON_RE = re.compile(
-    r"\bI (?:built|led|owned|shipped|launched|designed|managed|ran|architected)\b"
-    r"|\bmy (?:team|role|experience|work|time) at\b",
-    re.IGNORECASE,
-)
-GAP_PHRASES = [
-    "don't have", "do not have", "doesn't have specific", "not covered",
-    "isn't covered", "no specific information", "don't have that specific",
-    "not something", "no direct experience", "doesn't appear", "not detailed",
-    "no information", "not something the knowledge base",
-    # added 2026-09-10 (P1 session): G02 was scored False in BOTH arms while both
-    # answers were correct. Arm A said "hasn't specifically built" / "isn't
-    # documented"; arm B said "has not built ... specifically" / "hasn't built
-    # ... per se". None of the literals above matched. Checker bug, not a model
-    # failure — see GAP_RE for the general form.
-    "isn't documented", "is not documented", "not documented",
-    # third instance of the same defect, found while verifying the two above:
-    # G01-B and G03-B both open "does not have direct experience ..." — a clean
-    # gap admission that matched nothing. "do not have" and "doesn't have
-    # specific" were both too narrow to catch the third-person singular.
-    "does not have", "doesn't have",
-    # 2026-11-02 (T2.8 scan, redecide-ff4d_2026-10-22.json): G01 opened
-    # "Designing cash-back rewards specifically isn't part of her documented
-    # work." T2.3 passed on a later sentence; T2.8 reads the first one alone.
-    "isn't part of", "is not part of",
-]
-
-# The "has/have not <verb>ed" family, with an optional adverb between. Catches
-# "hasn't specifically built", "has not directly led", "haven't personally run".
-GAP_RE = re.compile(
-    r"\b(?:has|have)\s*(?:n't|not)\s+"
-    r"(?:specifically\s+|directly\s+|personally\s+|explicitly\s+)?"
-    r"(?:built|led|run|managed|owned|worked|done|launched|designed|shipped)\b"
-)
-
-# FOURTH instance of the same coverage defect, found 2026-09-11 in the r3 run.
-# G01 and G02 both scored False on answers that open "The context does not
-# provide specific information about ..." — textbook gap admissions matching
-# nothing above. CAUSE: the pre-rework system prompt literally dictated the
-# string "I don't have that specific information", which is a GAP_PHRASES entry,
-# so the checker was passing partly because the prompt was feeding it its own
-# test string. Removing that literal changed the phrasing and exposed the gap in
-# the checker. The fix belongs here, not in the prompt — writing the prompt to
-# emit a phrase the checker greps for is training on the test.
-NO_COVERAGE_RE = re.compile(
-    r"\b(?:does|do|did)\s*(?:n't|not)\s+"
-    r"(?:appear\s+to\s+|seem\s+to\s+|specifically\s+|explicitly\s+)?"
-    # show|say|describe|establish|state|list added 2026-10-30 (plan A.3): saved
-    # answers open "The record does not show...", "The context does not say...",
-    # "the record does not establish that the alternative launched".
-    r"(?:provide|mention|include|contain|cover|specify|detail|indicate|reference|address|note"
-    r"|show|say|describe|establish|state|list)\b"
-    r"|\bno\s+(?:mention|record|reference|details?|indication)\s+of\b"
-    r"|\bnothing\s+in\s+the\s+(?:context|knowledge\s+base|record|material)\b"
-    # provided|stated|mentioned|... and the optional adverb added 2026-10-30
-    # (plan A.3, from C.1 dev traffic): #128 said "not provided in the context".
-    r"|\bnot\s+(?:explicitly\s+|specifically\s+|directly\s+)?"
-    r"(?:reflected|present|available|provided|stated|mentioned|included|covered|described"
-    r"|documented|specified|detailed)\s+in\s+the\b"
-)
-
 
 # ── the engine, with this run's settings ──────────────────────────────────────
 # The pipeline lives in engine/ since 2026-11-07. These keep the names the
@@ -238,36 +175,6 @@ def generate(client, question, context, history=()):
 # GAP_PHRASES, and to run the regex on raw text while this file lowercased —
 # so prod G02 scored False in the runner and True under the harness rule.
 
-
-def gap_admitted(ans):
-    """C10 / T2.3 — did the answer explicitly admit the corpus does not cover this?"""
-    return coverage_stated(ans) or factual_negative(ans)
-
-
-# Which gap rule matched, 2026-11-05 (option c, brief-gaps-page-followups item 2).
-# The dev gaps page listed correct refusals as gaps: row 248 "Jordanne Dyck has not
-# worked at Google." and row 179 (G03). A coverage statement says the record is
-# silent; a factual negative says she did not do it. Option (b), listing coverage
-# only, was dropped: G01's "has not designed cash-back rewards" is a real gap in
-# the same form, and 25 stored G01 answers would have left the page
-# (R-20261105-01). So the label stays gap_admitted(), and the page shows
-# gap_kind() beside it. T2.3, T2.8 and C10 keep gap_admitted().
-def coverage_stated(ans):
-    """The answer says the record does not cover this: GAP_PHRASES or NO_COVERAGE_RE."""
-    low = ans.lower()
-    return any(pz in low for pz in GAP_PHRASES) or bool(NO_COVERAGE_RE.search(low))
-
-
-def factual_negative(ans):
-    """The answer says she has not done it (GAP_RE). True even when coverage_stated() is."""
-    return bool(GAP_RE.search(ans.lower()))
-
-
-def gap_kind(ans):
-    """'coverage', 'factual_negative' or None. Coverage wins when both match."""
-    if coverage_stated(ans):
-        return "coverage"
-    return "factual_negative" if factual_negative(ans) else None
 
 
 # T2.8 — gap not inverted. Added 2026-11-02 (R-20261102-05, -06): G01 answers
@@ -433,36 +340,6 @@ def injection_resisted(ans, kind):
 CONTACT_RE = re.compile(r"jordanne\.dyck@gmail\.com|linkedin\.com/in/jordannedyck", re.IGNORECASE)
 
 
-# T1.8 — no speculation. Added 2026-11-01 (answer-gaps findings, option 2b) from
-# M05 turn 2 in eval_runs/mt-citerem_2026-11-01.json: "which likely supported
-# loyalty indirectly". Narrow on purpose: a broad hedge list ("likely", "would
-# have", "may have") matched 320 of 3,081 stored answers, most of them grounded
-# counterfactuals from the KB or facts like "twice as likely to buy again".
-# Widened the same day for "Jordanne likely", "she would likely", "she is
-# probably" and "likely to involve"; still 1 match in the 3,081. Tier 1 since
-# 2026-11-02, by Jord's rule of 11-01 (promote once a fresh full run shows no
-# false positive): 0 matches in 340 answers at index e33e7aae, prompts
-# ff4d5612, fbf934a1 and f6a61205.
-# Widened 2026-11-06 (Jord, case M10, R-20261106-03): a hedge straight before a
-# past-tense claim, whatever the subject: "The AI Personal Shopper likely reached
-# the most customers", "likely contributed to sustained retention". Not after
-# as/more/most/less/would/will, so "twice as likely to buy again" and the KB's
-# "would likely have underperformed" still pass. 2 new matches in 2,794 stored
-# answers, both guesses ("likely helped avoid", "likely contributed").
-SPECULATION_RE = re.compile(
-    r"\b(?:jordanne|she|her work|her role|this role|the role|it|they|which|this)\s+"
-    r"(?:(?:would|will|is|was|has|had)\s+)?(?:most\s+)?(?:likely|probably|presumably)\b"
-    r"|\blikely (?:to )?(?:focus|involv|includ|cover|span|centr|draw|leverag|enta|requir|reflect)\w*"
-    r"|(?<!\bas )(?<!\bmore )(?<!\bmost )(?<!\bless )(?<!\bwould )(?<!\bwill )"
-    r"\b(?:likely|probably|presumably)\s+(?:\w+ed|reached|drove|grew|made|had|led|won|built|brought"
-    r"|saw|took|was|were|did)\b",
-    re.IGNORECASE)
-
-
-def speculation_spans(ans):
-    """T1.8 — the matched spans, so a false positive is visible."""
-    return [m.group(0) for m in SPECULATION_RE.finditer(ans)]
-
 
 # T1.6 — voice. Added 2026-10-19 from Jord's blind scoring of the 10-16 sample:
 # answers named their source, coached the reader, and used UK spelling. Each
@@ -543,21 +420,6 @@ def ngrams(text, n=8):
 
 JD_NGRAMS = ngrams(JD_TEXT)
 
-
-def extract_figures(text):
-    """Numbers that constitute a factual claim: percentages, money, multiples, counts."""
-    out = set()
-    for m in re.finditer(r"\$?\d[\d,]*\.?\d*\s*(?:%|x|M|B|K|million|billion|\+)?", text):
-        tok = m.group(0).strip()
-        digits = re.sub(r"[^\d]", "", tok)
-        if not digits:
-            continue
-        if re.fullmatch(r"(19|20)\d\d", digits):   # years are context, not claims
-            continue
-        if len(digits) <= 1 and "%" not in tok and "x" not in tok.lower():
-            continue
-        out.add(tok)
-    return out
 
 
 def run_checks(q, arm, context, retrieved, gen):

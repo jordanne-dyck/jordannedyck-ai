@@ -93,3 +93,48 @@ FIXED_REFUSAL = (
 def asks_for_instructions(query):
     """asksForInstructions(): the site answers this message with FIXED_REFUSAL."""
     return bool(EXTRACTION_RE.search(query))
+
+
+# ── which fixed reply, and whether the timeline card shows ────────────────────
+# Ported 2026-11-07 from route.ts (web master bbed85c) and lib/timeline.ts.
+
+def cites_career(cited_ids):
+    """citesCareer(): the answer cites one of her role-history chunks."""
+    return any(i in CAREER_CHUNKS for i in cited_ids)
+
+
+def leads_with_career(chunks):
+    """leadsWithCareer(): the top retrieved chunk is role history. The top one
+    only, so an answer that retrieved a career chunk in passing doesn't get
+    the timeline."""
+    return bool(chunks) and chunks[0].get("chunk_id") in CAREER_CHUNKS
+
+
+def fixed_reply(query, timeline_shown=False):
+    """The reply the site gives without calling the model, or None. An
+    instruction request gets the refusal; an overview question gets the lead
+    (the replay once the page has shown the timeline this visit). `flags` are
+    what the chat_events row records."""
+    if asks_for_instructions(query):
+        return {"id": "refusal", "answer": FIXED_REFUSAL, "timeline": False,
+                "flags": {"fixed_refusal": True}}
+    if asks_for_overview(query):
+        replay = is_timeline_replay(query, timeline_shown)
+        return {"id": "lead", "answer": TIMELINE_REPLAY if replay else FIXED_LEAD, "timeline": True,
+                "flags": {"timeline": "explicit" if asks_for_timeline(query) else "overview",
+                          "timeline_lead": "replay" if replay else "fixed"}}
+    return None
+
+
+def timeline_card(query, cited_ids, chunks):
+    """Why a generated answer gets the timeline card: 'cited' (it cites role
+    history), 'retrieved' (it cites nothing and retrieval led with role
+    history) or 'asked' (a career-history question), else None. The page shows
+    the card once per visit."""
+    if cites_career(cited_ids):
+        return "cited"
+    if not cited_ids and leads_with_career(chunks):
+        return "retrieved"
+    if asks_for_career_history(query):
+        return "asked"
+    return None

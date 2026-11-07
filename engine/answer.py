@@ -4,11 +4,12 @@ settings and retries are unchanged."""
 import time
 
 from .citations import strip_citations
+from .cost import PRICING
 from .prompt import SYSTEM_PROMPT
 
 MODEL = "gpt-4o"
 TEMPERATURE = 0.7
-COST_PER_1M_IN, COST_PER_1M_OUT = 2.50, 10.00
+COST_PER_1M_IN, COST_PER_1M_OUT = PRICING[MODEL]
 
 # Answer length cap, sent as max_tokens. Mirrors maxTokens: 1000 (maxOutputTokens
 # after the AI SDK migration, 2026-10-27; same Chat Completions cap) in route.ts's
