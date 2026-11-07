@@ -3,7 +3,6 @@ run_eval.py on 2026-11-07."""
 
 import re
 
-
 # MUST STAY IN SYNC with CITE_RE and stripCitations() in
 # jordannedyck-ai-web/lib/citations.ts, which removes the same markers from the
 # site's stream. Added 2026-10-15 with the "Cite every claim" instruction.

@@ -3,7 +3,6 @@ cite reminder. Moved here from run_eval.py on 2026-11-07, text unchanged."""
 
 import hashlib
 
-
 # ── verbatim from lib/system-prompt.ts, with ${context} as {context} ───────────
 # MUST STAY IN SYNC with buildSystemPrompt() in jordannedyck-ai-web/lib/system-prompt.ts
 # (moved there from app/api/chat/route.ts on 2026-10-13). This is a verbatim copy of

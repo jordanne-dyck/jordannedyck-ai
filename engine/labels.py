@@ -6,7 +6,6 @@ import re
 
 from .prompt import SYSTEM_PROMPT
 
-
 # MUST STAY IN SYNC with jordannedyck-ai-web/lib/eval-checks.ts, which ports
 # PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE,
 # gap_admitted(), and (from 2026-11-05) coverage_stated(), factual_negative() and

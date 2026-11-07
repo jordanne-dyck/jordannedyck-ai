@@ -81,7 +81,7 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 
 | Layer | Tools |
 |---|---|
-| Retrieval API | Python 3.11, Flask, FAISS, OpenAI embeddings |
+| Retrieval API | Python 3.11, Flask on gunicorn, FAISS, OpenAI embeddings |
 | Chat and monitoring | Next.js, TypeScript, Vercel AI SDK, Postgres ([web repo](https://github.com/jordanne-dyck/jordannedyck-ai-web)) |
 | Models | gpt-4o (answers), gpt-4o-mini (query rewrite, grounding judge); Claude and Gemini models in comparison runs |
 | Agent access | MCP server exposing a `search_experience` tool |
@@ -90,7 +90,7 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 ## Repository layout
 
 ```
-api_server.py                 /search and /health
+api_server.py                 /search, /chat (one chat turn from engine/, not yet called by the site) and /health
 scripts/embed_knowledge_faiss.py   builds the FAISS index from the knowledge base
 mcp_server/server_faiss.py    MCP server over the same index
 engine/                       the answer pipeline: prompt, fixed replies, follow-up rewrite, context layout, model call,

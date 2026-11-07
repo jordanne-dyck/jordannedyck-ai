@@ -19,12 +19,17 @@ WORKDIR /opt/app-root/src
 # Copy the entire venv from builder
 COPY --from=builder /venv /venv
 
-# Copy only the application entrypoint and the ranking module it imports
+# Copy only the application entrypoint, the ranking module and the answer engine it imports
 COPY api_server.py retrieval.py ./
+COPY engine ./engine
 
 # faiss_db/ is NOT copied here — it is mounted from a PVC at /opt/app-root/src/faiss_db at runtime
 # api_server.py uses relative path "faiss_db/resume.index" so WORKDIR must stay /opt/app-root/src
 
 EXPOSE 5000
 
-CMD ["/venv/bin/python3", "api_server.py"]
+# gunicorn, not the Flask development server: /chat streams each answer for up to
+# 60 s, so requests must run side by side. One worker holds one copy of the index;
+# its threads serve requests concurrently. --timeout is the worker heartbeat, not
+# a per-request limit.
+CMD ["/venv/bin/gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--worker-class", "gthread", "--threads", "8", "--timeout", "120", "api_server:app"]

@@ -24,7 +24,13 @@ import json
 import re
 
 from engine.citations import (  # noqa: F401  re-exported: run_models.py and selftest.py use them
-    CITE_RE, FIGURE_RE, ID_RE, _claim_figures, _found_in, _push_segment, citation_labels,
+    CITE_RE,
+    FIGURE_RE,
+    ID_RE,
+    _claim_figures,
+    _found_in,
+    _push_segment,
+    citation_labels,
     parse_citations,
 )
 from engine.prompt import SYSTEM_PROMPT

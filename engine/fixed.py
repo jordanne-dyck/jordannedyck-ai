@@ -6,7 +6,6 @@ the web repo's copies until the site calls this engine."""
 
 import re
 
-
 # ── career timeline ──────────────────────────────────────────────────────────
 # MUST STAY IN SYNC with FIXED_LEAD, TIMELINE_REPLAY, isTimelineReplay(),
 # asksForTimeline(), asksForOverview(), asksForCareerHistory(), MARKER_RE and

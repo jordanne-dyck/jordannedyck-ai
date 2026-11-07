@@ -35,7 +35,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HERE))
 
-from engine import citations, cost, fixed, labels, projects  # noqa: E402
+from engine import citations, cost, fixed, labels, projects
 
 
 def load_chunks(faiss_dir):
@@ -148,7 +148,8 @@ def main():
     try:
         tar = subprocess.run(["git", "-C", args.web, "archive", args.web_ref, "lib"],
                              capture_output=True, check=True).stdout
-        tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp, filter="data")
+        with tarfile.open(fileobj=io.BytesIO(tar)) as t:
+            t.extractall(tmp, filter="data")
         (tmp / "fixtures.json").write_text(json.dumps(fx), encoding="utf-8")
         subprocess.run(["node", str(HERE / "scripts" / "engine_parity.mjs"), str(tmp / "lib"),
                         str(tmp / "fixtures.json"), str(tmp / "out.json")], check=True)

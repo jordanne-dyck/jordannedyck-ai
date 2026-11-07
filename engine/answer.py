@@ -18,6 +18,20 @@ COST_PER_1M_IN, COST_PER_1M_OUT = PRICING[MODEL]
 ANSWER_MAX_TOKENS = 1000
 
 
+def open_stream(client, messages, **options):
+    """The streamed answer call: MODEL, TEMPERATURE and ANSWER_MAX_TOKENS, with
+    usage in the last chunk. `options` go to client.with_options (timeout,
+    max_retries)."""
+    return (client.with_options(**options) if options else client).chat.completions.create(
+        model=MODEL,
+        temperature=TEMPERATURE,
+        max_tokens=ANSWER_MAX_TOKENS,
+        stream=True,
+        stream_options={"include_usage": True},
+        messages=messages,
+    )
+
+
 def generate(client, question, context, history=(), system_prompt=SYSTEM_PROMPT):
     """`history` is the earlier turns as the site resends them: user and
     assistant messages, assistant text with citations already stripped.
@@ -30,18 +44,11 @@ def generate(client, question, context, history=(), system_prompt=SYSTEM_PROMPT)
     for attempt in range(4):
         try:
             t0, ttft, parts, usage, finish = time.time(), None, [], None, None
-            stream = client.chat.completions.create(
-                model=MODEL,
-                temperature=TEMPERATURE,
-                max_tokens=ANSWER_MAX_TOKENS,
-                stream=True,
-                stream_options={"include_usage": True},
-                messages=[
-                    {"role": "system", "content": system},
-                    *history,
-                    {"role": "user", "content": question},
-                ],
-            )
+            stream = open_stream(client, [
+                {"role": "system", "content": system},
+                *history,
+                {"role": "user", "content": question},
+            ])
             for chunk in stream:
                 if chunk.usage:
                     usage = chunk.usage

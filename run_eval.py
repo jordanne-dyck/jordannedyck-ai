@@ -42,27 +42,50 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 import run_metrics
-from engine import answer, knowledge, rewrite
-from engine.answer import ANSWER_MAX_TOKENS, COST_PER_1M_IN, COST_PER_1M_OUT, MODEL
+from engine import answer, fixed, knowledge, labels, rewrite
+from engine.answer import MODEL
 from engine.citations import _CITE_ID, CITE_RE, extract_figures, strip_citations
-from engine.labels import (
-    FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE, PHONE_RE, gap_admitted, gap_kind,
-    speculation_spans,
-)
 from engine.fixed import (
-    _ASKS_CAREER_HISTORY, _ASKS_OVERVIEW, _ASKS_TIMELINE, _EXTRACTION, _MARKER, CAREER_CHUNKS,
-    FIXED_LEAD, FIXED_REFUSAL, MARKER_RE, TIMELINE_MARKER, TIMELINE_REPLAY,
-    asks_for_career_history, asks_for_instructions, asks_for_overview, is_timeline_replay,
+    _ASKS_CAREER_HISTORY,
+    _ASKS_OVERVIEW,
+    _ASKS_TIMELINE,
+    _EXTRACTION,
+    _MARKER,
+    CAREER_CHUNKS,
+    FIXED_LEAD,
+    FIXED_REFUSAL,
+    MARKER_RE,
+    TIMELINE_MARKER,
+    TIMELINE_REPLAY,
     without_timeline_marker,
 )
-from engine.prompt import CITE_REMINDER, PROMPT_VERSION, SYSTEM_PROMPT, site_prompt_version
+from engine.labels import FIRST_PERSON_RE, PHONE_RE, gap_admitted, speculation_spans
+from engine.prompt import (
+    CITE_REMINDER,
+    PROMPT_VERSION,
+    SYSTEM_PROMPT,
+    site_prompt_version,
+)
 from engine.rewrite import (
-    REWRITE_MAX_QUERY_CHARS, REWRITE_MAX_TOKENS, REWRITE_MODEL, REWRITE_PRIOR_QUESTIONS,
-    REWRITE_REPLY_CHARS, REWRITE_SYSTEM_PROMPT, REWRITE_TIMEOUT_S,
+    REWRITE_MAX_QUERY_CHARS,
+    REWRITE_MAX_TOKENS,
+    REWRITE_MODEL,
+    REWRITE_PRIOR_QUESTIONS,
+    REWRITE_REPLY_CHARS,
+    REWRITE_SYSTEM_PROMPT,
+    REWRITE_TIMEOUT_S,
 )
 from retrieval import RRF_K
 
 load_dotenv()
+
+# Re-exported, not used here: run_models.py, judge_check.py and selftest.py
+# read these names from run_eval. They live in engine/.
+ANSWER_MAX_TOKENS, COST_PER_1M_IN, COST_PER_1M_OUT = (
+    answer.ANSWER_MAX_TOKENS, answer.COST_PER_1M_IN, answer.COST_PER_1M_OUT)
+asks_for_career_history, asks_for_instructions = fixed.asks_for_career_history, fixed.asks_for_instructions
+asks_for_overview, is_timeline_replay = fixed.asks_for_overview, fixed.is_timeline_replay
+GAP_PHRASES, GAP_RE, NO_COVERAGE_RE, gap_kind = labels.GAP_PHRASES, labels.GAP_RE, labels.NO_COVERAGE_RE, labels.gap_kind
 
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
