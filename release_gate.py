@@ -8,7 +8,10 @@ Each needs, for the prompt and index it will run with:
   - a full single-turn run_eval.py run          (history kind "single", scope "full")
   - a full multi-turn run_eval.py run           (kind "multiturn", scope "full")
   - a full run_e2e.py run against jordbot-dev   (kind "e2e", scope "full"), whose stamp
-    says dev served that prompt, taken after the tested commit
+    says dev served that prompt, taken after the tested commit; it must hold every
+    case in E2E_GROUPS, so the timeline cases TL01-TL06 too (2026-11-08)
+  - the same for run_e2e.py --multiturn         (kind "e2e_multiturn"): M01-M10 replayed
+    through the route with signed answers. Its failures are listed as kind "e2e"
   - every failing check signed off by Jord, by case, in the evidence file; a tier-1
     failure only as "checker miss: <why>", or as "not served: <why>" when the e2e run
     passed that case on dev, since a release needs every tier-1 check
@@ -46,6 +49,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 HISTORY = HERE / "eval_history" / "history.jsonl"
+# run_e2e.FULL_GROUPS, copied so the gate does not import the runner; selftest.py
+# fails when the two differ.
+E2E_GROUPS = ("questions", "timeline_cases")
+E2E_KINDS = ("e2e", "e2e_multiturn")
 WEB = HERE.parent / "jordannedyck-ai-web"
 
 QA = [
@@ -87,20 +94,27 @@ def find_runs(rows, prompt, index, since):
                 and r.get("arm") in ("B", None)
                 and f"_{index}_" in (r.get("source") or "")]
         evals[kind] = hits[-1] if hits else None
-    evals["e2e"] = None
-    for r in reversed(rows):
-        if r.get("runner") != "run_e2e" or r.get("scope") != "full":
-            continue
-        p = results_path(r["source"])
-        if not p:
-            continue
-        stamp = json.loads(p.read_text(encoding="utf-8")).get("meta", {}).get("stamp", {})
-        ts = stamp.get("timestamp")
-        if (stamp.get("source_system") == "dev" and stamp.get("site_prompt_version") == prompt
-                and ts and (since is None or datetime.fromisoformat(ts) >= since)):
-            evals["e2e"] = r
-            break
+    for kind in E2E_KINDS:
+        evals[kind] = None
+        for r in reversed(rows):
+            if r.get("runner") != "run_e2e" or r.get("kind") != kind or r.get("scope") != "full":
+                continue
+            p = results_path(r["source"])
+            if not p:
+                continue
+            stamp = json.loads(p.read_text(encoding="utf-8")).get("meta", {}).get("stamp", {})
+            ts = stamp.get("timestamp")
+            if (stamp.get("source_system") == "dev" and stamp.get("site_prompt_version") == prompt
+                    and ts and (since is None or datetime.fromisoformat(ts) >= since)):
+                evals[kind] = r
+                break
     return evals
+
+
+def clean(rec):
+    """No check False in a record: its own, any turn's, or the conversation's."""
+    groups = [rec.get("checks"), rec.get("case_checks")] + [t.get("checks") for t in rec.get("turns") or []]
+    return not any(v is False for g in groups for k, v in (g or {}).items() if not k.startswith("_"))
 
 
 def failures(kind, row):
@@ -245,26 +259,39 @@ def main():
     # for them was clean. By text too, because the site's fixed replies key on the
     # visitor's words: M04 turn 3 sends A01's text and gets A01's fixed reply, but
     # the e2e set has no M04 (single turns only).
-    e2e_clean, e2e_clean_q = set(), set()
-    if evals["e2e"]:
-        data = json.loads(results_path(evals["e2e"]["source"]).read_text(encoding="utf-8"))
+    # 2026-11-08: the e2e_multiturn run now carries M04 itself; the text match stays
+    # for single-turn questions asked inside a conversation elsewhere.
+    eval_set = json.loads((HERE / "eval_set.json").read_text(encoding="utf-8"))
+    e2e_clean, e2e_clean_q, problems = set(), set(), []
+    for kind in E2E_KINDS:
+        if not evals[kind]:
+            continue
+        data = json.loads(results_path(evals[kind]["source"]).read_text(encoding="utf-8"))
         for rec in data["results"]:
-            if not any(v is False for k, v in (rec.get("checks") or {}).items()
-                       if not k.startswith("_")):
+            if clean(rec):
                 e2e_clean.add(rec.get("id") or rec.get("record_id"))
                 if rec.get("question"):
                     e2e_clean_q.add(rec["question"].strip())
+        if kind == "e2e":
+            have = {rec.get("id") for rec in data["results"]}
+            lacking = [c["id"] for g in E2E_GROUPS for c in eval_set.get(g, []) if c["id"] not in have]
+            if lacking:
+                problems.append(f"e2e run {evals[kind]['source']} lacks {', '.join(lacking)}; "
+                                "a full run now includes the timeline cases")
 
-    problems, fails = [], []
+    fails = []
     for kind, row in evals.items():
         if row is None:
             problems.append(f"no full {kind} run for prompt {args.prompt}"
-                            + (f", index {args.index}" if kind != "e2e" else
+                            + (f", index {args.index}" if kind not in E2E_KINDS else
                                " served by jordbot-dev" + (f" after {since:%Y-%m-%d %H:%M}Z" if since else "")))
             continue
+        # Both e2e runs list their failures as "e2e", so the tier-1 rule here and
+        # in the web repo's CI check (kind != "e2e") holds for the multi-turn one.
+        fkind = "e2e" if kind in E2E_KINDS else kind
         for (case, check), (n, total, qs) in sorted(failures(kind, row).items()):
             passed = case in e2e_clean or (bool(qs) and all(q.strip() in e2e_clean_q for q in qs))
-            fails.append({"kind": kind, "case": case, "check": check, "failed": n, "of": total,
+            fails.append({"kind": fkind, "case": case, "check": check, "failed": n, "of": total,
                           "run_id": row["run_id"], "e2e_case_passed": passed})
     carry_signoffs(old.get("failures", []), fails)
     unsigned = [f for f in fails if not (f["signoff"] or "").strip()]
@@ -273,8 +300,7 @@ def main():
     # text the site never sends, which counts only when the e2e run passed that
     # case on dev. A known defect is never accepted. First use: A01, whose model
     # refusal the site replaces with FIXED_REFUSAL (web #85).
-    t1 = tuple(f"{k}_" for k in json.loads((HERE / "eval_set.json").read_text(
-        encoding="utf-8"))["checks"]["tier1"])
+    t1 = tuple(f"{k}_" for k in eval_set["checks"]["tier1"])
 
     def tier1_ok(f):
         so = f["signoff"].strip().lower()

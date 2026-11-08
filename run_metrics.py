@@ -7,7 +7,8 @@ Pure: reads results files, calls no API.
 Reads every results shape the runners write:
   - run_eval.py and run_models.py, single-turn: a list of answer records;
   - the same two with --multiturn: a list of conversations with "turns";
-  - run_e2e.py: {"meta": ..., "results": [...]};
+  - run_e2e.py: {"meta": ..., "results": [...]}, and with --multiturn the same
+    shape with "turns" in each result (kind "e2e_multiturn", not on the chart);
   - retrieval checks and run_eval.py --probe files, scored as retrieval_scores.py
     scores them (kind "retrieval": recall@5, MRR@5, index, ranker).
 judge_agreement.py writes its own lines (kind "judge_agreement") through
@@ -66,12 +67,14 @@ def answer_rows(data):
     if isinstance(data, dict) and "results" in data:  # run_e2e.py
         rows = []
         for r in data["results"]:
-            t = r.get("timings_ms") or {}
-            rows.append({"id": r["id"], "model": (r.get("stamp") or {}).get("model"), "arm": None,
-                         "run": r.get("run_index"), "turn": 1,
-                         "latency_s": _ms(t.get("time_to_complete")),
-                         "ttft_s": _ms(t.get("time_to_first_token")),
-                         "cost_usd": None, "checks": _checks(r.get("checks"))})
+            model = (r.get("stamp") or {}).get("model")
+            for n, a in ([(t["turn"], t) for t in r["turns"]] if "turns" in r else [(1, r)]):
+                t = a.get("timings_ms") or {}
+                rows.append({"id": r["id"], "model": model, "arm": None,
+                             "run": r.get("run_index", 1), "turn": n,
+                             "latency_s": _ms(t.get("time_to_complete")),
+                             "ttft_s": _ms(t.get("time_to_first_token")),
+                             "cost_usd": None, "checks": _checks(a.get("checks"))})
         return rows
     rows = []
     for r in data:
@@ -96,6 +99,9 @@ def answer_rows(data):
 
 def conversation_rows(data):
     """Case-level checks (T2.6, T2.7), one row per conversation."""
+    if isinstance(data, dict) and "results" in data:  # run_e2e.py --multiturn
+        return [{"id": r["id"], "model": (r.get("stamp") or {}).get("model"), "run": 1,
+                 "checks": _checks(r.get("case_checks"))} for r in data["results"] if "turns" in r]
     if not isinstance(data, list):
         return []
     return [{"id": r["id"], "model": r.get("model"), "run": r.get("run", 1),
@@ -104,7 +110,7 @@ def conversation_rows(data):
 
 def kind_of(data):
     if isinstance(data, dict) and "results" in data:
-        return "e2e"
+        return "e2e_multiturn" if data["results"] and "turns" in data["results"][0] else "e2e"
     return "multiturn" if data and "turns" in data[0] else "single"
 
 
@@ -205,7 +211,7 @@ def history_lines(data, *, runner, source, label, date, scope, prompt_version=No
     """One history line per model and arm in a results file. Lines hold ids and
     numbers only, never answer text: the history is committed."""
     rows, convs, kind = answer_rows(data), conversation_rows(data), kind_of(data)
-    if kind == "e2e" and data["results"]:
+    if kind.startswith("e2e") and data["results"]:
         stamp = data["results"][0].get("stamp") or {}
         prompt_version = prompt_version or stamp.get("site_prompt_version")
     groups = {}
