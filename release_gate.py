@@ -13,13 +13,20 @@ Each needs, for the prompt and index it will run with:
     failure only as "checker miss: <why>", or as "not served: <why>" when the e2e run
     passed that case on dev, since a release needs every tier-1 check
   - every QA item ticked, in the evidence file
+  - (2026-11-07) the public docs brought up to date and approved by Jord: each doc
+    in DOCS, as it stands on origin/master, has "approved": true in the evidence
+    file; COVERAGE.md on origin/master is what coverage_report.py generates; and
+    no results-log entry is still "reviewed: no"
 
-Pure: reads eval_history/history.jsonl and the results files it names. Calls no
-API and spends nothing; the runs above are separate, paid, and need Jord's go.
+Reads eval_history/history.jsonl, the results files it names, the results log and
+the docs on origin/master (it fetches both repos first). Calls no paid API and
+spends nothing; the runs above are separate, paid, and need Jord's go.
 
-Re-running keeps the sign-offs and ticks already in the file, so the loop is:
-run the gate, read the failures it prints, write Jord's ruling into each
-"signoff" (her words, not a summary) and tick each QA item she did, run it again.
+Re-running keeps the sign-offs, ticks and approvals already in the file, so the
+loop is: run the gate, read the failures it prints, write Jord's ruling into each
+"signoff" (her words, not a summary), tick each QA item she did, set "approved"
+on each doc she approved, run it again. An approval holds for the commit it was
+given on: a doc that changes on master afterwards needs approving again.
 
 Usage (from C:\\Users\\Jord\\jordannedyck-ai):
     uv run python release_gate.py --image jordbot-web --tag v1.16 --sha <web commit> \
@@ -48,6 +55,13 @@ QA = [
     "/dashboard/admin loads; /api/health reports ok, db and the expected prompt_version",
     "Five answers read end to end for voice, not just for a response",
 ]
+
+RESULTS_LOG = HERE / "nimbalyst-local" / "results-log.md"
+# Docs a release brings up to date (Jord, 2026-11-07). Claude drafts the changes
+# from reviewed results, Jord reads what was added and approves each doc, and the
+# approved text is merged to master before the prod PR. "ai" is this repo.
+DOCS = [("ai", "README.md"), ("ai", "EVALS.md"), ("ai", "DECISIONS.md"),
+        ("ai", "COVERAGE.md"), ("web", "README.md")]
 
 
 def results_path(source):
@@ -121,6 +135,48 @@ def resolve(sha):
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None, None
     return out[0], datetime.fromisoformat(out[1]).astimezone(UTC)
+
+
+def git_out(repo, *args):
+    """stdout of a git command in `repo`, or None when it fails."""
+    try:
+        r = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True,
+                           encoding="utf-8", check=False)
+    except FileNotFoundError:
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def unreviewed(text):
+    """Results-log ids whose entry still says `- reviewed: no`."""
+    out, cur = [], None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            cur = None
+        m = re.match(r"### (R-\d{8}-\d+)\b", line)
+        if m:
+            cur = m.group(1)
+        elif cur and re.match(r"- reviewed:\s*no\b", line):
+            out.append(cur)
+    return out
+
+
+def doc_entries(old_docs, last_commit):
+    """One entry per DOCS item. `last_commit(repo, path)` is the newest commit on
+    origin/master that touched the doc, or None. Jord's approval and note carry over
+    only while that commit is the one she approved; a newer commit resets it."""
+    prev = {(d.get("repo"), d.get("path")): d for d in old_docs}
+    out = []
+    for repo, path in DOCS:
+        p = prev.get((repo, path), {})
+        commit = last_commit(repo, path)
+        e = {"repo": repo, "path": path, "commit": commit,
+             "approved": commit is not None and p.get("commit") == commit
+             and p.get("approved") is True}
+        if p.get("note"):
+            e["note"] = p["note"]
+        out.append(e)
+    return out
 
 
 def main():
@@ -221,6 +277,45 @@ def main():
     if undone:
         problems.append(f"{len(undone)} QA item(s) not ticked")
 
+    # Docs: judged as they stand on origin/master, so fetch both repos first.
+    repos = {"ai": HERE, "web": WEB}
+    for key, repo in repos.items():
+        if git_out(repo, "fetch", "-q", "origin", "master") is None:
+            problems.append(f"could not fetch origin/master in {repo}; docs not checked against it")
+
+    def last_commit(key, path):
+        sha = (git_out(repos[key], "log", "-1", "--format=%H", "origin/master", "--", path) or "").strip()
+        return sha or None
+
+    docs = doc_entries(old.get("docs", []), last_commit)
+    for d in docs:
+        if d["commit"] is None:
+            problems.append(f"{d['repo']}:{d['path']} not found on origin/master")
+    unapproved = [d for d in docs if d["commit"] and not d["approved"]]
+    if unapproved:
+        problems.append(f"{len(unapproved)} doc(s) not approved by Jord at their master commit: "
+                        + ", ".join(f"{d['repo']}:{d['path']}" for d in unapproved))
+
+    import coverage_report  # only the gate needs it
+    on_master = git_out(HERE, "show", "origin/master:COVERAGE.md")
+    spec_text = git_out(HERE, "show", "origin/master:eval_set.json")
+    coverage_ok = False
+    if on_master is not None and spec_text is not None:
+        spec = json.loads(spec_text)
+        cases = [c for g in coverage_report.CASE_GROUPS for c in spec.get(g, [])]
+        want = coverage_report.markdown(spec, cases, spec.get("multiturn", {}).get("cases", []))
+        coverage_ok = on_master.replace("\r\n", "\n") == want
+    if not coverage_ok:
+        problems.append("COVERAGE.md on origin/master is not what coverage_report.py generates "
+                        "from eval_set.json; run it with --write and merge the result")
+
+    pending = unreviewed(RESULTS_LOG.read_text(encoding="utf-8")) if RESULTS_LOG.exists() else None
+    if pending is None:
+        problems.append(f"results log not found at {RESULTS_LOG}")
+    elif pending:
+        problems.append(f"{len(pending)} results-log entr{'y' if len(pending) == 1 else 'ies'} "
+                        "still reviewed: no")
+
     evidence = {
         "generated_by": "jordannedyck-ai/release_gate.py",
         "generated": date.today().isoformat(),
@@ -231,6 +326,9 @@ def main():
                                   "all_checks_pass_rate")} for k, r in evals.items()},
         "failures": fails,
         "qa": qa,
+        "docs": docs,
+        "coverage_generated": coverage_ok,
+        "results_log": {"unreviewed": pending},
         "problems": problems,
         "status": "fail" if problems else "pass",
     }
@@ -245,6 +343,11 @@ def main():
               f"{f['check']:32} {f['failed']}/{f['of']}")
     for q in undone:
         print(f"  QA not ticked: {q['item']}")
+    for d in docs:
+        print(f"  doc {'approved' if d['approved'] else 'NOT APPROVED'} {d['repo']}:{d['path']} "
+              f"{(d['commit'] or 'missing')[:7]}")
+    if pending:
+        print(f"  results log, reviewed: no: {', '.join(pending)}")
     print(f"\n{out}\nstatus: {evidence['status']}")
     for p in problems:
         print(f"  - {p}")

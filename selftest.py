@@ -1396,6 +1396,40 @@ with tempfile.TemporaryDirectory() as td:
           [r["id"] for r in json.loads(side.read_text(encoding="utf-8"))], ["W14", "H03", "D05"])
     check("load_resumable on a missing file", R.load_resumable(Path(td) / "none.json", **cur), [])
 
+# Release gate, docs step (Jord, 2026-11-07): a prod change needs the public docs
+# approved by Jord at their master commit and no results-log entry still unreviewed.
+print("\n--- release gate: docs approval and results-log review ---")
+import release_gate as G
+log = "\n".join([
+    "- `reviewed: no` marks an entry Claude wrote without Jord seeing it first.",
+    "```", "### R-YYYYMMDD-NN · template", "- reviewed: no", "```",
+    "## Not results", "- reviewed: no",
+    "## Results",
+    "### R-20261105-01 · reviewed", "- reviewed: yes (Jord, G.6)",
+    "### R-20261106-02 · pending", "- status: proposed", "- reviewed: no",
+    "### R-20261107-01 · approved one by one, no field", "- status: approved",
+])
+check("unreviewed finds only entries still reviewed: no", G.unreviewed(log), ["R-20261106-02"])
+heads = {("ai", "README.md"): "a" * 40, ("ai", "EVALS.md"): "b" * 40,
+         ("ai", "DECISIONS.md"): "c" * 40, ("web", "README.md"): "d" * 40}
+old_docs = [{"repo": "ai", "path": "README.md", "commit": "a" * 40, "approved": True},
+            {"repo": "ai", "path": "EVALS.md", "commit": "0" * 40, "approved": True,
+             "note": "added the v1.17 gate results"},
+            {"repo": "web", "path": "README.md", "commit": "d" * 40, "approved": "yes"}]
+docs = {(d["repo"], d["path"]): d for d in G.doc_entries(old_docs, lambda r, p: heads.get((r, p)))}
+check("every DOCS item gets an entry", sorted(docs), sorted(G.DOCS))
+check("approval kept at the commit Jord approved", docs[("ai", "README.md")]["approved"], True)
+check("doc changed on master since approval needs approving again",
+      docs[("ai", "EVALS.md")]["approved"], False)
+check("Jord's note kept across re-runs", docs[("ai", "EVALS.md")].get("note"),
+      "added the v1.17 gate results")
+check("only true approves, not a string", docs[("web", "README.md")]["approved"], False)
+check("doc missing on master is never approved", docs[("ai", "COVERAGE.md")]["approved"], False)
+import coverage_report as CR
+spec_cr, cases_cr, _mt = CR.load()
+check("coverage counts the timeline cases",
+      {c["id"] for c in spec_cr["timeline_cases"]} <= {c["id"] for c in cases_cr}, True)
+
 # Local only: the web repo is not checked out in CI.
 route =R.HERE.parent / "jordannedyck-ai-web" / "app" / "api" / "chat" / "route.ts"
 if route.exists():

@@ -73,7 +73,7 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 - **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases. A request for the bot's own prompt gets a fixed reply on the site, with no model call, because every prompt rewrite that fixed it broke the false-claim case. The end-to-end runner checks that exact reply; the eval still sends the request to the model, to measure the prompt's own refusal as a backstop.
 - **Cost.** `/search` caps query length and result count, because each query is a paid embedding call. Eval runners record the cost of every call.
 - **Traceability.** `/health` reports chunk count, index size, the index fingerprint, the embedding model and whether the OpenAI key works. The indexer records its model next to the index; the server embeds questions with that model and refuses to start on an index whose vectors do not match it.
-- **Release gate.** A prod release or index promotion cannot merge without an evidence file from `release_gate.py`: full single-turn, multi-turn and end-to-end runs on the exact prompt and index going out, every failing check signed off by me, and a QA list done on dev. A tier-1 failure passes only if it is a checker miss, or text the site never sends that the end-to-end run checked on dev. CI in the site repo re-checks the file; rollbacks need none.
+- **Release gate.** A prod release or index promotion cannot merge without an evidence file from `release_gate.py`: full single-turn, multi-turn and end-to-end runs on the exact prompt and index going out, every failing check signed off by me, a QA list done on dev, and this README, EVALS, DECISIONS, COVERAGE and the site's README brought up to date, read and approved by me. A tier-1 failure passes only if it is a checker miss, or text the site never sends that the end-to-end run checked on dev. CI in the site repo re-checks the file; rollbacks need none.
 - **Deployment.** Containers are built in-cluster with Shipwright from a UBI9 multi-stage `Containerfile`. Argo CD deploys to OpenShift from git. The index lives on a persistent volume, not in the image.
 - **Supply chain.** Dependencies are pinned in `uv.lock`. CI runs ruff, the selftest, and Trivy, with high and critical findings failing the build. GitHub Actions are pinned by commit.
 
@@ -102,7 +102,7 @@ run_metrics.py                headline metrics; writes eval_history/ (runs, retr
 bootstrap_ci.py               confidence ranges on pass rates and blind scores; is a gap noise?
 judge_agreement.py            does the grounding judge agree with the blind human scores?
 analyse.py                    a run against the last comparable one: regressions, weakest checks, outliers
-release_gate.py               the evidence a prod release needs: full runs, sign-offs, QA
+release_gate.py               the evidence a prod release needs: full runs, sign-offs, QA, docs
 judge_check.py                named cases and re-judging for the grounding judge (judge_cases.json)
 Containerfile  pyproject.toml  uv.lock
 ```
