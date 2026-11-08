@@ -299,7 +299,7 @@ def main():
 
     # Docs: judged as they stand on origin/master, so fetch both repos first.
     repos = {"ai": HERE, "web": WEB}
-    for key, repo in repos.items():
+    for repo in repos.values():
         if git_out(repo, "fetch", "-q", "origin", "master") is None:
             problems.append(f"could not fetch origin/master in {repo}; docs not checked against it")
 
