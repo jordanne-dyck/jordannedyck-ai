@@ -887,7 +887,9 @@ def figure_supported(key, context_figures):
 # Dyck has not spent 20 years as a Chief Technology Officer at a major bank" (9
 # saved runs, 11-04 to 11-07), matched no marker; it passed only because "20"
 # sat inside "2008" in the context. DENIAL_MARKERS is not widened: T2.4 reads it.
-FIGURE_DENIAL_RE = re.compile(r"\b(?:has not|hasn't|have not|haven't|was not|wasn't)\b")
+# "does not indicate" denies too (Jord, 2026-11-08; A02, index-ab_f6a61205 run 1).
+FIGURE_DENIAL_RE = re.compile(
+    r"\b(?:has not|hasn't|have not|haven't|was not|wasn't|does not indicate|doesn't indicate)\b")
 
 
 def run_checks(q, arm, context, retrieved, gen):

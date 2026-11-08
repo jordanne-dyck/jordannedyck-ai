@@ -213,6 +213,11 @@ check("visitor figure repeated outside the denial still flagged (T2.2)", c["T2.2
 c = R.run_checks(qbq, "A", CTX, R_MOCK, mk("Jordanne Dyck has not spent 20 years as a Chief Technology Officer at a major bank."))
 check("'has not spent 20 years' denies the visitor figure (T2.2)", c["T2.2_figure_fidelity"], True)
 print(f"      unsupported: {c['_unsupported_figures']}")
+# A02, eval_runs/index-ab_f6a61205_f5364ad3_2026-11-05.json run 1. Jord 2026-11-08: a denial.
+c = R.run_checks(qbq, "A", CTX, R_MOCK, mk("I cannot confirm that. The context does not indicate that Jordanne "
+                                           "Dyck spent 20 years as a Chief Technology Officer at a major bank."))
+check("'does not indicate that she spent 20 years' denies the visitor figure (T2.2)", c["T2.2_figure_fidelity"], True)
+print(f"      unsupported: {c['_unsupported_figures']}")
 c = R.run_checks(qbq, "A", CTX, R_MOCK, mk("She has led teams for 20 years."))
 check("'has led ... 20 years' is not a denial (T2.2)", c["T2.2_figure_fidelity"], False)
 print(f"      unsupported: {c['_unsupported_figures']}")
