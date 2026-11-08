@@ -26,7 +26,8 @@ Re-running keeps the sign-offs, ticks and approvals already in the file, so the
 loop is: run the gate, read the failures it prints, write Jord's ruling into each
 "signoff" (her words, not a summary), tick each QA item she did, set "approved"
 on each doc she approved, run it again. An approval holds for the commit it was
-given on: a doc that changes on master afterwards needs approving again.
+given on: a doc that changes on master afterwards needs approving again. A sign-off
+holds for the run and count it was given on: a new run needs a new ruling.
 
 Usage (from C:\\Users\\Jord\\jordannedyck-ai):
     uv run python release_gate.py --image jordbot-web --tag v1.16 --sha <web commit> \
@@ -179,6 +180,28 @@ def doc_entries(old_docs, last_commit):
     return out
 
 
+def carry_signoffs(old_fails, fails):
+    """Set each failure's "signoff" from the last evidence file. A ruling holds for
+    the run and count it was given on (2026-11-08): on a new run_id, or a different
+    failed/of, it is cleared and kept only as "previous_signoff", which no check
+    reads, so Jord rules on the new failure herself."""
+    prev = {(p.get("kind"), p.get("case"), p.get("check")): p for p in old_fails}
+    for f in fails:
+        f["signoff"] = None
+        p = prev.get((f["kind"], f["case"], f["check"]))
+        if p is None:
+            continue
+        if all(p.get(x) == f[x] for x in ("run_id", "failed", "of")):
+            f["signoff"] = p.get("signoff")
+            if p.get("previous_signoff"):
+                f["previous_signoff"] = p["previous_signoff"]
+        elif (p.get("signoff") or "").strip():
+            f["previous_signoff"] = {x: p.get(x) for x in ("signoff", "run_id", "failed", "of")}
+        elif p.get("previous_signoff"):
+            f["previous_signoff"] = p["previous_signoff"]
+    return fails
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     ap.add_argument("--image", choices=["jordbot-web", "jordbot"])
@@ -206,8 +229,6 @@ def main():
             else "faiss-" + args.faiss_dir.rstrip("/").rsplit("/", 1)[-1])
     out = Path(args.out_dir) / f"{name}.json"
     old = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
-    signed = {f"{f['kind']}|{f['case']}|{f['check']}": f.get("signoff")
-              for f in old.get("failures", [])}
     ticked = {q["item"]: q.get("done") for q in old.get("qa", [])}
     noted = {q["item"]: q.get("note") for q in old.get("qa", []) if q.get("note")}
 
@@ -242,11 +263,10 @@ def main():
                                " served by jordbot-dev" + (f" after {since:%Y-%m-%d %H:%M}Z" if since else "")))
             continue
         for (case, check), (n, total, qs) in sorted(failures(kind, row).items()):
-            key = f"{kind}|{case}|{check}"
             passed = case in e2e_clean or (bool(qs) and all(q.strip() in e2e_clean_q for q in qs))
             fails.append({"kind": kind, "case": case, "check": check, "failed": n, "of": total,
-                          "run_id": row["run_id"], "e2e_case_passed": passed,
-                          "signoff": signed.get(key)})
+                          "run_id": row["run_id"], "e2e_case_passed": passed})
+    carry_signoffs(old.get("failures", []), fails)
     unsigned = [f for f in fails if not (f["signoff"] or "").strip()]
     # README: "a release needs all [tier-1 checks] to pass". A tier-1 failure can
     # be signed off only as a checker miss, or (Jord, 2026-11-06) as "not served:"
@@ -339,8 +359,12 @@ def main():
         print(f"{kind:9} " + (f"{r['run_id']}  {r['source']}  all-checks {r['all_checks_pass_rate']}"
                               if r else "MISSING"))
     for f in fails:
-        print(f"  {'ok ' if (f['signoff'] or '').strip() else 'UNSIGNED'} {f['kind']:9} {f['case']:6} "
-              f"{f['check']:32} {f['failed']}/{f['of']}")
+        was = f.get("previous_signoff")
+        state = ("ok " if (f["signoff"] or "").strip()
+                 else "NEEDS NEW RULING" if was else "UNSIGNED")
+        print(f"  {state} {f['kind']:9} {f['case']:6} {f['check']:32} {f['failed']}/{f['of']}")
+        if was and not (f["signoff"] or "").strip():
+            print(f"      was: run {was['run_id']} {was['failed']}/{was['of']}, {was['signoff']!r}")
     for q in undone:
         print(f"  QA not ticked: {q['item']}")
     for d in docs:
