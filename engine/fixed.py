@@ -19,7 +19,7 @@ import re
 # --timeline here runs the rest (TL05, TL06) through the model.
 # Since 2026-11-05 a career-history question (asksForCareerHistory) also gets
 # the card, flagged timeline 'asked', whatever the answer cites. It does not get
-# FIXED_LEAD. run_e2e.py checks that the card arrives (T2.17, TL05).
+# FIXED_LEAD. run_e2e.py checks that the card arrives with explicit: true (T2.17, TL05).
 TIMELINE_MARKER = "{{timeline}}"
 FIXED_LEAD = (
     "Jordanne's career runs from the human side of helping customers to the digital side. She started in "
