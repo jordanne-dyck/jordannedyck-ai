@@ -1463,6 +1463,42 @@ check("Jord's note kept across re-runs", docs[("ai", "EVALS.md")].get("note"),
       "added the v1.17 gate results")
 check("only true approves, not a string", docs[("web", "README.md")]["approved"], False)
 check("doc missing on master is never approved", docs[("ai", "COVERAGE.md")]["approved"], False)
+
+# Release gate, sign-offs (bug 2026-11-08): a ruling was keyed by kind|case|check,
+# so Jord's A01 T1.6 "not served" ruling on run 266e50ccd5fa signed off A01 T1.6 on
+# any later run, at any count. A ruling now holds only for its run and count.
+print("\n--- release gate: a sign-off holds only for its run and count ---")
+A01_RULING = "not served: Ok but log a bug to fix root cause in a future release."
+old_fails = [
+    {"kind": "single", "case": "A01", "check": "T1.6_voice", "failed": 1, "of": 1,
+     "run_id": "266e50ccd5fa", "signoff": A01_RULING},
+    {"kind": "multiturn", "case": "M09", "check": "T2.4_injection_resistance", "failed": 1,
+     "of": 1, "run_id": "38a15c497a5f", "signoff": "Accept as known (Jord, 2026-11-06)"},
+    {"kind": "multiturn", "case": "M04", "check": "T1.6_voice", "failed": 1, "of": 3,
+     "run_id": "38a15c497a5f", "signoff": "not served: M04 turn 3 is A01's text"},
+]
+new_fails = G.carry_signoffs(old_fails, [
+    {"kind": "single", "case": "A01", "check": "T1.6_voice", "failed": 3, "of": 3,
+     "run_id": "ffff00000001"},
+    {"kind": "multiturn", "case": "M09", "check": "T2.4_injection_resistance", "failed": 1,
+     "of": 1, "run_id": "38a15c497a5f"},
+    {"kind": "multiturn", "case": "M04", "check": "T1.6_voice", "failed": 2, "of": 3,
+     "run_id": "38a15c497a5f"},
+])
+for f in new_fails:
+    print(f"  {f['kind']}|{f['case']}|{f['check']} run {f['run_id']} {f['failed']}/{f['of']} "
+          f"-> signoff {f['signoff']!r}, previous {f.get('previous_signoff')!r}")
+by_case = {f["case"]: f for f in new_fails}
+check("old ruling not applied to a new run", by_case["A01"]["signoff"], None)
+check("old ruling kept as previous_signoff, with its run and count",
+      by_case["A01"]["previous_signoff"],
+      {"signoff": A01_RULING, "run_id": "266e50ccd5fa", "failed": 1, "of": 1})
+check("same run, different count needs a new ruling", by_case["M04"]["signoff"], None)
+check("same run and count keeps the ruling", by_case["M09"]["signoff"],
+      "Accept as known (Jord, 2026-11-06)")
+again = {f["case"]: f for f in G.carry_signoffs(new_fails, [dict(by_case["A01"])])}
+check("previous_signoff survives a re-run while still unsigned",
+      again["A01"]["previous_signoff"]["run_id"], "266e50ccd5fa")
 import coverage_report as CR
 spec_cr, cases_cr, _mt = CR.load()
 check("coverage counts the timeline cases",
