@@ -1,0 +1,225 @@
+# How jordbot is evaluated
+
+jordbot answers hiring managers' questions about my work from a knowledge base of my own record. This page shows how I test it, what the tests decided, and what I leave to human judgement.
+
+**In short**
+- 82 eval cases, 8 must-pass checks, 6 quality checks, and blind human scoring on a 5-point rubric.
+- The evals chose the answering model twice, found that follow-up answers cited nothing, and got a false claim taken out of the knowledge base.
+- Every comparison carries a 95% range. Most model gaps so far are inside the noise, and this page says so where they are.
+- Accuracy against my record is scored by me, blind. The automated grounding judge only weakly agrees with those scores, so it does not replace them.
+
+All numbers below come from the scripts in this repo, run on the saved results. The results files hold answer text drawn from the private knowledge base, so they are not published. The committed history in [`eval_history/`](eval_history/) holds ids and numbers only.
+
+What the results taught me, and the ideas I tested and dropped with their evidence, are in [DECISIONS.md](DECISIONS.md).
+
+## Organised around AI in production
+
+About 15 of the 26 product roles I saved ask for AI shipped to production. They name six things: evals, cost, latency, failure recovery, permissions and monitoring. This page follows that list.
+
+### 1. Evals
+
+**The cases.** [`eval_set.json`](eval_set.json) holds 82 cases:
+- 34 core questions, each mapped to a requirement (R1–R15) from a Staff PM posting at Wealthsimple;
+- 23 regression cases, one per defect found;
+- 9 multi-turn conversations;
+- 16 role-theme cases, including "What does Jordanne do?".
+
+The core set includes hostile questions, prompt-injection attempts, and questions the record deliberately cannot answer.
+
+**The checks.** Tier 1 must pass for a release: response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names, no hedged guesses about my work. Tier 2 measures quality: expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, no repeated lead example, follow-ups cite a source. Tier 3 is human, blind: accuracy, specificity, positioning, tradeoffs and voice (D1–D5, 1 to 5).
+
+**Voice was the most-failed check before the prompt rework.** The 2026-10-16 model comparison answers (old prompt), re-scored offline with today's voice check:
+
+| Model | Answers failing voice |
+|---|---|
+| gpt-4o | 11 of 102 |
+| Gemini 3.8 Flash | 13 of 102 |
+| Gemini 4 Argon | 4 of 36 |
+| GPT-6.1 Sol | 22 of 36 |
+| Claude Haiku 5.5 | 70 of 102 |
+| Claude Opus 5.5 | 33 of 36 |
+| Claude Sonnet 5.5 | 102 of 102 |
+
+Most failures named the source ("the record", "the context") instead of stating the fact. Voice became a must-pass check on 2026-10-19, and the prompt rework was written against it.
+
+**Retrieval is scored, not passed or failed.** `retrieval_scores.py` gives recall@5 and MRR per question. The baseline, on index `75c257fb` (2026-10-30), over the 62 cases with an expected-source list:
+
+| Measure | Score |
+|---|---|
+| Mean recall@5 | 0.564 |
+| Micro recall@5 | 0.462 (86 of 186 expected chunks in a top 5) |
+| MRR@5 | 0.690 |
+
+Nine questions get none of their expected chunks in the top 5 (W04, W08, W13, W14, H03, X09, P05, P07, P12). Four gap and attack cases have nothing to retrieve and are not scored. The four newest regression cases (X20–X23) were checked on a later index and are not in this baseline. Every planned retrieval change is judged against these numbers.
+
+**Every regression case has a failure type.** X03–X24 carry a type from a 12-item list adapted from a RAG failure clinic:
+
+| Type | Cases |
+|---|---|
+| F01 grounding drift: the answer claims more than the sources support | 13 |
+| F12 source wording: the knowledge base itself implies something false | 4 |
+| F03 dark chunk | 2 |
+| F02 chunk boundary, F04 stale index, F09 checker miss | 1 each |
+
+Most defects were overclaims, not retrieval misses. That is why prompt and knowledge-base edits came before retrieval changes.
+
+**Coverage against what roles ask for.** [`COVERAGE.md`](COVERAGE.md) counts cases per role theme against how many of the 26 roles ask for it:
+- under-covered: platform and API fluency (6 cases for about 12 roles, 10.5 points below its share of demand) and zero-to-one (2 cases for about 7 roles);
+- over-covered: lifecycle and loyalty (14 cases for 3 roles);
+- AI in production is level: 16 cases for about 15 roles;
+- in the Wealthsimple view, R3 and R14 have one case each.
+
+### 2. Cost
+
+Each runner records the cost of every call. `run_models.py` has `--estimate` and `--max-cost`, so a run is priced before it spends anything.
+
+Cost per answer in the 2026-10-22 model comparison (36 single-turn questions, answer plus query rewrite, judge excluded):
+
+| Model | Cost per answer |
+|---|---|
+| gpt-4o | $0.0097 |
+| Claude Sonnet 5.5 | $0.0153 |
+| Claude Opus 5.5 | $0.0332 |
+| Gemini 3.8 Flash | $0.0036 |
+
+Runs through the live chat route record no cost, because the route's stream does not send usage.
+
+### 3. Latency
+
+The runners stream answers, as the site does, and record time to first token. Follow-up turns are reported on their own, because they wait for the query rewrite.
+
+In the same 2026-10-22 runs:
+
+| Model | p50 total | p95 total | p95 first token, follow-ups |
+|---|---|---|---|
+| gpt-4o | 1.88 s | 2.82 s | 0.81 s |
+| Claude Sonnet 5.5 | 4.15 s | 5.91 s | 5.60 s |
+| Claude Opus 5.5 | 7.21 s | 9.40 s | 6.07 s |
+| Gemini 3.8 Flash | 65.07 s | 120.75 s | 185.82 s |
+
+In that run Flash failed the 15-second check on 34 of 35 single-turn answers.
+
+### 4. Failure recovery
+
+These cases run in [`selftest.py`](selftest.py), in CI, with a stub model and a fake `/search`:
+- The follow-up query rewrite falls back to the visitor's own words on a timeout, an API error, a blank rewrite or an over-long rewrite. A first turn skips the rewrite.
+- Empty retrieval gives the same "no relevant information" text the live route uses.
+- When `/search` is down, the harness stops with an error. It does not score answers written without sources, because that run would cost money and mean nothing.
+- A retried answer's latency is timed from its last attempt, not including the wait between attempts.
+
+### 5. Permissions
+
+What jordbot must not do, checked on every run:
+- return my phone number (tier 1);
+- name private people, including a current client (tier 1, plus a case that asks for the client by name);
+- follow an injected instruction: three attack cases, and a multi-turn case with a forged assistant turn in the chat history;
+- reveal its system prompt.
+
+### 6. Monitoring
+
+In production, every turn is logged with visitor emails and phone numbers redacted, then labelled by a moderation check, an off-topic check and a grounding judge (gpt-4o-mini). The judge asks whether each claim is supported by the retrieved chunks.
+
+**I tested the judge against my own blind scores** (`judge_agreement.py`). It agrees weakly:
+
+| Blind sample | Answers | Rank correlation with my accuracy score (D1) | Kappa |
+|---|---|---|---|
+| 2026-10-16 | 56 | +0.29 (+0.10 to +0.47) | +0.27 (+0.10 to +0.42) |
+| 2026-10-22 | 32 | +0.33 (+0.16 to +0.51) | +0.16 (+0.00 to +0.39), could be no link |
+
+On the 2026-10-22 sample it flagged 2 of the 11 answers I scored below 4.5. The misses were facts wrong against my record that the retrieved chunks did not contradict. The judge cannot see those, because it checks against the chunks, not against the record.
+
+**Testing the judge found a defect in it.** It marked list lead-ins ("Her approach includes:") as unsupported claims. It now joins a lead-in to the claim after it before judging. On one 143-answer re-run, flagged answers went from 46 to 17. Headings with no colon ("**How it was built**") are joined the same way since 2026-11-01. `judge_check.py` holds 17 named cases for the judge itself, including controls that must still fail. One proposed fix, rewording how the judge treats gap admissions, was rejected: it let a made-up claim through on a control case.
+
+The judge also accepts a hedged guess. In case J17, an answer said one piece of my work "likely" supported another, against a source that does not say so. The judge marked it supported in 3 of 3 runs. That case is open. A separate must-pass check (T1.8) now catches hedged guesses about my work with a narrow pattern. Across 3,175 stored answers it matched once, the real defect, and it matched none of the 340 answers on the current index. It was made a release bar only after that full scan. It has not yet met a new form of hedge, so how much it misses is unknown.
+
+## Decisions the evals drove
+
+### The answering model, chosen twice
+
+Model choice is made by blind human scoring. Answers are shuffled and stripped of labels, scored on D1–D5, and only then unblinded. Ranges below are 95%, resampled by question.
+
+**First round, 2026-10-16, old prompt.** 56 answers, 7 models, 8 questions each:
+- Gemini 3.8 Flash 4.47 (4.22 to 4.70), gpt-4o 4.17 (3.56 to 4.67).
+- The gap between them, +0.30 (−0.08 to +0.70), is inside the noise.
+- Flash's lead over the other five models is outside it.
+
+Gemini 4 Argon was ruled out on latency, not on quality. In the automated pass the same week it took over 15 seconds on 20 of 36 answers (median 16.3 s, p95 70.1 s). Flash went over on 5 of 102, and no other model went over at all.
+
+I kept gpt-4o provisionally. Many of the deductions came from prompt lines and knowledge-base text I was about to change, so I re-tested after the prompt rework.
+
+**Second round, 2026-10-22, new prompt.** 32 answers, 4 models, 8 questions each:
+
+| Model | Mean D1–D5 | 95% range | Accuracy (D1) |
+|---|---|---|---|
+| gpt-4o | 4.76 | 4.58 to 4.92 | 4.88 |
+| Claude Sonnet 5.5 | 4.67 | 4.36 to 4.90 | 4.75 |
+| Gemini 3.8 Flash | 4.65 | 4.53 to 4.76 | 4.31 |
+| Claude Opus 5.5 | 4.50 | 4.24 to 4.74 | 4.00 |
+
+All six gaps between these models are inside the noise. The second round did not separate them. gpt-4o stays because it scored highest overall and on accuracy, and was the fastest. It does not stay because of a measured lead.
+
+The automated checks agree that the models are close. gpt-4o passed every check on 78% of answers and Sonnet on 75%: a gap of −3 points (−12 to +6), inside the noise.
+
+### Follow-ups that cited nothing: check T2.7 and the query rewrite
+
+The first multi-turn baseline (2026-10-19, gpt-4o) found that 5 of 10 follow-up answers cited no source, and 4 of 6 conversations had at least one. Nothing was checking for it. That became check T2.7, and then a fix in two parts: a prompt rule, and a gpt-4o-mini rewrite that turns "how was that measured?" into a standalone search query before retrieval.
+
+Before changing the prompt, I re-ran with only the knowledge-base edits (2026-10-20, same prompt). Uncited follow-ups went from 5 of 10 to 4 of 10, and conversations with one from 4 of 6 to 3 of 6. Voice failures went from 5 of 36 answers to 3. Every check passed on 78% of answers, against 72%: +6 points (0 to +15), at the edge of the noise. The rest was left to the prompt.
+
+**The query rewrite did not close it for gpt-4o.** In the 2026-10-22 runs, 4 of 7 gpt-4o conversations still had an uncited follow-up. Sonnet and Opus cited on every follow-up, 7 of 7. That gap, +57 points (+14 to +86), was the only check where the models separated outside the noise.
+
+**A reminder closed it in testing.** The site resends earlier answers without their citations, so my working explanation was that gpt-4o copied its own uncited replies. On 2026-11-01 I added a short reminder to cite after the chat history on follow-up turns. I ran with and without it on the same index, 9 conversations × 3 runs each. Follow-up turns that cited a source went from 17 of 36 (32% to 63%) to 36 of 36 (90% to 100%). Every citation named a chunk retrieved for that turn. Whether each one supports its sentence was not judged. No other check moved outside the noise. The reminder is on in the harness and merged into the site, and goes live in its own release.
+
+### A false claim removed from the knowledge base
+
+In the first blind round I marked a claim about a GA4 reporting discrepancy as made up. Checked at source, it was in my own knowledge base, so every model that retrieved it repeated it. The claim was false, and I removed it on 2026-10-19. The models were not at fault: the record was. Source-wording defects like this now have their own failure type, F12.
+
+### Keyword search, after the first version failed
+
+Some facts in the knowledge base, such as the $150M+ figure, never reached the top 5 on embeddings alone. I added BM25 keyword search and merged it with the embedding ranking by reciprocal rank fusion. Both versions below were scored on the same query embeddings, index `848efc4e`, over the 62 baseline cases.
+
+| Ranking | Mean recall@5 | Micro recall@5 | MRR@5 |
+|---|---|---|---|
+| Embeddings only (the baseline) | 0.564 | 0.462 | 0.690 |
+| Embeddings and keywords, equal weight | 0.542 | 0.452 | 0.732 |
+| Embedding top 3 kept, fusion below | 0.602 | 0.511 | 0.708 |
+
+**The equal-weight version lost as much as it gained:** 17 expected chunks in, 18 out. A chunk that shared no word with the question could no longer compete, so strong embedding matches on abstract questions dropped out.
+
+**Keeping the embedding top 3 fixed** brought in 15 expected chunks and lost 5. Over 65 cases, the MRR gain is +0.021 (+0.002 to +0.041) and the recall gain is +0.043 (−0.014 to +0.102). I chose this version after seeing the first one fail, so it is re-checked on new questions.
+
+In the full answer eval afterwards (2026-10-30, gpt-4o, 34 questions × 3 runs), answers had an expected source in their top 5 on 84 of 90 tries. The misses were W08 and H03, on every run. Other checks also rose, but that run differed from the earlier ones in more than retrieval, so I do not credit those gains to keyword search.
+
+### Newer embedding models, tested and kept out
+
+On 2026-10-30 I rebuilt the index with text-embedding-3-large and 3-small, everything else unchanged. Both ranked worse than ada-002. 3-large, the pre-registered test, lost 0.111 MRR@5 (−0.198 to −0.029) and 0.070 recall@5 (−0.137 to −0.002). The cause was my name: the chunks titled with it took 59% to 63% of the newer models' top-3 slots, against 36% on ada-002. ada-002 stays. The detail, and a name-strip fix that improved ranking but not answers, are in [DECISIONS.md](DECISIONS.md#newer-embedding-models-2026-10-30).
+
+## History
+
+`run_metrics.py` runs at the end of every eval. It prints the pass rate per check, latency and cost per answer, and adds one line per run to [`eval_history/history.jsonl`](eval_history/history.jsonl). Retrieval checks and probes add their recall@5 and MRR, with the index they were taken on, and the judge-agreement script adds its correlation and kappa against my blind scores. It includes a backfill of older runs. A value a run did not record is left empty, not estimated.
+
+Retrieval scores carry their own noise. The same 70-question check, run twice on one index on 2026-10-30, gave the same recall@5 (0.569) and MRR@5 of 0.696 and 0.688. A change of about 0.01 in MRR between two checks is noise, not a result.
+
+![All-checks pass rate, p95 latency and cost per answer over time](eval_history/trend.svg)
+
+Pass rates across dates are not like for like. Checks were added over time: voice on 2026-10-19, private names later.
+
+## What is deliberately not automated
+
+- **Accuracy against my record.** The grounding judge checks claims against the retrieved chunks. It cannot know when a supported-looking claim is wrong about my career, and its agreement with my scores is weak. D1 stays a human score.
+- **Expected answers.** The expected-source list on a case comes from a retrieval check, never from making the case pass. Editing what the scorer expects moves the measurement, not the quality.
+- **Skipping the model on weak retrieval.** I tested a similarity floor that would skip the answering model when nothing relevant is retrieved. The only true knowledge gap in the set ranked 38th of 65 by top similarity: the topic was in the knowledge base, the fact was not. A floor above it would skip 34 of 61 answerable questions. There is no floor.
+- **Reindexing.** A reindex is a manual step, followed by a retrieval check that prints the chunk ids, similarities and text. A pass/fail flag is not enough to judge it.
+- **Evals in production.** Production gets a health check and a few smoke questions. The full eval runs on the dev cluster before release.
+
+## Running it
+
+```bash
+uv run python selftest.py                       # checkers, no API key, runs in CI
+uv run python retrieval_scores.py CHECK.json    # recall@5 and MRR from a saved retrieval check
+uv run python coverage_report.py                # cases per theme and requirement
+uv run python bootstrap_ci.py --blind SCORES.json   # ranges on blind scores
+uv run python judge_agreement.py                # judge vs blind human scores
+```
+
+The scripts that call a model (`run_eval.py`, `run_models.py`, `run_e2e.py`, `judge_check.py`) need the private knowledge base and an API key.

@@ -53,6 +53,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAIError
 
+import run_metrics
 from citation_checks import (
     citation_labels,
     judge_grounding,
@@ -69,6 +70,7 @@ from run_eval import (
     SYSTEM_PROMPT,
     conversation_checks,
     fetch_results,
+    last_index_version,
     lead_chunk,
     results_path,
     rewrite_drift,
@@ -384,8 +386,9 @@ def main_multiturn(args, spec, models):
             query = rw["query"]
             if query not in cache:
                 raw = fetch_results(query, arm["n_results"])
-                cache[query] = (raw, *search_experience(query, arm["n_results"], arm["truncate"], raw))
-            raw, context, retrieved = cache[query]
+                cache[query] = (raw, *search_experience(query, arm["n_results"], arm["truncate"], raw),
+                                last_index_version())
+            raw, context, retrieved, index_version = cache[query]
             chunks = [{"chunk_id": r["metadata"].get("chunk_id"), "similarity": r["similarity"],
                        "content": r["content"]} for r in raw]
             gen = generate(clients, model, q["q"], context, history)
@@ -407,7 +410,8 @@ def main_multiturn(args, spec, models):
             turns.append({"turn": i, "question": q["q"], "search_query": query,
                           "rewrite_status": rw["status"], "rewrite_ms": rw["ms"],
                           "rewrite_cost_usd": rw["cost_usd"],
-                          "retrieved": retrieved, "gen": gen, "checks": checks,
+                          "retrieved": retrieved, "index_version": index_version,
+                          "gen": gen, "checks": checks,
                           "citations": cites, "judge": judge,
                           "lead_chunk": lead_chunk(gen["answer_cited"])})
             history += [{"role": "user", "content": q["q"]},
@@ -424,14 +428,19 @@ def main_multiturn(args, spec, models):
         out.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print(f"\n${spent:.2f} spent this invocation, {len(results)} conversations in {out}")
+    if results:
+        n_planned = len(models) * len(cases) * args.reps
+        run_metrics.record_run(results, runner="run_models", source=out.name,
+                               label=f"models multiturn {PROMPT_VERSION}",
+                               scope="partial" if args.only or len(results) < n_planned else "full")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", default=",".join(MODELS), help="comma-separated model ids")
     ap.add_argument("--set", dest="case_set", choices=list(CASE_SETS), default="core",
-                    help="core = the 34-question series (default); theme and additive are held "
-                         "outside it and default to their own results file")
+                    help="core = the 34-question series (default); theme, additive and timeline are "
+                         "held outside it and default to their own results file")
     ap.add_argument("--only", help="comma-separated question ids, within --set")
     ap.add_argument("--reps", type=int, default=1, help="runs per question (at least its own 'runs')")
     ap.add_argument("--max-cost", type=float, help="stop once spend reaches this many USD")
@@ -468,6 +477,8 @@ def main():
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     questions = select_cases(spec, args.case_set, args.only)
+    # fixed_lead timeline cases never reach the answer model on the site; run_e2e.py checks them.
+    questions = [q for q in questions if not q.get("fixed_lead")]
     arm = spec["arms"][ARM]
 
     done = {(r["id"], r["model"], r["run"]) for r in existing}
@@ -501,8 +512,9 @@ def main():
             break
         if q["id"] not in retrieved_cache:
             raw = fetch_results(q["q"], arm["n_results"])
-            retrieved_cache[q["id"]] = (raw, *search_experience(q["q"], arm["n_results"], arm["truncate"], raw))
-        raw, context, retrieved = retrieved_cache[q["id"]]
+            retrieved_cache[q["id"]] = (raw, *search_experience(q["q"], arm["n_results"], arm["truncate"], raw),
+                                        last_index_version())
+        raw, context, retrieved, index_version = retrieved_cache[q["id"]]
         chunks = [{"chunk_id": r["metadata"].get("chunk_id"), "similarity": r["similarity"],
                    "content": r["content"]} for r in raw]
 
@@ -532,13 +544,18 @@ def main():
             "arm": ARM, "model": model, "provider": MODELS[model]["provider"],
             "settings": MODELS[model]["settings"], "run": run, "question": q["q"],
             "expect": q.get("expect", []), "prompt_version": PROMPT_VERSION,
-            "retrieved": retrieved, "gen": gen, "checks": checks,
+            "retrieved": retrieved, "index_version": index_version, "gen": gen, "checks": checks,
             "citations": cites, "judge": judge, "context_chars": len(context),
         })
         args.out.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print(f"\n${spent:.2f} spent this invocation, {len(results)} results in {args.out}")
     report(results)
+    if results:
+        run_metrics.record_run(results, runner="run_models", source=args.out.name,
+                               label=f"models {PROMPT_VERSION}",
+                               scope="partial" if args.only or len(results) < len(plan(questions, models, args.reps))
+                               else "full")
 
 
 if __name__ == "__main__":

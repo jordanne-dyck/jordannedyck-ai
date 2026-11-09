@@ -8,6 +8,18 @@ I run it as a product, not a demo. Every change to the prompt, the index or the 
 
 This repo holds the Python side: the knowledge-base indexer, the `/search` API, an MCP server, and the eval harness. The chat interface, the production route and the monitoring dashboard are in [jordannedyck-ai-web](https://github.com/jordanne-dyck/jordannedyck-ai-web).
 
+## What it does
+
+- **Answers questions about my work** from my own record, streamed. Follow-ups such as "how was that measured?" are rewritten into standalone questions first.
+- **Says when the record does not cover something**, instead of guessing.
+- **Cites a source for every claim.** The citations are checked against the retrieved chunks, then stripped before the visitor sees the answer.
+- **Labels every answer** for grounding, moderation and topic, and for prompt injection and prompt leaks. Emails and phone numbers are redacted before anything is stored.
+- **Collects visitor feedback**: thumbs up or down, with an optional note on a thumbs-down.
+- **Shows public metrics** at `/dashboard`: volume, latency, spend and how often search finds a match.
+- **Gives me an admin view**: every conversation, anomaly alerts, and a "what to fix" list built from real questions.
+- **Turns real questions into eval cases**, so the eval set grows from what visitors actually ask.
+- **Can be searched by an AI agent** through an MCP server.
+
 ## How a question gets answered
 
 ```mermaid
@@ -27,73 +39,45 @@ flowchart LR
 
 1. **Index.** Each knowledge-base file is split on explicit chunk markers. Each chunk carries YAML metadata (id, priority, weight), gets a `[category] [title] [id]` prefix, and is embedded with `text-embedding-ada-002`. Chunks weighted below 0.3 are left out of the index.
 2. **Rewrite.** On a follow-up turn, gpt-4o-mini turns "how was that measured?" into a standalone query. It has a 2.5-second budget. On a timeout, error or unusable output it falls back to the visitor's own words. A first turn skips the rewrite.
-3. **Retrieve.** `/search` ranks the whole corpus by raw similarity, keeps at most 3 chunks per source file, and returns the top 5 with an `index_version` fingerprint. Any change in answer quality can then be traced to a specific reindex.
+3. **Retrieve.** `/search` ranks the whole corpus two ways: by embedding similarity and by BM25 keyword match. The top 3 slots go to the embedding ranking. The rest are filled by reciprocal rank fusion of the two. It keeps at most 3 chunks per source file, and returns the top 5 with an `index_version` fingerprint. Any change in answer quality can then be traced to a specific reindex.
 4. **Answer.** gpt-4o answers from those chunks only, cites chunk ids, and says plainly when the record does not cover something.
 5. **Monitor.** Every turn is logged with visitor emails and phone numbers redacted. It is then labelled by a moderation check, an off-topic check, and a judge that asks whether each claim in the answer is supported by the retrieved chunks.
 
 ## Evaluation
 
-The harness answers one question before anything ships: is this version better, and how do we know?
+The harness answers one question before anything ships: is this version better, and how do we know? **[EVALS.md](EVALS.md)** has the full account: results, ranges, the decisions the evals drove, and what is left to human judgement.
 
-### The eval set
-
-[`eval_set.json`](eval_set.json) holds 72 cases:
+[`eval_set.json`](eval_set.json) holds 95 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
 | Core questions | 34 | The questions a hiring manager actually asks, each mapped to a requirement (R1–R15) from a real Staff PM posting at Wealthsimple |
-| Regression cases | 16 | One per defect found in testing, each with a note saying what went wrong and what a correct answer looks like |
-| Multi-turn conversations | 7 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
-| Role-theme cases | 15 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one. Two more extend the Wealthsimple track. Not scored yet |
+| Regression cases | 29 | One per defect found in testing, each tagged with a failure type |
+| Multi-turn conversations | 10 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
+| Role-theme cases | 16 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" |
+| Career timeline cases | 6 | Four career-overview questions, where the site skips the model and shows my own short lead around an animated timeline; the end-to-end runner checks that exact text and the timeline arrive. Plus two career questions that came back from dev with no citations, which still go through the model. For "Where did Jordanne work before DECIEM?" the end-to-end runner also checks the timeline arrives, since the site now shows it from the question |
 
-Only the 34 core questions form the series that runs are compared on. The regression and role-theme cases are held outside it so it stays comparable: each runner takes them with `--set additive` or `--set theme` and writes them to their own results file, never into the series file.
+Only the 34 core questions form the series that runs are compared on. The other cases are held outside it so it stays comparable: each runner takes them with `--set additive`, `--set theme` or `--set timeline` and writes them to their own results file, never into the series file.
 
-Every case carries two tags: the Wealthsimple requirements it tests (R1–R15) and the role themes it tests. The themes are a second track. They do not replace the first.
+There are 8 tier-1 checks, and a release needs all of them to pass. One fails any answer that guesses at her work ("she likely focuses on") instead of stating it. Tier 2 measures quality, including whether every figure appears in the sources and whether first answers and follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
 
-The core set includes hostile questions ("Is she a real builder, or a director who watched engineers build things?"), prompt-injection attempts, a request for her phone number, and questions the knowledge base deliberately cannot answer. A correct answer to those says so instead of inventing one.
+What the evals decided, in brief:
+- **The answering model, twice.** gpt-4o scored highest in the second blind round (4.76 of 5), but all gaps to Sonnet 5.5, Flash and Opus 5.5 were inside the noise. It stays on quality-first grounds, not on a measured lead.
+- **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite did not close it for gpt-4o; a cite reminder did in testing. First answers then started citing nothing too, after a prompt change: gpt-4o left none of 285 stored first answers uncited before it and 14-18% after. That became check T2.14.
+- **A false claim in the knowledge base** was found by blind scoring and removed.- **Newer embedding models** ranked worse than ada-002 here, because chunks titled with my name crowded their top results. ada-002 stays.
 
-### What is checked
+What the results taught me, and the ideas I tested and dropped, are in **[DECISIONS.md](DECISIONS.md)**.
 
-| Tier | Checks | How |
-|---|---|---|
-| 1: must pass | Response returned, under 15 s, no phone number, third person, no echo of the job posting, voice rules, no private names | Automated |
-| 2: quality | Expected source retrieved, every figure appears in the sources, honest about gaps, resists injection, consistent across runs, follow-ups cite a source, no repeated lead example | Automated |
-| 3: judgement | Accuracy, specificity, positioning, tradeoffs, voice (D1–D5, 1–5 scale) | Human, blind |
-
-There are 7 tier-1 checks, and a release needs all of them to pass. Citations are checked separately. The harness flags answer segments that cite nothing, cited ids that were never retrieved, and chunk ids leaking into the visible answer. A grounding judge (gpt-4o-mini) keeps a verdict for every claim, not only the failed ones.
-
-### The runners
-
-| Script | What it does |
-|---|---|
-| `run_eval.py` | Retrieval plus generation against the local `/search`, mirroring the production route. Supports A/B arms, alternative prompts and multi-turn conversations |
-| `run_e2e.py` | Sends the eval set through the real chat route (local, dev or prod) and scores the streamed answers. Checks first that the harness prompt matches the deployed one |
-| `run_models.py` | Holds retrieval, prompt and checks constant, and swaps the answering model across OpenAI, Anthropic and Google. Streams answers to measure time to first token. Has `--estimate` and `--max-cost` so a run is priced before it spends anything |
-| `selftest.py` | Tests the checkers against synthetic answers, a stub model client and a fake `/search`. No API calls. Runs in CI on every push. Also fails when the facts in this README (case counts, models, timeouts, ranking limits) no longer match the code |
-
-Model choices are made by blind human scoring. Answers from each model are shuffled and stripped of labels, scored on the D1–D5 rubric, and only then unblinded.
-
-### Rules the harness follows
-
-- **Write content to the questions, never to the expected answers.** Editing what the scorer expects moves the measurement, not the quality.
-- **Every defect becomes a permanent named case.** The regression cases are a record of what broke.
-- **Print the values, not a pass/fail.** A retrieval change is judged on the chunk ids, similarities and text it returns.
-- **Mirror production exactly.** The harness carries the same prompt and source layout as the live route. `run_e2e.py` checks the index and the prompt before its first paid call, and aborts a local run when either has drifted.
-
-### Decisions the evals made
-
-- **Chose the answering model twice, and the answer changed.** Under the original prompt, a 56-answer blind sample put Gemini 3.8 Flash first (4.47 of 5) and gpt-4o second (4.17). The model was kept provisionally and re-tested after the prompt rework. In a 32-answer blind sample under the new prompt (8 per model), gpt-4o scored highest: 4.76 overall and 4.88 on accuracy. Sonnet 5.5 scored 4.67, Flash 4.65 and Opus 5.5 4.50. Production runs gpt-4o.
-- **Retired the priority boost in ranking.** Similarities within a result list spread only 3.6% from rank 1 to rank 5, so even a "small" 6% boost was the real sort key. It flipped the top result on 41% of eval questions, and two files took 60% of all slots. Ranking is now raw similarity.
-- **Kept the 3-per-file diversity cap on evidence.** Removing it surfaced no new chunks, and tightening it to 2 surfaced one. Neither was worth the change.
-- **Added a query rewrite for follow-ups.** The first multi-turn baseline found 5 of 10 follow-up answers cited nothing. That became check T2.7, then the rewrite. Its timeout was raised from 1.2 s to 2.5 s after it timed out on 3 of 3 calls from the dev cluster.
+The harness mirrors production: same prompt, same source layout. `run_e2e.py` checks the index and the prompt against the live route before its first paid call. `selftest.py` runs in CI and fails when this README's case counts, models, timeouts or ranking limits no longer match the code.
 
 ## Operating it
 
-- **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases.
+- **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases. A request for the bot's own prompt gets a fixed reply on the site, with no model call, because every prompt rewrite that fixed it broke the false-claim case. The end-to-end runner checks that exact reply; the eval still sends the request to the model, to measure the prompt's own refusal as a backstop.
 - **Cost.** `/search` caps query length and result count, because each query is a paid embedding call. Eval runners record the cost of every call.
-- **Traceability.** `/health` reports chunk count, index size, the index fingerprint and whether the OpenAI key works.
+- **Traceability.** `/health` reports chunk count, index size, the index fingerprint, the embedding model and whether the OpenAI key works. The indexer records its model next to the index; the server embeds questions with that model and refuses to start on an index whose vectors do not match it.
+- **Release gate.** A prod release or index promotion cannot merge without an evidence file from `release_gate.py`: full single-turn, multi-turn and end-to-end runs on the exact prompt and index going out, every failing check signed off by me, per run, a QA list done on dev, and this README, EVALS, DECISIONS, COVERAGE and the site's README brought up to date, read and approved by me. A tier-1 failure passes only if it is a checker miss, or text the site never sends that the end-to-end run checked on dev. A run counts for an index only by the `index_version` its answers recorded, never by its filename, and only while its results file still holds the answers its history line was written from. The site does not report its index yet, so no end-to-end run can prove one, and the gate blocks every release until it can. CI in the site repo re-checks the file; rollbacks need none.
 - **Deployment.** Containers are built in-cluster with Shipwright from a UBI9 multi-stage `Containerfile`. Argo CD deploys to OpenShift from git. The index lives on a persistent volume, not in the image.
-- **Supply chain.** Dependencies are pinned in `uv.lock`. CI runs ruff, the selftest, and Trivy, with high and critical findings failing the build. GitHub Actions are pinned by commit.
+- **Supply chain.** Dependencies are pinned in `uv.lock`, and CI fails if `pyproject.toml` and the lock disagree. CI runs ruff, the selftest, gitleaks over the full history, and Trivy, with high and critical findings that have a fix failing the build. GitHub Actions are pinned by commit; ruff, uv and gitleaks by version, and the uv image by digest.
 
 ## Tech stack
 
@@ -111,8 +95,17 @@ Model choices are made by blind human scoring. Answers from each model are shuff
 api_server.py                 /search and /health
 scripts/embed_knowledge_faiss.py   builds the FAISS index from the knowledge base
 mcp_server/server_faiss.py    MCP server over the same index
+EVALS.md                      how jordbot is evaluated, with results and decisions
+DECISIONS.md                  what the results taught, and rejected ideas with their evidence
 eval_set.json                 eval cases, requirements and check definitions
+coverage_report.py            cases per role theme and per requirement, writes COVERAGE.md
 run_eval.py  run_e2e.py  run_models.py  citation_checks.py  selftest.py
+run_metrics.py                headline metrics; writes eval_history/ (runs, retrieval scores, judge agreement; trend chart)
+bootstrap_ci.py               confidence ranges on pass rates and blind scores; is a gap noise?
+judge_agreement.py            does the grounding judge agree with the blind human scores?
+analyse.py                    a run against the last comparable one: regressions, weakest checks, outliers
+release_gate.py               the evidence a prod release needs: full runs, sign-offs, QA, docs
+judge_check.py                named cases and re-judging for the grounding judge (judge_cases.json)
 Containerfile  pyproject.toml  uv.lock
 ```
 

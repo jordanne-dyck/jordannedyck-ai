@@ -77,7 +77,7 @@ RATE LIMITS
 
 OUTPUT
     eval_e2e_<source_system>_<YYYY-MM-DD>.json for the core series (the default),
-    eval_e2e_<set>_<source_system>_<YYYY-MM-DD>.json for --set theme or --set additive,
+    eval_e2e_<set>_<source_system>_<YYYY-MM-DD>.json for --set theme, additive or timeline,
     so cases held outside the series never land in a series file. REFUSES to overwrite an existing file.
     Use --resume to append only the question ids not already present. There is no
     --fresh flag; --fresh is what destroyed the 124-chunk run on 2026-09-10.
@@ -95,6 +95,7 @@ import difflib
 import hashlib
 import http.cookiejar
 import json
+import os
 import re
 import sys
 import time
@@ -104,18 +105,20 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+import retrieval
+import run_metrics
+
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 INDEX_FILE = HERE / "faiss_db" / "resume.index"
-EMBEDDER = HERE / "scripts" / "embed_knowledge_faiss.py"
 ROUTE_TS = HERE.parent / "jordannedyck-ai-web" / "app" / "api" / "chat" / "route.ts"
 # The prompt moved out of route.ts into buildSystemPrompt() on 2026-10-13. route.ts
 # still holds the model, temperature and n_results config read by extract_route_config.
 PROMPT_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "system-prompt.ts"
 
-# resume.index is IndexFlatL2 over 1536-dim float32 vectors with a 45-byte header.
+# resume.index is IndexFlatL2 over float32 vectors with a 45-byte header. The
+# vector size is the index's recorded embedding model's (1536 for ada-002).
 INDEX_HEADER_BYTES = 45
-INDEX_BYTES_PER_VECTOR = 1536 * 4
 
 # "slowvember" removed 2026-10-23: it is the campaign's name in the knowledge
 # base (growth-and-acquisition.md, how-i-operate.md, ecommerce-platform-and-
@@ -142,7 +145,7 @@ def load_harness_checkers():
         return None, f"could not import run_eval.py ({exc.__class__.__name__}: {exc})"
     missing = [
         n for n in ("PHONE_RE", "FIRST_PERSON_RE", "GAP_RE", "GAP_PHRASES", "JD_NGRAMS",
-                    "ngrams", "SYSTEM_PROMPT", "gap_admitted", "injection_resisted",
+                    "ngrams", "SYSTEM_PROMPT", "gap_admitted", "gap_not_inverted", "injection_resisted",
                     "select_cases")
         if not hasattr(run_eval, n)
     ]
@@ -159,13 +162,14 @@ def chunk_count_from_index():
     if not INDEX_FILE.exists():
         return None, None, f"{INDEX_FILE} not found"
     size = INDEX_FILE.stat().st_size
+    dims = retrieval.read_embedding_spec(INDEX_FILE.parent)["dimensions"]
     payload = size - INDEX_HEADER_BYTES
-    if payload <= 0 or payload % INDEX_BYTES_PER_VECTOR != 0:
+    if payload <= 0 or payload % (dims * 4) != 0:
         return None, size, (
-            f"{size} bytes is not a whole number of 1536-dim float32 vectors plus a "
+            f"{size} bytes is not a whole number of {dims}-dim float32 vectors plus a "
             f"{INDEX_HEADER_BYTES}-byte header — the index may be a different type"
         )
-    return payload // INDEX_BYTES_PER_VECTOR, size, None
+    return payload // (dims * 4), size, None
 
 
 def extract_site_prompt(prompt_text):
@@ -249,11 +253,11 @@ def extract_route_config(route_text):
     return cfg
 
 
-def embedding_model_from_embedder():
-    if not EMBEDDER.exists():
+def embedding_model_from_index():
+    """The model recorded in the local index folder (plan D.3); ada-002 for a pre-D.3 index."""
+    if not INDEX_FILE.exists():
         return None
-    m = re.search(r"text-embedding-[a-z0-9-]+", EMBEDDER.read_text(encoding="utf-8", errors="replace"))
-    return m.group(0) if m else None
+    return retrieval.read_embedding_spec(INDEX_FILE.parent)["model"]
 
 
 def build_stamp(args, source_system):
@@ -310,7 +314,25 @@ def build_stamp(args, source_system):
             "truncate": "unknown", "embedding_model": "unknown",
             "chunk_count": "unknown", "index_bytes": "unknown",
         })
+    if source_system in ("dev", "prod"):
+        # 2026-11-05 (release gate): /api/health reports the prompt id the
+        # deployed bundle was built with, once the site has that field. It is
+        # what the site says it serves, read at run time, so it replaces
+        # "unknown"; an older bundle without the field stays "unknown".
+        served = served_prompt_version(args.base_url)
+        if served:
+            stamp["site_prompt_version"] = served
     return stamp
+
+
+def served_prompt_version(base_url):
+    try:
+        with urllib.request.urlopen(base_url.rstrip("/") + "/api/health", timeout=15) as r:
+            body = json.load(r)
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return None
+    v = body.get("prompt_version")
+    return v if isinstance(v, str) and re.fullmatch(r"[0-9a-f]{8}", v) else None
 
 
 def run_preflights(args, source_system, harness, stamp):
@@ -352,7 +374,7 @@ def run_preflights(args, source_system, harness, stamp):
             stamp["prompt_md5"] = route_md5
             stamp["prompt_version"] = f"route-{route_md5[:8]}" if route_md5 else None
             stamp["site_prompt_version"] = site_prompt_version(site_prompt)
-            stamp["embedding_model"] = embedding_model_from_embedder()
+            stamp["embedding_model"] = embedding_model_from_index()
             missing = [k for k, v in cfg.items() if v is None and k != "truncate"]
             if missing:
                 lines.append(f"  route.ts config   : warn — could not extract {', '.join(missing)}")
@@ -382,7 +404,7 @@ def make_opener():
     return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 
 
-def ask(opener, base_url, question, timeout, raw_sink=None):
+def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
     """
     POST one question and read the stream line by line.
 
@@ -392,19 +414,18 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
     """
     url = base_url.rstrip("/") + "/api/chat"
     body = json.dumps({"messages": [{"role": "user", "content": question}]}).encode()
-    req = urllib.request.Request(
-        url, data=body,
-        headers={"Content-Type": "application/json", "Accept": "*/*",
-                 "User-Agent": "jordannedyck-e2e-eval/1.0"},
-        method="POST",
-    )
+    headers = {"Content-Type": "application/json", "Accept": "*/*",
+               "User-Agent": "jordannedyck-e2e-eval/1.0"}
+    if monitor_token:
+        headers["x-monitor-token"] = monitor_token
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
 
     out = {
         "http_status": None, "answer": "", "error": None, "stream_error": None,
         "usage": None, "finish_reason": None,
         "ttfb_ms": None, "ttft_ms": None, "total_ms": None,
         "parts_seen": {}, "unparsed_lines": 0, "raw_bytes": 0,
-        "protocol": None, "retrieval": None,
+        "protocol": None, "retrieval": None, "timeline": None,
     }
 
     def text_part(value, now):
@@ -473,6 +494,8 @@ def ask(opener, base_url, question, timeout, raw_sink=None):
                     out["stream_error"] = str(part.get("errorText"))
                 elif kind == "data-retrieval" and isinstance(part.get("data"), dict):
                     out["retrieval"] = part["data"]
+                elif kind == "data-timeline":
+                    out["timeline"] = part.get("data")
                 elif kind == "finish":
                     if part.get("finishReason"):
                         out["finish_reason"] = part["finishReason"]
@@ -530,8 +553,10 @@ def check_answer(harness, question, res):
         "T2.2_figure_fidelity": UNAVAILABLE,
     }
     if harness is None:
-        for k in ("T1.3_no_phone", "T1.4_third_person", "T1.5_no_jd_echo",
-                  "T1.7_no_private_name", "C10_gap_honesty", "C18_injection_resistance"):
+        for k in ("T1.3_no_phone", "T1.4_third_person", "T1.5_no_jd_echo", "T1.6_voice",
+                  "T1.7_no_private_name", "T1.8_no_speculation", "C10_gap_honesty",
+                  "T2.8_gap_not_inverted",
+                  "C18_injection_resistance"):
             checks[k] = "unavailable_no_checkers"
         return checks
     checks["T1.3_no_phone"] = not harness.PHONE_RE.search(a)
@@ -540,28 +565,88 @@ def check_answer(harness, question, res):
     checks["T1.5_no_jd_echo"] = not overlap
     if overlap:
         checks["T1.5_jd_echo_spans"] = sorted(overlap)[:5]
+    # T1.6 — a hard tier-1 bar (decided 2026-10-19), same rule as run_eval.py.
+    voice = harness.voice_violations(a)
+    checks["T1.6_voice"] = not voice
+    if voice:
+        checks["T1.6_voice_spans"] = voice
     # T1.7 — same rule as run_eval.py; "n/a" when private-names.txt is absent.
     private_re = getattr(harness, "PRIVATE_NAME_RE", None)
     checks["T1.7_no_private_name"] = (not private_re.search(a)) if private_re else "n/a"
+    # T1.8 — a hard tier-1 bar since 2026-11-02, same rule as run_eval.py.
+    spec_spans = harness.speculation_spans(a)
+    checks["T1.8_no_speculation"] = not spec_spans
+    if spec_spans:
+        checks["T1.8_speculation_spans"] = spec_spans
     # C10 — one implementation, shared with run_eval.py. Previously this called
     # harness.GAP_RE alone on raw text, dropping GAP_PHRASES and the lowercasing
     # run_eval applies; prod G02 scored False here and True under the harness rule.
     if question.get("tag") == "gap":
         checks["C10_gap_honesty"] = harness.gap_admitted(a)
+        # T2.8 — same rule as run_eval.py (R-20261102-05: rep 2 passed C10 with the
+        # not-covered line last and its discounts called "cash-back-like").
+        checks["T2.8_gap_not_inverted"], why = harness.gap_not_inverted(a, question.get("gap_term"))
+        if why:
+            checks["T2.8_gap_inversion"] = why
     else:
         checks["C10_gap_honesty"] = "n/a"
+        checks["T2.8_gap_not_inverted"] = "n/a"
     # C18 — Part 4a lists this as a 100% gate; run_e2e.py had no field for it at all.
     if question.get("tag") == "adversarial":
         verdict = harness.injection_resisted(a, question.get("adv_check"))
         checks["C18_injection_resistance"] = "n/a" if verdict is None else verdict
     else:
         checks["C18_injection_resistance"] = "n/a"
+    # T2.13 — option D (2026-11-04): an overview question gets Jordanne's fixed
+    # lead, not a generated answer, with the timeline. FIXED_LEAD in run_eval.py
+    # mirrors lib/timeline.ts (timeline_drift). This runner sends no timelineShown,
+    # so the replay line is never the right answer here.
+    if question.get("fixed_lead"):
+        lead = getattr(harness, "FIXED_LEAD", None)
+        if lead is None:
+            checks["T2.13_fixed_lead"] = "unavailable_no_checkers"
+        else:
+            checks["T2.13_fixed_lead"] = a == lead and res.get("timeline") is not None
+            if a != lead:
+                checks["T2.13_lead_mismatch"] = "replay line" if a == harness.TIMELINE_REPLAY else "text differs"
+            if res.get("timeline") is None:
+                checks["T2.13_timeline_part"] = "missing"
+    else:
+        checks["T2.13_fixed_lead"] = "n/a"
+    # T2.16 — web PR #85 (2026-11-05): a request for the bot's own instructions gets
+    # FIXED_REFUSAL, with no model call and no timeline. FIXED_REFUSAL in run_eval.py
+    # mirrors lib/prompt-request.ts (refusal_drift).
+    if question.get("fixed_refusal"):
+        refusal = getattr(harness, "FIXED_REFUSAL", None)
+        if refusal is None:
+            checks["T2.16_fixed_refusal"] = "unavailable_no_checkers"
+        else:
+            checks["T2.16_fixed_refusal"] = a == refusal and res.get("timeline") is None
+            why = [w for w, bad in (("generated answer", a != refusal),
+                                    ("timeline part present", res.get("timeline") is not None)) if bad]
+            if why:
+                checks["T2.16_refusal_mismatch"] = "; ".join(why)
+    else:
+        checks["T2.16_fixed_refusal"] = "n/a"
+    # T2.17 — 2026-11-05: TL05 cited only exp-001 on dd326013 (3 of 3 dev runs),
+    # so the citation rule gave no card. asksForCareerHistory() in lib/timeline.ts
+    # now gives it from the question. Only the route sends the part, so run_eval.py
+    # --timeline cannot check this. The data is kept so a run shows what arrived.
+    if question.get("timeline_card"):
+        checks["T2.17_timeline_card"] = res.get("timeline") is not None
+        checks["T2.17_timeline_data"] = res.get("timeline")
+    else:
+        checks["T2.17_timeline_card"] = "n/a"
     return checks
 
 
 # ----------------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------------
+# Which cases a run asks is --set, through run_eval.select_cases. Until
+# 2026-11-08 --only also reached additive, theme and timeline cases from here
+# (ONLY_GROUPS, 2026-11-04); --set additive, theme or timeline does that now,
+# into its own file, so a full run still asks "questions" alone.
 def expand_questions(cases):
     """One entry per API call, honouring the `runs` field (C01 runs 3x)."""
     out = []
@@ -600,7 +685,7 @@ def main():
                     help="override the stamp; inferred from --base-url otherwise")
     ap.add_argument("--probe", action="store_true",
                     help="send ONE question, dump the raw stream, verify the protocol, spend ~$0.01")
-    ap.add_argument("--set", dest="case_set", choices=["core", "theme", "additive"], default="core",
+    ap.add_argument("--set", dest="case_set", choices=["core", "theme", "additive", "timeline"], default="core",
                     help="core = the 34-question series (default); theme and additive are held "
                          "outside it and write to their own output file")
     ap.add_argument("--only", help="comma-separated question ids, within --set")
@@ -683,6 +768,17 @@ def main():
     print(f"\nrunning       : {len(queue)} calls "
           f"({queue[0]['record_id']} -> {queue[-1]['record_id']})\n")
 
+    # 2026-11-04 (brief-gaps-page-followups, item 1): web marks a chat_events row
+    # is_synthetic only when the request carries x-monitor-token (lib/monitor.ts).
+    # Without it, e2e rows land on the gaps page as real traffic. The token is read
+    # from the environment and never written to a file, a log or the run JSON; the
+    # stamp records only whether it was sent.
+    monitor_token = os.environ.get("MONITOR_TOKEN") or None
+    stamp["monitor_token_sent"] = bool(monitor_token)
+    if not monitor_token:
+        print("WARNING       : MONITOR_TOKEN unset — these rows will count as real traffic "
+              "in chat_events.\n")
+
     opener = make_opener()
     results, stopped = list(existing), None
     raw_path = HERE / (
@@ -693,7 +789,7 @@ def main():
 
     try:
         for i, q in enumerate(queue):
-            res = ask(opener, args.base_url, q["q"], args.timeout, raw_sink)
+            res = ask(opener, args.base_url, q["q"], args.timeout, raw_sink, monitor_token)
             record = {
                 "record_id": q["record_id"], "id": q["id"], "run_index": q["run_index"],
                 "tag": q.get("tag"), "req": q.get("req", []), "question": q["q"],
@@ -720,6 +816,8 @@ def main():
                 },
                 # Only sent with EMIT_RETRIEVAL or a monitor token; None otherwise.
                 "retrieval": res["retrieval"],
+                # The data-timeline part's data, e.g. {"explicit": true}; None when absent.
+                "timeline": res["timeline"],
                 "checks": check_answer(harness, q, res),
                 "stamp": stamp,
             }
@@ -730,6 +828,8 @@ def main():
                 flag = f"  !! {res['error'][:90]}"
             elif res["stream_error"]:
                 flag = f"  !! stream: {res['stream_error'][:90]}"
+            elif q.get("timeline_card"):
+                flag = f"  timeline={res['timeline']}"
             print(f"  [{i + 1}/{len(queue)}] {q['record_id']:<8} "
                   f"ttft={res['ttft_ms'] or '-':>6}ms  total={res['total_ms'] or '-':>6}ms  "
                   f"chars={len(res['answer']):>5}{flag}")
@@ -770,6 +870,21 @@ def main():
     }
     out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nwrote         : {out_path}")
+
+    if args.probe and results:
+        # A protocol check, one answer: in the history as scope "probe" (G.2),
+        # never on the trend chart.
+        run_metrics.record_run(payload, runner="run_e2e --probe", source=out_path.name,
+                               label=f"e2e probe {source_system}", scope="probe")
+    elif results:
+        # A run is paced over sittings with --resume; each sitting adds a line,
+        # and only the sitting that completes the set adds a full-scope one.
+        have = {r["record_id"] for r in results}
+        # Only the whole core series is "full": release_gate.py takes a full line as its e2e run.
+        full = (args.case_set == "core" and not args.only
+                and all(c["record_id"] in have for c in expand_questions(eval_set["questions"])))
+        run_metrics.record_run(payload, runner="run_e2e", source=out_path.name,
+                               label=f"e2e {source_system}", scope="full" if full else "partial")
 
     if args.probe:
         print(f"raw stream    : {raw_path}")
