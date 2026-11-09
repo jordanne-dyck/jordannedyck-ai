@@ -192,7 +192,7 @@ def chat():
     # The web app has already checked the visitor, the rate limit and signed
     # turns; this checks the shape again. Each call is a paid model call.
     try:
-        messages, timeline_shown = engine_chat.parse_request(request.get_json(silent=True))
+        messages, options = engine_chat.parse_request(request.get_json(silent=True))
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
 
@@ -200,7 +200,7 @@ def chat():
         return (rank_chunks(query, n_results, CHAT_SEARCH_TIMEOUT),
                 {'index_version': INDEX_VERSION, 'ranker': retrieval.RANKER})
 
-    events = engine_chat.run_turn(openai_client, search, messages, timeline_shown)
+    events = engine_chat.run_turn(openai_client, search, messages, **options)
     return Response(stream_with_context(json.dumps(e) + "\n" for e in events),
                     mimetype='application/x-ndjson', headers={'X-Accel-Buffering': 'no'})
 

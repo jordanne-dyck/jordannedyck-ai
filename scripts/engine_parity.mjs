@@ -39,6 +39,7 @@ const timeline = await lib('timeline');
 const cost = await lib('cost');
 const promptRequest = await lib('prompt-request');
 const classify = await lib('classify');
+const buildStory = await lib('build-story');
 
 // stripCitationsTransform() over the given deltas: the text-delta texts it emits.
 async function streamStrip(deltas) {
@@ -83,6 +84,8 @@ for (const q of fx.questions) {
     careerHistory: timeline.asksForCareerHistory(q),
     replay: timeline.isTimelineReplay(q, true),
     timelineForUncited: timeline.timelineFor(q, [], []),
+    buildStory: buildStory.asksForBuildStory(q),
+    storyFromCard: buildStory.storyFromCard('ai-resume', q),
     freeLabelsQueryOnly: classify.freeLabels(q, null),
   });
 }
