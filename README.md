@@ -75,7 +75,7 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 - **Traceability.** `/health` reports chunk count, index size, the index fingerprint, the embedding model and whether the OpenAI key works. The indexer records its model next to the index; the server embeds questions with that model and refuses to start on an index whose vectors do not match it.
 - **Release gate.** A prod release or index promotion cannot merge without an evidence file from `release_gate.py`: full single-turn, multi-turn and end-to-end runs on the exact prompt and index going out, every failing check signed off by me, per run, a QA list done on dev, and this README, EVALS, DECISIONS, COVERAGE and the site's README brought up to date, read and approved by me. A tier-1 failure passes only if it is a checker miss, or text the site never sends that the end-to-end run checked on dev. CI in the site repo re-checks the file; rollbacks need none.
 - **Deployment.** Containers are built in-cluster with Shipwright from a UBI9 multi-stage `Containerfile`. Argo CD deploys to OpenShift from git. The index lives on a persistent volume, not in the image.
-- **Supply chain.** Dependencies are pinned in `uv.lock`. CI runs ruff, the selftest, and Trivy, with high and critical findings failing the build. GitHub Actions are pinned by commit.
+- **Supply chain.** Dependencies are pinned in `uv.lock`, and CI fails if `pyproject.toml` and the lock disagree. CI runs ruff, the selftest, gitleaks over the full history, and Trivy, with high and critical findings that have a fix failing the build. GitHub Actions are pinned by commit; ruff, uv and gitleaks by version, and the uv image by digest.
 
 ## Tech stack
 
