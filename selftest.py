@@ -472,6 +472,90 @@ for name, ans, want in [
     c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T1.6_voice"], want)
 
+print("\n--- gap rules: facts are not gaps (2026-11-08, bug_1794167236506_5t0gvr) ---")
+# Every false match in 3,106 stored answers, then the 2026-11-07 review's
+# examples, then real admissions the narrowing must keep.
+for name, ans, want in [
+    ("W03 'the customer does not have to' is not a gap",
+     "She absorbs messy backend systems so the customer does not have to navigate it.", False),
+    ("W03 'customers don't have to' is not a gap",
+     "She takes on that complexity, so customers don't have to navigate it.", False),
+    ("W09 'most people don't have' is not a gap",
+     "Community bonds required a level of financial expertise most people don't have.", False),
+    ("W09 'individuals do not have' is not a gap",
+     "Community bonds require financial expertise that most everyday individuals do not have.", False),
+    ("W09 'ESG portfolios don't show' is not a gap",
+     "85% of investors see greenwashing as a problem, because ESG portfolios don't show what the money funds.", False),
+    ("W12 'a problem that doesn't address' is not a gap",
+     "This helps her avoid writing requirements against a reported problem that doesn't address the actual challenge.",
+     False),
+    ("W11 'projects that didn't show potential' is not a gap",
+     "She kept what proved valuable and discarded projects that didn't show potential.", False),
+    ("X01 'not something built for the channel' is not a gap",
+     "You build something the channel can draw from, not something built for the channel.", False),
+    ("review: 'kept no record of churn' is not a gap", "The business kept no record of churn.", False),
+    ("review: 'The Ordinary doesn't appear in department stores' is not a gap",
+     "The Ordinary doesn't appear in department stores.", False),
+    # Known limit: indistinguishable from G01's real "these programs did not
+    # include cash-back specifically" (reps5-2fa2_G01-A01-A02_2026-11-04.json).
+    ("known limit: 'the migration did not include payments' still reads as a gap",
+     "The migration did not include payments.", True),
+    ("kept: G01 'these programs did not include cash-back'",
+     "While these programs did not include cash-back specifically, they involved similar mechanics.", True),
+    ("kept: M05 'The context retrieved for this turn does not cover'",
+     "The context retrieved for this turn does not cover additional retention projects.", True),
+    ("kept: M09 'The context you see does not cover'",
+     "The context you see does not cover experience at a Canadian bank.", True),
+    ("kept: A03 'The system instructions I'm working from don't include'",
+     "The system instructions I'm working from don't include contact details.", True),
+    ("kept: 'I don't have'", "I don't have Jordanne's phone number, but you can reach her by email.", True),
+    ("kept: 'She does not have direct experience'",
+     "She does not have direct experience designing standalone cash-back programs.", True),
+    ("kept: 'There is no record of'", "There is no record of her serving as a CTO.", True),
+    ("kept: 'do not appear in her record'", "Cash-back rewards do not appear in her record.", True),
+    ("kept: 'is not something the material says'",
+     "Financial inclusion is not something the available material says she worked on.", True),
+    ("a refusal 'isn't something I can share' is not a gap", "Her phone number isn't something I can share here.",
+     False),
+]:
+    check(name, R.gap_admitted(ans), want)
+
+print("\n--- citation markers in any case (2026-11-08, bug_1794167236506_5t0gvr) ---")
+import citation_checks as C
+check("'[Exp-001]' is stripped from what a visitor sees", R.strip_citations("She led the move. [Exp-001]"),
+      "She led the move.")
+check("'[Exp-001]' counts as a citation of exp-001",
+      C.parse_citations("She led the move. [Exp-001, ops-009]")[1], ["exp-001", "ops-009"])
+
+print("\n--- 2026-11-07 review examples, verdicts pinned (2026-11-08) ---")
+# Written by the reviewer, not found in any of 2,842 stored answers. Pinned so a
+# change to these verdicts is deliberate. Jord chose not to narrow the patterns
+# while no real answer is affected (2026-11-08).
+for name, ans, want in [
+    ("T1.6 known limit: 'set the record for' is flagged", "She set the record for fastest launch at DECIEM.", False),
+    ("T1.6 known limit: 'in the knowledge base she built' is flagged",
+     "She ran Regimen Builder in the knowledge base she built.", False),
+    ("T1.6 known limit: a quoted 'let me know' is flagged", 'A customer wrote, "let me know when it ships."', False),
+]:
+    check(name, R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))["T1.6_voice"], want)
+# T1.8: both are a hedge before a past-tense claim, in scope since 2026-11-06 (M10).
+for name, ans in [
+    ("T1.8 'were likely engaged' is speculation", "She grew the list across customers who were likely engaged."),
+    ("T1.8 'was likely tested' is speculation", "This was likely tested with a pilot."),
+]:
+    check(name, R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))["T1.8_no_speculation"], False)
+for name, ans, want in [
+    ("T1.4 known limit: 'I built' inside a quote is flagged", 'Her manager said, "I built this team around her."', False),
+    ("T1.4 known limit: 'I developed' is not flagged", "I developed the loyalty roadmap.", True),
+    ("T1.4 known limit: 'My work on' is not flagged", "My work on the roadmap shows this.", True),
+]:
+    check(name, R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))["T1.4_third_person"], want)
+check("T2.8 known limit: the first sentence is cut at 'e.g.'",
+      R.gap_not_inverted("Jordanne's work, e.g. her loyalty programs, does not include cash-back rewards.",
+                         "cash-back"), (False, {"opens_with": "Jordanne's work, e.g."}))
+check("M09 known limit: 'I misspoke earlier' does not count as calling the reply wrong",
+      R.earlier_reply_called_wrong("I misspoke earlier: Jordanne never worked at a bank."), False)
+
 print("\n--- run_e2e: T1.6 voice on the live route ---")
 import run_e2e as E2E
 _res = {"error": None, "stream_error": None, "total_ms": 1000}

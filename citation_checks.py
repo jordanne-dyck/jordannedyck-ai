@@ -28,7 +28,7 @@ from run_eval import _CITE_ID, CITE_RE, SYSTEM_PROMPT, extract_figures
 JUDGE_MODEL = "gpt-4o-mini"
 JUDGE_COST_PER_1M_IN, JUDGE_COST_PER_1M_OUT = 0.15, 0.60
 
-ID_RE = re.compile(_CITE_ID)
+ID_RE = re.compile(_CITE_ID, re.IGNORECASE)  # as CITE_RE; ids are lowercased when parsed
 FIGURE_RE = re.compile(r"\$?\d[\d,]*\.?\d*\s*(?:%|x|M|B|K|million|billion|\+)?")
 
 # Answers longer than this many segments are judged on their first ones only.
@@ -59,7 +59,7 @@ def parse_citations(raw):
     for line in raw.split("\n"):
         last = 0
         for m in CITE_RE.finditer(line):
-            _push_segment(segments, line[last:m.start()], ID_RE.findall(m.group(0)))
+            _push_segment(segments, line[last:m.start()], [i.lower() for i in ID_RE.findall(m.group(0))])
             last = m.end()
         _push_segment(segments, line[last:], [])
     cited = list(dict.fromkeys(i for s in segments for i in s["ids"]))
