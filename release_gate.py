@@ -297,7 +297,7 @@ def main():
     # 2026-11-09: and the multi-turn e2e run must hold every multiturn case, M10
     # and M11 included.
     eval_set = json.loads((HERE / "eval_set.json").read_text(encoding="utf-8"))
-    e2e_ids = [c["record_id"] for c in E2E.expand_questions(eval_set)]
+    e2e_ids = [c["record_id"] for c in E2E.expand_questions(E2E.full_cases(eval_set))]
     mt_ids = [c["id"] for c in E2E.multiturn_cases(eval_set)]
     evals = find_runs(rows, args.prompt, args.index, since, skipped, e2e_ids, mt_ids)
     loaded = {}  # kind -> (results, why)

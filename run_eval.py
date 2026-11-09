@@ -22,9 +22,10 @@ Usage (from C:\\Users\\Jord\\jordannedyck-ai, api_server.py already running):
     venv\\Scripts\\python.exe run_eval.py
     venv\\Scripts\\python.exe run_eval.py --arm A        # one arm only
     venv\\Scripts\\python.exe run_eval.py --only W05,D01 # specific questions
+    venv\\Scripts\\python.exe run_eval.py --set theme    # role-theme cases, outside the series
 
-Writes eval_results.json incrementally. Safe to re-run: completed
-question/arm/run combinations are skipped unless --fresh is passed.
+Writes eval_results.json incrementally (eval_results_<set>.json for --set theme,
+additive or timeline). Safe to re-run: completed question/arm/run combinations are skipped unless --fresh is passed.
 """
 
 import argparse
@@ -90,6 +91,36 @@ GAP_PHRASES, GAP_RE, NO_COVERAGE_RE, gap_kind = labels.GAP_PHRASES, labels.GAP_R
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 RESULTS = HERE / "eval_results.json"
+
+# Case sets in eval_set.json. "core" is the 34-question series every comparison
+# is measured on, and the default. The others are held outside it: they run only
+# on --set, each into its own results file, so their numbers never mix into the
+# series. No "all": one set per run keeps one set per file. "timeline" added
+# 2026-11-08: run_e2e.py --set timeline asks TL01-TL06; --timeline here is the
+# same set less its fixed_lead cases, which never reach the model.
+CASE_SETS = {"core": "questions", "theme": "theme_cases", "additive": "additive_cases",
+             "timeline": "timeline_cases"}
+
+
+def select_cases(spec, case_set="core", only=None):
+    """The cases in one set, filtered by --only. An id outside the set exits and
+    names the set it is in; an empty run would look like a finished one."""
+    cases = spec[CASE_SETS[case_set]]
+    if not only:
+        return cases
+    want = {s.strip().upper() for s in only.split(",") if s.strip()}
+    missing = sorted(want - {c["id"] for c in cases})
+    if missing:
+        home = {c["id"]: name for name, key in CASE_SETS.items() for c in spec.get(key, [])}
+        where = [f"{i} is in --set {home[i]}" if i in home else f"{i} is not in eval_set.json"
+                 for i in missing]
+        raise SystemExit(f"--only: {'; '.join(where)}. This run is --set {case_set}.")
+    return [c for c in cases if c["id"] in want]
+
+
+def results_path(base, case_set):
+    """The core set keeps the existing file name; other sets get a suffix."""
+    return base if case_set == "core" else base.with_name(f"{base.stem}_{case_set}{base.suffix}")
 
 
 def split_resumable(rows, **want):
@@ -615,7 +646,6 @@ def run_checks(q, arm, context, retrieved, gen):
 
 # ── career timeline ───────────────────────────────────────────────────────────
 TIMELINE_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "timeline.ts"
-RESULTS_TIMELINE = HERE / "eval_results_timeline.json"
 
 _TS_PART = re.compile(r'"((?:[^"\\]|\\.)*)"|\'((?:[^\'\\]|\\.)*)\'|(TIMELINE_MARKER)')
 
@@ -1068,13 +1098,16 @@ def estimate_multiturn(cases, reps, raw_search):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--arm", choices=["A", "B"], help="run one arm only")
-    ap.add_argument("--only", help="comma-separated question ids")
+    ap.add_argument("--set", dest="case_set", choices=list(CASE_SETS), default="core",
+                    help="core = the 34-question series (default); theme, additive and timeline are "
+                         "held outside it and write to their own results file")
+    ap.add_argument("--only", help="comma-separated question ids, within --set")
     ap.add_argument("--fresh", action="store_true", help="ignore existing results")
     ap.add_argument("--multiturn", action="store_true",
                     help="run the multiturn cases (arm B) instead of the 34-question series")
     ap.add_argument("--timeline", action="store_true",
-                    help="run timeline_cases (arm B) instead of the 34-question series, except the "
-                         "fixed_lead ones (run_e2e.py checks those); checks T2.9 and T2.12 run")
+                    help="--set timeline, arm B, except the fixed_lead cases (run_e2e.py checks "
+                         "those); checks T2.9 and T2.12 run")
     ap.add_argument("--source-format", choices=["document", "labelled"], default="labelled",
                     help="source layout; 'labelled' is the layout to land in route.ts, "
                          "'document' is the ab60e8aa comparison layout")
@@ -1100,6 +1133,13 @@ def main():
     ap.add_argument("--out", help="results file (default eval_results.json)")
     ap.add_argument("--estimate", action="store_true", help="print the plan and cost estimate, call nothing")
     args = ap.parse_args()
+    if args.timeline:
+        if args.case_set not in ("core", "timeline"):
+            sys.exit("--timeline is --set timeline; it does not take another --set.")
+        args.case_set = "timeline"
+    args.timeline = args.case_set == "timeline"
+    if args.multiturn and args.case_set != "core":
+        sys.exit("--multiturn runs the multiturn cases; it does not take --set.")
     global SOURCE_FORMAT, SYSTEM_PROMPT, PROMPT_VERSION, CORRECTIVE_REWRITE_PROMPT
     if args.probe_prompt:
         CORRECTIVE_REWRITE_PROMPT = Path(args.probe_prompt).read_text(encoding="utf-8").strip()
@@ -1116,12 +1156,14 @@ def main():
     print(f"story trigger drift: {story_trigger_drift() or 'ok, agrees with lib/build-story.ts'}")
     if args.timeline and (args.multiturn or args.corrective or args.probe):
         sys.exit("--timeline runs on its own: not with --multiturn, --corrective or --probe")
-    # fixed_lead cases never reach the answer model on the site (option D, 2026-11-04).
-    questions = ([q for q in spec["timeline_cases"] if not q.get("fixed_lead")] if args.timeline
-                 else spec["questions"])
-    if args.only:
-        want = {s.strip().upper() for s in args.only.split(",")}
-        questions = [q for q in questions if q["id"] in want]
+    questions = select_cases(spec, args.case_set, None if args.multiturn else args.only)
+    if args.timeline:
+        # fixed_lead cases never reach the answer model on the site (option D, 2026-11-04).
+        fixed = [q["id"] for q in questions if q.get("fixed_lead")]
+        if args.only and fixed:
+            sys.exit(f"--only: the site answers {', '.join(fixed)} without the model; "
+                     f"run_e2e.py --set timeline checks them.")
+        questions = [q for q in questions if not q.get("fixed_lead")]
     arms = {k: v for k, v in spec["arms"].items() if not args.arm or k == args.arm}
     if args.corrective:
         arms = {"B": spec["arms"]["B"],
@@ -1129,7 +1171,7 @@ def main():
     if args.timeline:
         arms = {"B": spec["arms"]["B"]}  # n_results 5, no truncation: what route.ts does
         print(f"timeline drift: {timeline_drift() or 'ok, agrees with lib/timeline.ts'}")
-    results_path = Path(args.out) if args.out else RESULTS_TIMELINE if args.timeline else RESULTS
+    out = Path(args.out) if args.out else results_path(RESULTS, args.case_set)
     runs_of = lambda q: max(q.get("runs", 1), args.reps)
 
     if args.probe:
@@ -1150,11 +1192,12 @@ def main():
         n = sum(len(arms) * runs_of(q) for q in questions)
         n_c = sum(runs_of(q) for q in questions) if "C" in arms else 0
         usd = n * EST_ANSWER_USD + n_c * EST_REWRITE_USD
-        print(f"{len(questions)} questions x {len(arms)} arm(s) ({', '.join(arms)}), reps {args.reps}: "
+        print(f"--set {args.case_set}: {len(questions)} questions x {len(arms)} arm(s) "
+              f"({', '.join(arms)}), reps {args.reps}: "
               f"{n} answers ({MODEL}) + {n_c} rewrites ({REWRITE_MODEL})")
         print(f"estimated ${usd:.2f} (${EST_ANSWER_USD}/answer from the 2026-10-22 runs, "
               f"${EST_REWRITE_USD}/rewrite); no judge. Already-recorded rows in "
-              f"{results_path.name} are skipped and not counted here. Nothing was called.")
+              f"{out.name} are skipped and not counted here. Nothing was called.")
         return
 
     # preflight: is api_server up?
@@ -1174,8 +1217,8 @@ def main():
         return main_multiturn(args, spec, client)
 
     existing = []
-    if results_path.exists() and not args.fresh:
-        existing = load_resumable(results_path, prompt_version=PROMPT_VERSION,
+    if out.exists() and not args.fresh:
+        existing = load_resumable(out, prompt_version=PROMPT_VERSION,
                                   source_format=SOURCE_FORMAT, model=MODEL)
         print(f"resuming — {len(existing)} results already recorded for {PROMPT_VERSION}")
     done = {(r["id"], r["arm"], r["run"]) for r in existing}
@@ -1184,7 +1227,7 @@ def main():
     total_cost = sum(r["gen"]["cost_usd"] for r in results)
     planned = sum(len(arms) * runs_of(q) for q in questions)
     print(f"prompt_version {PROMPT_VERSION} (same id as chat_events.prompt_version)")
-    print(f"{len(questions)} questions x {len(arms)} arm(s) = {planned} calls\n")
+    print(f"--set {args.case_set}: {len(questions)} questions x {len(arms)} arm(s) = {planned} calls\n")
 
     # Arms alternate per question and run (until 2026-10-30 each arm ran in
     # turn), so a slow patch at the API lands on both arms' timings alike.
@@ -1227,7 +1270,7 @@ def main():
                       f"visible={','.join(shown)}", flush=True)
 
                 results.append({
-                    "id": q["id"], "tag": q["tag"], "req": q.get("req", []),
+                    "id": q["id"], "case_set": args.case_set, "tag": q["tag"], "req": q.get("req", []),
                     "arm": arm_id, "model": MODEL, "run": run, "question": q["q"],
                     "expect": q.get("expect", []),
                     "prompt_version": PROMPT_VERSION, "source_format": SOURCE_FORMAT,
@@ -1235,11 +1278,11 @@ def main():
                     "gen": gen, "checks": checks,
                     "context_chars": len(context), **extra,
                 })
-                results_path.write_text(json.dumps(results, indent=2, ensure_ascii=False),
-                                        encoding="utf-8")
+                out.write_text(json.dumps(results, indent=2, ensure_ascii=False),
+                               encoding="utf-8")
 
     print(f"\ndone — {len(results)} results, ${total_cost:.2f} total")
-    print(f"written to {results_path}")
+    print(f"written to {out}")
 
     hard = [r for r in results
             if any(not k.startswith("_") and v is False for k, v in r["checks"].items())]
@@ -1249,11 +1292,13 @@ def main():
         print(f"  [{r['arm']}] {r['id']} run{r['run']}: {', '.join(f)}")
 
     if results:
-        run_metrics.record_run(results, runner="run_eval", source=results_path.name,
+        # "full" only for the whole core series: release_gate.py takes a full
+        # single-turn line as its evidence, and the trend chart plots only those.
+        run_metrics.record_run(results, runner="run_eval", source=out.name,
                                label=f"{PROMPT_VERSION} {SOURCE_FORMAT}"
                                      + (" corrective A/B" if args.corrective else "")
-                                     + (" timeline" if args.timeline else ""),
-                               scope="partial" if args.only else "full")
+                                     + ("" if args.case_set == "core" else f" {args.case_set}"),
+                               scope="full" if args.case_set == "core" and not args.only else "partial")
 
 
 if __name__ == "__main__":

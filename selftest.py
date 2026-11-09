@@ -597,16 +597,23 @@ check("speculation caught end to end, span kept", (c["T1.8_no_speculation"], c["
       (False, ["Her work likely"]))
 
 # 2026-11-04: --only reaches additive and theme cases. 2026-11-09: a full run asks
-# every group, so the release gate's e2e run covers them all.
+# every group, so the release gate's e2e run covers them all. --set asks one set alone.
 _spec = {"questions": [{"id": "G01", "q": "g"}, {"id": "C01", "q": "c", "runs": 2}],
          "additive_cases": [{"id": "X08", "q": "x"}], "theme_cases": [{"id": "P16", "q": "p"}],
          "timeline_cases": [{"id": "TL05", "q": "t"}]}
 check("full run asks every group, runs honoured",
-      [c["record_id"] for c in E2E.expand_questions(_spec)], ["G01", "C01#1", "C01#2", "X08", "P16", "TL05"])
+      [c["record_id"] for c in E2E.expand_questions(E2E.full_cases(_spec))],
+      ["G01", "C01#1", "C01#2", "X08", "P16", "TL05"])
 check("--only takes ids from every group",
-      [c["record_id"] for c in E2E.expand_questions(_spec, {"G01", "X08", "P16"})], ["G01", "X08", "P16"])
+      [c["record_id"] for c in E2E.expand_questions(E2E.full_cases(_spec, {"G01", "X08", "P16"}))],
+      ["G01", "X08", "P16"])
+check("--set core asks only the questions group, runs honoured",
+      [c["record_id"] for c in E2E.expand_questions(R.select_cases(_spec))], ["G01", "C01#1", "C01#2"])
+check("--set reaches the additive and theme cases",
+      [c["record_id"] for s in ("additive", "theme") for c in E2E.expand_questions(R.select_cases(_spec, s))],
+      ["X08", "P16"])
 try:
-    E2E.expand_questions(_spec, {"G01", "Z99"})
+    R.select_cases(_spec, "core", "G01,Z99")
     refused = False
 except SystemExit:
     refused = True
@@ -1310,10 +1317,12 @@ check("T2.17: card arrives not explicit fails", _e2e_card({"timeline_card": True
 check("T2.17: no card fails", _e2e_card({"timeline_card": True}, None), (False, None))
 check("T2.17: n/a elsewhere", _e2e_card({}, {"explicit": False}), ("n/a", None))
 check("T2.17: only TL05 sets timeline_card", [c["id"] for c in tl_cases if c.get("timeline_card")], ["TL05"])
+check("e2e --set timeline --only reaches timeline_cases", [q["id"] for q in E2E.expand_questions(
+      R.select_cases(json.load(open(R.EVAL_SET, encoding="utf-8")), "timeline", "TL01,TL03"))], ["TL01", "TL03"])
 check("e2e --only reaches timeline_cases", [q["id"] for q in E2E.expand_questions(
-      json.load(open(R.EVAL_SET, encoding="utf-8")), {"TL01", "TL03"})], ["TL01", "TL03"])
-_full = [c["record_id"] for c in E2E.expand_questions(json.load(open(R.EVAL_SET, encoding="utf-8")))]
+      E2E.full_cases(json.load(open(R.EVAL_SET, encoding="utf-8")), {"TL01", "TL03"}))], ["TL01", "TL03"])
 _spec_all = json.load(open(R.EVAL_SET, encoding="utf-8"))
+_full = [c["record_id"] for c in E2E.expand_questions(E2E.full_cases(_spec_all))]
 print(f"  e2e full set: {len(_full)} calls, ending {', '.join(_full[-7:])}")
 check("e2e full set holds TL01-TL06 (the release gate requires it)",
       [i for i in _full if i.startswith("TL")], ["TL01", "TL02", "TL03", "TL04", "TL05", "TL06"])
@@ -1357,7 +1366,7 @@ check("requests for the bot's instructions match (9)",
 check("overrides, false claims and questions about her prompts do not match (14)",
       [q for q in ANSWER if R.asks_for_instructions(q)], [])
 _spec = json.load(open(R.EVAL_SET, encoding="utf-8"))
-_all = [(g, c) for g in E2E.ONLY_GROUPS for c in _spec.get(g, [])]
+_all = [(g, c) for g in R.CASE_SETS.values() for c in _spec.get(g, [])]
 check("fixed_refusal cases are exactly the ones asks_for_instructions matches",
       [f"{g}/{c['id']}" for g, c in _all if bool(c.get("fixed_refusal")) != R.asks_for_instructions(c["q"])], [])
 # M04 turn 3 is A01's text: the site refuses it mid-conversation too. run_eval.py
@@ -1597,6 +1606,99 @@ jl[1]["d1"]["rho"], jl[1]["d1"]["rho_range"] = 0.9, [0.7, 0.95]
 jc = AN.judge_changes(jl[1], jl[0])
 check("judge: change and range overlap", (jc["d1 rho"]["change"], jc["d1 rho"]["ranges_overlap"],
                                           jc["d1 kappa"]["ranges_overlap"]), (0.4, False, True))
+
+print("\n--- case sets: --set and --only ---")
+# The 34-question series must stay what every comparison is measured on: core is
+# the default, and cases held outside it run only on --set, into their own file.
+import contextlib, io, os, tempfile
+from pathlib import Path
+import run_e2e as E
+import run_models as M
+import run_metrics as RM
+SPEC = json.load(open(R.EVAL_SET, encoding="utf-8"))
+ids = lambda cs: [c["id"] for c in cs]
+check("default set is the series", ids(R.select_cases(SPEC)), ids(SPEC["questions"]))
+check("series still 34 questions", len(R.select_cases(SPEC, "core")), 34)
+for name, key in R.CASE_SETS.items():
+    check(f"--set {name} is {key}", ids(R.select_cases(SPEC, name)), ids(SPEC[key]))
+all_ids = [i for key in R.CASE_SETS.values() for i in ids(SPEC[key])]
+check("no id in two sets", len(all_ids), len(set(all_ids)))
+check("--only within the set, any case", ids(R.select_cases(SPEC, "theme", "p14, P03")), ["P03", "P14"])
+for name, case_set, only, want in [
+    ("theme id on the core set names its set", "core", "W01,P03", "P03 is in --set theme"),
+    ("core id on the theme set names its set", "theme", "W01", "W01 is in --set core"),
+    ("timeline id on the core set names its set", "core", "TL01", "TL01 is in --set timeline"),
+    ("unknown id fails, not an empty run", "core", "Z99", "Z99 is not in eval_set.json"),
+]:
+    try:
+        R.select_cases(SPEC, case_set, only)
+        msg = "no exit"
+    except SystemExit as e:
+        msg = str(e)
+    check(name, want in msg, True)
+    if want not in msg:
+        print(f"      message: {msg!r}")
+check("core results file unchanged", R.results_path(R.RESULTS, "core"), R.RESULTS)
+check("theme results file", R.results_path(R.RESULTS, "theme").name, "eval_results_theme.json")
+check("models theme file", R.results_path(M.DEFAULT_OUT, "theme").name, "eval_results_models_theme.json")
+check("e2e full run file unchanged", E.e2e_filename("eval_e2e_", None, "prod", "2026-10-30"),
+      "eval_e2e_prod_2026-10-30.json")
+check("e2e --set core file is not the full run's",
+      E.e2e_filename("eval_e2e_", "core", "prod", "2026-10-30"), "eval_e2e_core_prod_2026-10-30.json")
+check("e2e theme file", E.e2e_filename("eval_e2e_", "theme", "prod", "2026-10-30"),
+      "eval_e2e_theme_prod_2026-10-30.json")
+check("timeline results file is the one --timeline always wrote",
+      R.results_path(R.RESULTS, "timeline").name, "eval_results_timeline.json")
+e2e_choices = re.search(r'"--set".*?choices=\[([^\]]+)\]', Path(E.__file__).read_text(encoding="utf-8"), re.S)
+check("run_e2e --set choices match CASE_SETS", re.findall(r'"(\w+)"', e2e_choices.group(1)), list(R.CASE_SETS))
+
+# Every held-out case must be scorable by the same checks as the series. The
+# adversarial ones (A04, X27-X30, added since) get T2.4, as A01-A03 do in core.
+core_keys = set(R.run_checks(SPEC["questions"][0], "B", CTX, R_MOCK, mk("x")))
+for key in ("theme_cases", "additive_cases"):
+    bad = [c["id"] for c in SPEC[key] if not (c.get("q") and c.get("tag") and "expect" in c)
+           or set(R.run_checks(c, "B", CTX, R_MOCK, mk("x"))) != core_keys]
+    check(f"{key} carry what run_checks needs", bad, [])
+
+# run_eval.main() end to end on --set theme, with search and generation stubbed:
+# the theme row lands in eval_results_theme.json and the series file is untouched.
+tmp = Path(tempfile.mkdtemp())
+_res, _se, _gen, _argv, _rec = R.RESULTS, R.search_experience, R.generate, sys.argv, RM.record_run
+recorded = []
+RM.record_run = lambda data, **kw: recorded.append(kw)  # never the real eval_history
+R.RESULTS = tmp / "eval_results.json"
+R.search_experience = lambda query, n, trunc, results=None: (CTX, R_MOCK)
+R.generate = lambda client, q, ctx, history=(): {**mk("Jordanne shipped it."), "ttft_s": 0.5}
+os.environ.setdefault("OPENAI_API_KEY", "selftest-not-a-key")
+sys.argv = ["run_eval.py", "--set", "theme", "--only", "P03", "--arm", "B"]
+with contextlib.redirect_stdout(io.StringIO()):
+    R.main()
+R.RESULTS, R.search_experience, R.generate, sys.argv, RM.record_run = _res, _se, _gen, _argv, _rec
+rows = json.loads((tmp / "eval_results_theme.json").read_text(encoding="utf-8"))
+check("theme run writes its own file", [(r["id"], r["case_set"], r["arm"]) for r in rows], [("P03", "theme", "B")])
+check("theme run leaves the series file alone", (tmp / "eval_results.json").exists(), False)
+# release_gate.py takes a full single-turn line as the release's eval run.
+check("theme run is never a full line in the history", [k["scope"] for k in recorded], ["partial"])
+sys.argv = ["run_eval.py", "--multiturn", "--set", "theme"]
+try:
+    R.main()
+    msg = "no exit"
+except SystemExit as e:
+    msg = str(e)
+sys.argv = _argv
+check("--multiturn refuses --set", "does not take --set" in msg, True)
+
+# run_models --estimate on the theme set: no API calls, theme file by default.
+sys.argv = ["run_models.py", "--set", "theme", "--models", "gpt-4o", "--estimate"]
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    M.main()
+sys.argv = _argv
+est = buf.getvalue()
+n_theme_cases = len(SPEC["theme_cases"])
+check(f"estimate counts the {n_theme_cases} theme cases",
+      f"--set theme: {n_theme_cases} questions x 1 models" in est, True)
+check("estimate points at the theme file", "eval_results_models_theme.json" in est, True)
 
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the

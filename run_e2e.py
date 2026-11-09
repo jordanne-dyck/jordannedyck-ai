@@ -107,10 +107,11 @@ MULTI-TURN (--multiturn, 2026-11-08)
     answered from another index or by a site that sends none.
 
 OUTPUT
-    eval_e2e_<source_system>_<YYYY-MM-DD>.json, or eval_e2e_multiturn_... with
-    --multiturn. REFUSES to overwrite an existing file. Use --resume to append only
-    the ids not already present. There is no --fresh flag; --fresh is what destroyed
-    the 124-chunk run on 2026-09-10.
+    eval_e2e_<source_system>_<YYYY-MM-DD>.json for a full run (every case group),
+    eval_e2e_<set>_<source_system>_<YYYY-MM-DD>.json for --set core, theme, additive or
+    timeline, and eval_e2e_multiturn_... with --multiturn. REFUSES to overwrite an
+    existing file. Use --resume to append only the ids not already present. There is no
+    --fresh flag; --fresh is what destroyed the 124-chunk run on 2026-09-10.
 
 USAGE
     python run_e2e.py --probe --base-url http://localhost:3000
@@ -177,7 +178,8 @@ def load_harness_checkers():
         return None, f"could not import run_eval.py ({exc.__class__.__name__}: {exc})"
     missing = [
         n for n in ("PHONE_RE", "FIRST_PERSON_RE", "GAP_RE", "GAP_PHRASES", "JD_NGRAMS",
-                    "ngrams", "SYSTEM_PROMPT", "gap_admitted", "gap_not_inverted", "injection_resisted")
+                    "ngrams", "SYSTEM_PROMPT", "gap_admitted", "gap_not_inverted", "injection_resisted",
+                    "select_cases")
         if not hasattr(run_eval, n)
     ]
     if missing:
@@ -298,6 +300,7 @@ def build_stamp(args, source_system):
         "base_url": args.base_url,
         "timestamp": datetime.now(UTC).isoformat(),
         "runner": "run_e2e.py",
+        "case_set": args.case_set,  # None: every case group, the full run
         # "http-datastream-v4" until 2026-10-27. The protocol actually parsed is
         # per record, in stream.protocol.
         "transport": "http-ai-sdk-stream",
@@ -717,21 +720,21 @@ def check_answer(harness, question, res):
 # item 3): X08, X18 and P16 live outside "questions", so no runner could ask them.
 # timeline_cases added 2026-11-04 for T2.13: --only TL01,TL02,TL03,TL04.
 ONLY_GROUPS = ("questions", "additive_cases", "theme_cases", "timeline_cases")
-# What a run without --only asks, and what a full-scope run must hold. The release
-# gate requires a full run, so a case outside these never runs end to end before a
-# release. Until 2026-11-09 this was "questions" alone, so no timeline, additive or
-# theme case ran end to end before v1.16 shipped its before-DECIEM timeline fault;
-# since then it is every group (Jord, 2026-11-09). Full runs from before then (36
-# calls) are not comparable with later ones (97).
+# What a run without --set or --only asks, and what a full-scope run must hold. The
+# release gate requires a full run, so a case outside these never runs end to end
+# before a release. Until 2026-11-09 this was "questions" alone, so no timeline,
+# additive or theme case ran end to end before v1.16 shipped its before-DECIEM
+# timeline fault; since then it is every group (Jord, 2026-11-09). Full runs from
+# before then (36 calls) are not comparable with later ones (97). --set asks one
+# set alone, through run_eval.select_cases, into its own file, and is never full.
 FULL_GROUPS = ONLY_GROUPS
 
 
-def expand_questions(eval_set, only=None):
-    """One entry per API call, honouring the `runs` field (C01 runs 3x).
+def full_cases(eval_set, only=None):
+    """The cases of a run without --set: every group in FULL_GROUPS.
 
-    Without `only`, the cases come from FULL_GROUPS. With `only` (a set of ids),
-    they come from every group in ONLY_GROUPS, and an id found in none of them is
-    an error rather than a silent skip.
+    With `only` (a set of ids), they come from every group in ONLY_GROUPS, and an
+    id found in none of them is an error rather than a silent skip.
     """
     if only:
         source = [q for g in ONLY_GROUPS for q in eval_set.get(g, []) if q["id"] in only]
@@ -739,10 +742,14 @@ def expand_questions(eval_set, only=None):
         if missing:
             sys.exit(f"--only: no case with id {', '.join(sorted(missing))} in "
                      f"{', '.join(ONLY_GROUPS)}.")
-    else:
-        source = [q for g in FULL_GROUPS for q in eval_set.get(g, [])]
+        return source
+    return [q for g in FULL_GROUPS for q in eval_set.get(g, [])]
+
+
+def expand_questions(cases):
+    """One entry per API call, honouring the `runs` field (C01 runs 3x)."""
     out = []
-    for q in source:
+    for q in cases:
         for i in range(q.get("runs", 1)):
             item = dict(q)
             item["run_index"] = i + 1
@@ -750,6 +757,11 @@ def expand_questions(eval_set, only=None):
             out.append(item)
     return out
 
+
+def e2e_filename(prefix, case_set, source_system, utc_date):
+    """A full run (no --set) keeps the plain file name; a --set run carries its set."""
+    set_part = f"{case_set}_" if case_set else ""
+    return f"{prefix}{set_part}{source_system}_{utc_date}.json"
 
 def multiturn_cases(eval_set, only=None):
     """The multiturn cases, in file order; an --only id not among them is an error."""
@@ -894,7 +906,10 @@ def main():
     ap.add_argument("--multiturn", action="store_true",
                     help="replay the multiturn cases (M01-M10) through the route, signed answers "
                          "sent back; needs MONITOR_TOKEN")
-    ap.add_argument("--only", help="comma-separated question ids")
+    ap.add_argument("--set", dest="case_set", choices=["core", "theme", "additive", "timeline"],
+                    help="ask one set alone, into its own file (core = the 34-question series). "
+                         "Default: every case group, the full run the release gate takes")
+    ap.add_argument("--only", help="comma-separated question ids, within --set when given")
     ap.add_argument("--start", type=int, default=0,
                     help="skip the first N calls (conversations with --multiturn)")
     ap.add_argument("--limit", type=int, default=18,
@@ -931,8 +946,18 @@ def main():
         # data-citations (T2.6/T2.7 unscorable), the rate limit applies, and the
         # rows count as real traffic and trigger the site's paid labels.
         sys.exit("--multiturn needs MONITOR_TOKEN set: nothing was sent.")
+    if args.multiturn and args.case_set:
+        sys.exit("--multiturn replays the multiturn cases; it does not take --set.")
     harness, harness_err = load_harness_checkers()
+    if harness is None and args.case_set:
+        # --set selection lives in run_eval.py with the checks, so the three runners
+        # cannot disagree about which cases a set holds.
+        sys.exit(f"Cannot select cases for --set: {harness_err}")
     eval_set = json.loads(EVAL_SET.read_text(encoding="utf-8"))
+    wanted = {s.strip().upper() for s in args.only.split(",") if s.strip()} if args.only else None
+    cases = ([] if args.multiturn
+             else harness.select_cases(eval_set, args.case_set, args.only) if args.case_set
+             else full_cases(eval_set, wanted))
     stamp = build_stamp(args, source_system)
     if args.multiturn:
         stamp["turn_shape"] = "multi-turn: full history, each answer sent back with its sig"
@@ -940,6 +965,7 @@ def main():
     print(f"target        : {args.base_url}  (source_system: {source_system})")
     print(f"eval set      : {EVAL_SET.name} v{eval_set['meta'].get('version')} — "
           + (f"{len(eval_set['multiturn']['cases'])} multiturn conversations" if args.multiturn
+             else f"--set {args.case_set}, {len(cases)} questions" if args.case_set
              else ", ".join(f"{len(eval_set.get(g, []))} {g}" for g in FULL_GROUPS)))
     if harness_err:
         print(f"WARNING       : {harness_err}")
@@ -954,11 +980,10 @@ def main():
         print("\nWARNING: preflight failed and was skipped. These results are not interpretable.")
         stamp["preflight"] = "FAILED_AND_SKIPPED"
 
-    wanted = {s.strip() for s in args.only.split(",")} if args.only else None
     # A multi-turn "call" is a whole conversation: --start, --limit and --resume
     # count conversations, keyed on the case id.
     calls = ([{**c, "record_id": c["id"]} for c in multiturn_cases(eval_set, wanted)]
-             if args.multiturn else expand_questions(eval_set, wanted))
+             if args.multiturn else expand_questions(cases))
 
     # UTC for filenames as well as for the C23 stamp, so a sitting that crosses local
     # midnight cannot split across two files and a file's name can never disagree with
@@ -966,7 +991,8 @@ def main():
     # protocol check, not a run, and must never be mistaken for — or overwrite — one.
     utc_date = datetime.now(UTC).strftime("%Y-%m-%d")
     prefix = "eval_e2e_" + ("multiturn_" if args.multiturn else "") + ("probe_" if args.probe else "")
-    out_path = Path(args.out) if args.out else HERE / f"{prefix}{source_system}_{utc_date}.json"
+    out_path = Path(args.out) if args.out else HERE / e2e_filename(prefix, args.case_set,
+                                                                    source_system, utc_date)
     existing, done = [], set()
     if out_path.exists() and not args.probe:
         if not args.resume:
@@ -1125,9 +1151,10 @@ def main():
         # A run is paced over sittings with --resume; each sitting adds a line,
         # and only the sitting that completes the set adds a full-scope one.
         have = {r["record_id"] for r in results}
+        # Only a whole run without --set is "full": release_gate.py takes a full line as its e2e run.
         want = ([c["id"] for c in multiturn_cases(eval_set)] if args.multiturn
-                else [c["record_id"] for c in expand_questions(eval_set)])
-        full = not args.only and all(w in have for w in want)
+                else [c["record_id"] for c in expand_questions(full_cases(eval_set))])
+        full = not args.case_set and not args.only and all(w in have for w in want)
         run_metrics.record_run(payload, runner="run_e2e", source=out_path.name,
                                label=f"e2e {mt}{source_system}", scope="full" if full else "partial")
 
