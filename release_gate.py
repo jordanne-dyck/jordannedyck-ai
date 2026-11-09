@@ -8,11 +8,14 @@ Each needs, for the prompt and index it will run with:
   - a full single-turn run_eval.py run          (history kind "single", scope "full")
   - a full multi-turn run_eval.py run           (kind "multiturn", scope "full")
   - a full run_e2e.py run against jordbot-dev   (kind "e2e", scope "full"), whose stamp
-    says dev served that prompt, taken after the tested commit
+    says dev served that prompt, taken after the tested commit, and (2026-11-09) whose
+    answers cover every case run_e2e.py's full set holds today, the timeline cases
+    TL01-TL06 included; a run labelled full before they joined it does not count
   - (2026-11-09) each of those three answered from the index going out, by the
     index_version its answers recorded from /search, never by filename, and its
     results file still holding the answers its history line was written from (same
-    run_id). The site does not report its index yet, so no e2e run passes this.
+    run_id). An e2e run proves its index only from a site that sends the
+    data-index part (web, 2026-11-09); an older run recorded none and does not count.
   - every failing check signed off by Jord, by case, in the evidence file; a tier-1
     failure only as "checker miss: <why>", or as "not served: <why>" when the e2e run
     passed that case on dev, since a release needs every tier-1 check
@@ -48,6 +51,7 @@ import sys
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import run_e2e as E2E
 import run_metrics as RM
 
 HERE = Path(__file__).resolve().parent
@@ -94,12 +98,13 @@ def load_run(row):
     return data, None
 
 
-def find_runs(rows, prompt, index, since, skipped=None):
+def find_runs(rows, prompt, index, since, skipped=None, e2e_ids=None):
     """Latest full run of each kind for this prompt and index. None where absent.
     single and multiturn match on the index_version the run recorded, never on the
     filename (bug, 2026-11-07); runs from before 2026-11-09 recorded none and do not
     count. e2e matches on prompt and time; main() checks its index. An e2e line whose
-    file is gone or changed is passed over, its reason appended to `skipped`."""
+    file is gone or changed, or whose answers miss any of `e2e_ids` (the record ids
+    of run_e2e.py's full set), is passed over, its reason appended to `skipped`."""
     evals = {}
     for kind in ("single", "multiturn"):
         hits = [r for r in rows if r.get("runner") == "run_eval" and r.get("kind") == kind
@@ -119,10 +124,17 @@ def find_runs(rows, prompt, index, since, skipped=None):
             continue
         stamp = data.get("meta", {}).get("stamp", {})
         ts = stamp.get("timestamp")
-        if (stamp.get("source_system") == "dev" and stamp.get("site_prompt_version") == prompt
+        if not (stamp.get("source_system") == "dev" and stamp.get("site_prompt_version") == prompt
                 and ts and (since is None or datetime.fromisoformat(ts) >= since)):
-            evals["e2e"] = r
-            break
+            continue
+        missing = sorted(set(e2e_ids or ()) - {x.get("record_id") for x in data["results"]})
+        if missing:
+            if skipped is not None:
+                skipped.append(f"{r['source']} (run {r['run_id']}) does not cover today's full "
+                               f"e2e set: no {', '.join(missing)}")
+            continue
+        evals["e2e"] = r
+        break
     return evals
 
 
@@ -263,7 +275,12 @@ def main():
 
     rows = [json.loads(l) for l in HISTORY.read_text(encoding="utf-8").splitlines() if l.strip()]
     skipped = []
-    evals = find_runs(rows, args.prompt, args.index, since, skipped)
+    # Until 2026-11-09 the e2e run the gate took asked the 34 questions only, so no
+    # timeline case ran end to end before a release (task_1794247869717_m72eoh). A
+    # run counts only if it holds every case the full set holds now.
+    e2e_ids = [c["record_id"] for c in E2E.expand_questions(
+        json.loads((HERE / "eval_set.json").read_text(encoding="utf-8")))]
+    evals = find_runs(rows, args.prompt, args.index, since, skipped, e2e_ids)
     loaded = {}  # kind -> (results, why)
     for kind, row in evals.items():
         if row is not None:
@@ -294,14 +311,14 @@ def main():
         if why:
             problems.append(f"{kind} run {row['run_id']}: {why}")
             continue
-        # Read from the answers themselves, not the history line. The site does not
-        # report its index yet (bug_1794186971153_gec1c5), so no e2e run can prove
-        # one, and the gate blocks until it can (Jord, 2026-11-08).
+        # Read from the answers themselves, not the history line. An e2e run has
+        # it only from a site that sends data-index (bug_1794186971153_gec1c5); the
+        # gate blocks any e2e run that cannot prove its index (Jord, 2026-11-08).
         index_read[kind] = RM.index_version_of(data)
         if index_read[kind] != args.index:
             problems.append(f"{kind} run {row['run_id']}: answered from index_version "
                             f"{index_read[kind]}, not {args.index}"
-                            + (" (the dev site does not report its index yet)" if kind == "e2e" else ""))
+                            + (" (a run from before the site sent data-index, or one with a sitting on another index)" if kind == "e2e" else ""))
         for (case, check), (n, total, qs) in sorted(failures(data).items()):
             passed = case in e2e_clean or (bool(qs) and all(q.strip() in e2e_clean_q for q in qs))
             fails.append({"kind": kind, "case": case, "check": check, "failed": n, "of": total,

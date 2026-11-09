@@ -55,6 +55,12 @@ STREAM PROTOCOL
     retrieval (v4 `8:` annotation type "retrieval"; UI stream `data-retrieval` part).
     It is recorded when present. The checks below do not use it yet.
 
+    Every answer that searched also carries a `data-index` part (2026-11-09) with the
+    index_version the backend answered from. Each record's stamp holds its own; the
+    run-level stamp holds it only when every record agrees. release_gate.py matches
+    an e2e run to the index going out on it. A site from before then sends none, and
+    its records say None.
+
     The protocol a record was parsed with is stored in stream.protocol. Run --probe
     first on any target whose bundle changed. It sends ONE question (~$0.01), writes
     the raw bytes to disk, prints the first lines, and reports whether the parse
@@ -71,9 +77,12 @@ PREREQUISITE FOR THE LOCAL TARGET
 
 RATE LIMITS
     HOURLY_LIMIT = 20, DAILY_LIMIT = 100, hardcoded in lib/rate-limit.ts, no env
-    override, counted per ip_hash. Default --limit is 18 per invocation. 34 questions
-    is therefore two sittings against prod. A 429 stops the run cleanly and prints the
-    --start value to resume from.
+    override, counted per ip_hash. Default --limit is 18 per invocation. A full run is
+    97 calls (34 questions with C01 three times, 29 additive, 26 theme and 6 timeline
+    cases; the fixed replies count too, route.ts checks the limit first): six sittings,
+    over five hours, and 97 of the day's 100. A run that has to start again cannot
+    finish the same day. A 429 stops the run cleanly and prints the --start value to
+    resume from.
 
 OUTPUT
     eval_e2e_<source_system>_<YYYY-MM-DD>.json. REFUSES to overwrite an existing file.
@@ -282,6 +291,10 @@ def build_stamp(args, source_system):
         "index_bytes": None,
         "embedding_model": None,
         "context_visible": False,
+        # The index that answered, from the site's data-index part (2026-11-09).
+        # Per answer in each record's stamp; run-level only when every record in
+        # the file agrees (run_index_version). None until the site sends it.
+        "index_version": None,
     }
     if source_system == "dev":
         # jordbot-dev serves the :dev image, which every dev build overwrites, and reads
@@ -319,6 +332,20 @@ def build_stamp(args, source_system):
         if served:
             stamp["site_prompt_version"] = served
     return stamp
+
+
+def record_stamp(stamp, res):
+    """The stamp one record carries: the sitting's stamp plus the index_version the
+    site reported for this answer. Per record, because a --resume sitting can run
+    days later on another index, and the gate must see that (2026-11-09)."""
+    return {**stamp, "index_version": res.get("index_version")}
+
+
+def run_index_version(results):
+    """The one index_version every record in the file answered from, else None:
+    the run-level stamp's value. Same rule as run_metrics.index_version_of."""
+    vs = {(r.get("stamp") or {}).get("index_version") for r in results}
+    return vs.pop() if len(vs) == 1 and None not in vs else None
 
 
 def served_prompt_version(base_url):
@@ -422,6 +449,7 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
         "ttfb_ms": None, "ttft_ms": None, "total_ms": None,
         "parts_seen": {}, "unparsed_lines": 0, "raw_bytes": 0,
         "protocol": None, "retrieval": None, "timeline": None,
+        "index_version": None,
     }
 
     def text_part(value, now):
@@ -492,6 +520,9 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
                     out["retrieval"] = part["data"]
                 elif kind == "data-timeline":
                     out["timeline"] = part.get("data")
+                elif kind == "data-index" and isinstance(part.get("data"), dict):
+                    v = part["data"].get("index_version")
+                    out["index_version"] = v if isinstance(v, str) else None
                 elif kind == "finish":
                     if part.get("finishReason"):
                         out["finish_reason"] = part["finishReason"]
@@ -628,8 +659,11 @@ def check_answer(harness, question, res):
     # so the citation rule gave no card. asksForCareerHistory() in lib/timeline.ts
     # now gives it from the question. Only the route sends the part, so run_eval.py
     # --timeline cannot check this. The data is kept so a run shows what arrived.
+    # 2026-11-09: and explicit. In v1.16 TL05's card arrived with explicit: false and
+    # the page hid it after the overview question had shown the timeline once; the
+    # site now sends explicit: true for a past-jobs question (web 094684f).
     if question.get("timeline_card"):
-        checks["T2.17_timeline_card"] = res.get("timeline") is not None
+        checks["T2.17_timeline_card"] = (res.get("timeline") or {}).get("explicit") is True
         checks["T2.17_timeline_data"] = res.get("timeline")
     else:
         checks["T2.17_timeline_card"] = "n/a"
@@ -641,16 +675,23 @@ def check_answer(harness, question, res):
 # ----------------------------------------------------------------------------------
 # --only also looks in these groups. Added 2026-11-04 (brief-gaps-page-followups,
 # item 3): X08, X18 and P16 live outside "questions", so no runner could ask them.
-# A run without --only still asks "questions" alone, so full runs stay comparable.
 # timeline_cases added 2026-11-04 for T2.13: --only TL01,TL02,TL03,TL04.
 ONLY_GROUPS = ("questions", "additive_cases", "theme_cases", "timeline_cases")
+# What a run without --only asks, and what a full-scope run must hold. The release
+# gate requires a full run, so a case outside these never runs end to end before a
+# release. Until 2026-11-09 this was "questions" alone, so no timeline, additive or
+# theme case ran end to end before v1.16 shipped its before-DECIEM timeline fault;
+# since then it is every group (Jord, 2026-11-09). Full runs from before then (36
+# calls) are not comparable with later ones (97).
+FULL_GROUPS = ONLY_GROUPS
 
 
 def expand_questions(eval_set, only=None):
     """One entry per API call, honouring the `runs` field (C01 runs 3x).
 
-    With `only` (a set of ids), the cases come from every group in ONLY_GROUPS,
-    and an id found in none of them is an error rather than a silent skip.
+    Without `only`, the cases come from FULL_GROUPS. With `only` (a set of ids),
+    they come from every group in ONLY_GROUPS, and an id found in none of them is
+    an error rather than a silent skip.
     """
     if only:
         source = [q for g in ONLY_GROUPS for q in eval_set.get(g, []) if q["id"] in only]
@@ -659,7 +700,7 @@ def expand_questions(eval_set, only=None):
             sys.exit(f"--only: no case with id {', '.join(sorted(missing))} in "
                      f"{', '.join(ONLY_GROUPS)}.")
     else:
-        source = eval_set["questions"]
+        source = [q for g in FULL_GROUPS for q in eval_set.get(g, [])]
     out = []
     for q in source:
         for i in range(q.get("runs", 1)):
@@ -720,7 +761,7 @@ def main():
 
     print(f"target        : {args.base_url}  (source_system: {source_system})")
     print(f"eval set      : {EVAL_SET.name} v{eval_set['meta'].get('version')} "
-          f"— {len(eval_set['questions'])} questions")
+          f"— {', '.join(f'{len(eval_set.get(g, []))} {g}' for g in FULL_GROUPS)}")
     if harness_err:
         print(f"WARNING       : {harness_err}")
     print("preflight     :")
@@ -816,7 +857,7 @@ def main():
                 # The data-timeline part's data, e.g. {"explicit": true}; None when absent.
                 "timeline": res["timeline"],
                 "checks": check_answer(harness, q, res),
-                "stamp": stamp,
+                "stamp": record_stamp(stamp, res),
             }
             results.append(record)
 
@@ -829,7 +870,7 @@ def main():
                 flag = f"  timeline={res['timeline']}"
             print(f"  [{i + 1}/{len(queue)}] {q['record_id']:<8} "
                   f"ttft={res['ttft_ms'] or '-':>6}ms  total={res['total_ms'] or '-':>6}ms  "
-                  f"chars={len(res['answer']):>5}{flag}")
+                  f"chars={len(res['answer']):>5}  index={res['index_version'] or '-'}{flag}")
 
             if res["http_status"] == 429:
                 stopped = args.start + i
@@ -850,6 +891,7 @@ def main():
         if raw_sink:
             raw_sink.close()
 
+    stamp["index_version"] = run_index_version(results)
     payload = {
         "meta": {
             "runner": "run_e2e.py", "stamp": stamp,
