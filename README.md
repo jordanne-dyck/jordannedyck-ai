@@ -47,13 +47,13 @@ flowchart LR
 
 The harness answers one question before anything ships: is this version better, and how do we know? **[EVALS.md](EVALS.md)** has the full account: results, ranges, the decisions the evals drove, and what is left to human judgement.
 
-[`eval_set.json`](eval_set.json) holds 105 cases:
+[`eval_set.json`](eval_set.json) holds 106 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
 | Core questions | 34 | The questions a hiring manager actually asks, each mapped to a requirement (R1–R15) from a real Staff PM posting at Wealthsimple |
 | Regression cases | 29 | One per defect found in testing, each tagged with a failure type |
-| Multi-turn conversations | 10 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
+| Multi-turn conversations | 11 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
 | Role-theme cases | 26 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" and ten questions on how this site was built and run |
 | Career timeline cases | 6 | Four career-overview questions, where the site skips the model and shows my own short lead around an animated timeline; the end-to-end runner checks that exact text and the timeline arrive. Plus two career questions that came back from dev with no citations, which still go through the model. For "Where did Jordanne work before DECIEM?" the end-to-end runner also checks the timeline arrives, since the site now shows it from the question |
 
