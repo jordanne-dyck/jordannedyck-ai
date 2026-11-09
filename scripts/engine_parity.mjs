@@ -70,6 +70,7 @@ for (const a of fx.answers) {
     predicted: projects.predictProject(a.chunks),
     citesCareer: timeline.citesCareer(citedIds),
     leadsWithCareer: timeline.leadsWithCareer(a.chunks),
+    timelineFor: timeline.timelineFor(a.query, citedIds, a.chunks),
     freeLabels: classify.freeLabels(a.query, visible),
     stream: await streamStrip(a.deltas),
   });
@@ -81,6 +82,7 @@ for (const q of fx.questions) {
     timeline: timeline.asksForTimeline(q),
     careerHistory: timeline.asksForCareerHistory(q),
     replay: timeline.isTimelineReplay(q, true),
+    timelineForUncited: timeline.timelineFor(q, [], []),
     freeLabelsQueryOnly: classify.freeLabels(q, null),
   });
 }

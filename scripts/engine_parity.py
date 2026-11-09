@@ -12,7 +12,8 @@ live), run by Node (scripts/engine_parity.mjs). The inputs:
   - every chunk in the index, for its section heading.
 
 Compared: segments and cited ids, the sources list, the citation labels, the
-project card and its prediction, the timeline-card rules, the free labels, the
+project card and its prediction, the timeline-card rules and what they combine
+into (timeline_card() against timelineFor()), the free labels, the
 streaming citation strip (each answer cut into deltas of 1 to 9 characters),
 the fixed-reply triggers and the cost table. Free: no model is called.
 
@@ -95,6 +96,7 @@ def python_side(fx):
             "predicted": projects.predict_project(a["chunks"]),
             "citesCareer": fixed.cites_career(cited),
             "leadsWithCareer": fixed.leads_with_career(a["chunks"]),
+            "timelineFor": fixed.timeline_card(a["query"], cited, a["chunks"]),
             "freeLabels": labels.free_labels(a["query"], visible),
             "stream": {"out": out + ([tail] if tail else []), "raw": s.raw},
         })
@@ -102,7 +104,8 @@ def python_side(fx):
         res["questions"].append({
             "instructions": fixed.asks_for_instructions(q), "overview": fixed.asks_for_overview(q),
             "timeline": fixed.asks_for_timeline(q), "careerHistory": fixed.asks_for_career_history(q),
-            "replay": fixed.is_timeline_replay(q, True), "freeLabelsQueryOnly": labels.free_labels(q, None),
+            "replay": fixed.is_timeline_replay(q, True),
+            "timelineForUncited": fixed.timeline_card(q, [], []), "freeLabelsQueryOnly": labels.free_labels(q, None),
         })
     res["sections"] = [citations.section_of(s["content"], s["title"]) for s in fx["sections"]]
     res["costs"] = [cost.estimate_cost_usd(c["model"], c["prompt"], c["completion"]) for c in fx["costs"]]
