@@ -16,7 +16,9 @@ Events, in order:
   done   once, at the end: the cited answer, sources, cards, labels, usage.
          timeline is {explicit, reason} when the page should show the timeline:
          explicit for a fixed overview reply (reason explicit or overview),
-         otherwise reason cited, retrieved or asked; None for no timeline.
+         otherwise reason cited, retrieved or asked, explicit when the
+         question asks about her past jobs (timelineFor(), web 094684f);
+         None for no timeline. Explicit means the page shows it every time.
   error  instead of done: {reason, message}; message is what a visitor sees
 """
 
@@ -162,13 +164,12 @@ def run_turn(client, search, messages, timeline_shown=False):
     text = fixed.without_timeline_marker("".join(shown))
     raw = fixed.without_timeline_marker(stripper.raw)
     segments, cited = citations.parse_citations(raw)
-    card = fixed.timeline_card(query, cited, chunks)
     tokens = (usage.prompt_tokens, usage.completion_tokens) if usage else (None, None)
     yield {"type": "done", "answer": text, "answer_cited": raw, "segments": segments, "cited_ids": cited,
            "sources": citations.build_sources(segments, chunks),
            "project": projects.pick_project(cited, chunks),
            "project_predicted": projects.predict_project(chunks),
-           "timeline": {"explicit": False, "reason": card} if card else None, "flags": {},
+           "timeline": fixed.timeline_card(query, cited, chunks), "flags": {},
            "free_labels": labels.free_labels(query, text),
            "citation_labels": citations.citation_labels(segments, chunks),
            "usage": {"prompt_tokens": tokens[0], "completion_tokens": tokens[1]},

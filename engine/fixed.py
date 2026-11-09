@@ -126,14 +126,18 @@ def fixed_reply(query, timeline_shown=False):
 
 
 def timeline_card(query, cited_ids, chunks):
-    """Why a generated answer gets the timeline card: 'cited' (it cites role
-    history), 'retrieved' (it cites nothing and retrieval led with role
-    history) or 'asked' (a career-history question), else None. The page shows
-    the card once per visit."""
+    """timelineFor(): the timeline under a generated answer, {reason, explicit},
+    or None. `reason` is 'cited' (it cites role history), 'retrieved' (it cites
+    nothing and retrieval led with role history) or 'asked' (a career-history
+    question). `explicit` when the question asks about her past jobs, for any
+    reason: the page then shows the card every time, not once per visit (web
+    094684f, 2026-11-08, after "Where did Jordanne work before DECIEM?" showed
+    no timeline in v1.16 QA)."""
+    explicit = asks_for_career_history(query)
     if cites_career(cited_ids):
-        return "cited"
+        return {"reason": "cited", "explicit": explicit}
     if not cited_ids and leads_with_career(chunks):
-        return "retrieved"
-    if asks_for_career_history(query):
-        return "asked"
+        return {"reason": "retrieved", "explicit": explicit}
+    if explicit:
+        return {"reason": "asked", "explicit": explicit}
     return None
