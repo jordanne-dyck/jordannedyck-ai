@@ -1499,6 +1499,89 @@ check("same run and count keeps the ruling", by_case["M09"]["signoff"],
 again = {f["case"]: f for f in G.carry_signoffs(new_fails, [dict(by_case["A01"])])}
 check("previous_signoff survives a re-run while still unsigned",
       again["A01"]["previous_signoff"]["run_id"], "266e50ccd5fa")
+
+# Release gate, evidence (bugs 2026-11-07): the gate matched a run to the index by
+# its filename (no results file said which index answered), read results files
+# without checking their run_id (eval_results.json's history run cbb21d08299d now
+# holds 2810f065a916 and f7bebf9d6de5), and crashed on a missing file with
+# AttributeError: 'NoneType' object has no attribute 'read_text'.
+print("\n--- release gate: a run counts by its recorded index and its run_id ---")
+
+def ans(i, iv, ok=True):
+    return {"id": i, "arm": "B", "model": "gpt-4o", "run": 1, "question": f"q {i}",
+            "gen": {"latency_s": 1.0, "ttft_s": 0.5, "cost_usd": 0.001},
+            "checks": {"T1.1_response_returned": ok}, **({"index_version": iv} if iv else {})}
+
+def conv(i, ivs):
+    return {"id": i, "model": "gpt-4o", "run": 1, "case_checks": {"T2.6_x": True},
+            "turns": [{"turn": n, "question": f"t{n}", "index_version": iv,
+                       "gen": {"latency_s": 1.0, "ttft_s": 0.5, "cost_usd": 0.001},
+                       "checks": {"T1.1_response_returned": True}} for n, iv in enumerate(ivs, 1)]}
+
+check("index_version_of: every answer on one index", RM.index_version_of(
+    [ans("A1", "aaaa1111"), ans("A2", "aaaa1111")]), "aaaa1111")
+check("index_version_of: an answer with none -> None", RM.index_version_of(
+    [ans("A1", "aaaa1111"), ans("A2", None)]), None)
+check("index_version_of: two indexes -> None", RM.index_version_of(
+    [ans("A1", "aaaa1111"), ans("A2", "bbbb2222")]), None)
+check("index_version_of: multi-turn reads every turn", RM.index_version_of(
+    [conv("M1", ["aaaa1111", "bbbb2222"])]), None)
+check("index_version_of: an e2e run whose stamp has no index -> None", RM.index_version_of(
+    {"meta": {"stamp": {"site_prompt_version": "dd326013"}}, "results": [{"id": "A1"}]}), None)
+check("index_version_of: an e2e stamp with one -> it", RM.index_version_of(
+    {"meta": {"stamp": {"index_version": "aaaa1111"}}, "results": [{"id": "A1"}]}), "aaaa1111")
+bare = [ans("A1", None), ans("A2", None, ok=False)]
+stamped = [ans("A1", "aaaa1111"), ans("A2", "aaaa1111", ok=False)]
+hl = lambda d, src: RM.history_lines(d, runner="run_eval", source=src, label="t",
+                                     date="2026-11-09", scope="full")[0]
+check("history line carries the index_version", hl(stamped, "s.json")["index_version"], "aaaa1111")
+check("recording the index leaves run_id unchanged, so old lines still match",
+      hl(stamped, "s.json")["run_id"], hl(bare, "s.json")["run_id"])
+
+with tempfile.TemporaryDirectory() as td:
+    real_here = G.HERE
+    G.HERE = RM.Path(td)
+    try:
+        (G.HERE / "eval_runs").mkdir()
+        (G.HERE / "eval_runs" / "single_dd326013_aaaa1111.json").write_text(json.dumps(stamped))
+        (G.HERE / "eval_runs" / "fnonly_dd326013_aaaa1111.json").write_text(json.dumps(bare))
+        (G.HERE / "eval_runs" / "mt.json").write_text(json.dumps([conv("M1", ["aaaa1111"] * 2)]))
+        good = dict(hl(stamped, "single_dd326013_aaaa1111.json"), prompt_version="dd326013")
+        fn_only = dict(hl(bare, "fnonly_dd326013_aaaa1111.json"), prompt_version="dd326013")
+        mt = dict(hl([conv("M1", ["aaaa1111"] * 2)], "mt.json"), prompt_version="dd326013")
+        gone = dict(good, source="gone_dd326013_aaaa1111.json")
+        moved = dict(good, run_id="cbb21d08299d")
+        for name, row in (("good", good), ("missing", gone), ("re-run over", moved)):
+            data, why = G.load_run(row)
+            print(f"  load_run {name:12} run {row['run_id']} {row['source']}: "
+                  f"{'loaded, index_version ' + str(RM.index_version_of(data)) if data else why}")
+        check("load_run: the file still holds the run", G.load_run(good)[1], None)
+        check("load_run: a missing file is a reason, not a crash", G.load_run(gone),
+              (None, "results file gone_dd326013_aaaa1111.json not found (eval_runs/ is not in git)"))
+        check("load_run: a file that no longer holds the run is refused", G.load_run(moved),
+              (None, f"single_dd326013_aaaa1111.json no longer holds run cbb21d08299d "
+                     f"(it holds {good['run_id']})"))
+        check("failures() reads the loaded answers",
+              G.failures(G.load_run(good)[0]), {("A2", "T1.1_response_returned"): [1, 1, {"q A2"}]})
+        e2e_gone = {"runner": "run_e2e", "kind": "e2e", "scope": "full", "run_id": "e90cc97ad550",
+                    "source": "eval_e2e_dev_gone.json"}
+        skipped = []
+        found = G.find_runs([good, mt, fn_only, e2e_gone], "dd326013", "aaaa1111", None, skipped)
+        for k, r in found.items():
+            print(f"  find_runs {k:9} -> {r and r['run_id']} {r and r['source']} "
+                  f"index_version {r and r.get('index_version')}")
+        check("find_runs: matched on the recorded index, not the filename",
+              found["single"]["run_id"], good["run_id"])
+        check("find_runs: a filename-only run never counts",
+              G.find_runs([fn_only], "dd326013", "aaaa1111", None)["single"], None)
+        check("find_runs: multi-turn matched on its turns' index", found["multiturn"]["run_id"],
+              mt["run_id"])
+        check("find_runs: a missing e2e file is passed over and said why", (found["e2e"], skipped),
+              (None, ["results file eval_e2e_dev_gone.json not found (eval_runs/ is not in git)"]))
+        check("find_runs: another index does not match",
+              G.find_runs([good], "dd326013", "bbbb2222", None)["single"], None)
+    finally:
+        G.HERE = real_here
 import coverage_report as CR
 spec_cr, cases_cr, _mt = CR.load()
 check("coverage counts the timeline cases",

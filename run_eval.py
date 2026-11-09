@@ -375,11 +375,14 @@ NO_COVERAGE_RE = re.compile(
 # ── route.ts equivalents ──────────────────────────────────────────────────────
 
 LAST_RANKER = None  # the ranker the last /search reported; saved in --probe files (G.2)
+# The index_version the last /search reported, saved on every answer and turn so a
+# results file says which index answered; release_gate.py matches on it (2026-11-09).
+LAST_INDEX_VERSION = None
 
 
 def fetch_results(query, n_results):
     """The raw /search results, before the route formats them."""
-    global LAST_RANKER
+    global LAST_RANKER, LAST_INDEX_VERSION
     body = json.dumps({"query": query, "n_results": n_results}).encode()
     req = urllib.request.Request(
         SEARCH_URL, data=body, headers={"Content-Type": "application/json"}
@@ -387,7 +390,14 @@ def fetch_results(query, n_results):
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode())
     LAST_RANKER = data.get("ranker")
+    LAST_INDEX_VERSION = data.get("index_version")
     return data.get("results") or []
+
+
+def last_index_version():
+    """The index_version the last fetch_results() call got back. A function, so
+    run_models.py, which imports names from here, reads the current value."""
+    return LAST_INDEX_VERSION
 
 
 def search_experience(query, n_results, truncate, results=None):
@@ -1436,7 +1446,8 @@ def run_conversation(client, case, arm, cite_reminder=True, raw_search=False):
         turns.append({"turn": i, "question": q["q"], "search_query": rw["query"],
                       "rewrite_status": rw["status"], "rewrite_ms": rw["ms"],
                       "rewrite_cost_usd": rw["cost_usd"],
-                      "retrieved": retrieved, "gen": gen, "checks": checks,
+                      "retrieved": retrieved, "index_version": LAST_INDEX_VERSION,
+                      "gen": gen, "checks": checks,
                       "lead_chunk": lead_chunk(gen["answer_cited"])})
         history += [{"role": "user", "content": q["q"]},
                     {"role": "assistant", "content": gen["answer"]}]
@@ -1703,7 +1714,8 @@ def main():
                     "arm": arm_id, "model": MODEL, "run": run, "question": q["q"],
                     "expect": q.get("expect", []),
                     "prompt_version": PROMPT_VERSION, "source_format": SOURCE_FORMAT,
-                    "retrieved": retrieved, "gen": gen, "checks": checks,
+                    "retrieved": retrieved, "index_version": LAST_INDEX_VERSION,
+                    "gen": gen, "checks": checks,
                     "context_chars": len(context), **extra,
                 })
                 results_path.write_text(json.dumps(results, indent=2, ensure_ascii=False),
