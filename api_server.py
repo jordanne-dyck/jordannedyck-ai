@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 import threading
@@ -7,7 +8,7 @@ from pathlib import Path
 import faiss
 import numpy as np
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request, stream_with_context
 from openai import (
     APIConnectionError,
     APIStatusError,
@@ -17,13 +18,16 @@ from openai import (
 )
 
 import retrieval
+from engine import chat as engine_chat
+from engine.prompt import PROMPT_VERSION
 
 load_dotenv()
 
 app = Flask(__name__)
-# No CORS. Every caller of /search is server-side (route.ts, the eval runners,
-# eval-candidates.mjs), so no browser needs cross-origin access. CORS(app) was
-# open to all origins. Security review 2026-10-20, item 8.
+# No CORS. Every caller of /search and /chat is server-side (route.ts, the eval
+# runners, eval-candidates.mjs), so no browser needs cross-origin access.
+# CORS(app) was open to all origins. Security review 2026-10-20, item 8. The
+# service is ClusterIP only: the public routes point at the web app, never here.
 
 # Request bounds for /search. MAX_QUERY_CHARS matches MAX_USER_MESSAGE_CHARS in
 # jordannedyck-ai-web/lib/chat-input.ts. MAX_N_RESULTS leaves headroom over the
@@ -107,11 +111,11 @@ def check_openai():
         _openai_check.update(status=status, at=now)
         return status
 
-def get_embedding(text):
+def get_embedding(text, timeout=30):
     response = openai_client.embeddings.create(
         **retrieval.embedding_request(EMBEDDING),
         input=text,
-        timeout=30
+        timeout=timeout
     )
     return response.data[0].embedding
 
@@ -151,6 +155,12 @@ def search():
     if isinstance(n_results, bool) or not isinstance(n_results, int) or not 1 <= n_results <= MAX_N_RESULTS:
         return jsonify({'error': f'n_results must be an integer from 1 to {MAX_N_RESULTS}'}), 400
 
+    return jsonify({'results': rank_chunks(query, n_results), 'index_version': INDEX_VERSION,
+                    'ranker': retrieval.RANKER, 'embedding_model': EMBEDDING['model']})
+
+
+def rank_chunks(query, n_results, timeout=30):
+    """The /search results for `query`, used by /search and /chat."""
     # Hybrid ranking over the FULL corpus: the vector top 3, then vectors plus
     # BM25 merged with reciprocal rank fusion, at most 3 chunks per file. The logic lives in
     # retrieval.py, shared with mcp_server/server_faiss.py.
@@ -160,9 +170,9 @@ def search():
     # the fused score and is the sort key, so the list is no longer in
     # similarity order. No priority boost and no embedding_weight: see the
     # PRIORITY_BOOST_RETIRED note. Both are still returned in metadata.
-    query_vector = np.array([get_embedding(query)], dtype='float32')
+    query_vector = np.array([get_embedding(query, timeout)], dtype='float32')
     ranked = retrieval.rank(index, metadatas, bm25, query, query_vector, n_results)
-    results = [{
+    return [{
         'content': documents[r['idx']],
         'metadata': metadatas[r['idx']],
         'similarity': r['similarity'],
@@ -171,8 +181,29 @@ def search():
         'bm25_rank': r['bm25_rank'],
     } for r in ranked]
 
-    return jsonify({'results': results, 'index_version': INDEX_VERSION, 'ranker': retrieval.RANKER,
-                    'embedding_model': EMBEDDING['model']})
+
+# Search timeout for /chat: SEARCH_TIMEOUT_MS in route.ts.
+CHAT_SEARCH_TIMEOUT = 10
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    # One chat turn, streamed as newline-delimited JSON events (engine/chat.py).
+    # The web app has already checked the visitor, the rate limit and signed
+    # turns; this checks the shape again. Each call is a paid model call.
+    try:
+        messages, options = engine_chat.parse_request(request.get_json(silent=True))
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    def search(query, n_results):
+        return (rank_chunks(query, n_results, CHAT_SEARCH_TIMEOUT),
+                {'index_version': INDEX_VERSION, 'ranker': retrieval.RANKER})
+
+    events = engine_chat.run_turn(openai_client, search, messages, **options)
+    return Response(stream_with_context(json.dumps(e) + "\n" for e in events),
+                    mimetype='application/x-ndjson', headers={'X-Accel-Buffering': 'no'})
+
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -185,6 +216,7 @@ def health():
         'chunks': len(documents),
         'index_bytes': INDEX_BYTES,
         'index_version': INDEX_VERSION,
+        'prompt_version': PROMPT_VERSION,
         'embedding_model': EMBEDDING['model'],
         'embedding_dimensions': EMBEDDING['dimensions'],
         'openai': openai_status,

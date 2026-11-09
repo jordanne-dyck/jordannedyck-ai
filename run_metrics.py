@@ -108,6 +108,24 @@ def conversation_rows(data):
              "checks": _checks(r.get("case_checks"))} for r in data if "turns" in r]
 
 
+def index_version_of(data):
+    """The one index_version every answer in a results file was retrieved from, or
+    None when any answer lacks one or they differ (2026-11-09). release_gate.py
+    matches a run to the index going out on this, not on the filename. A run_e2e.py
+    file holds it in each record's stamp, from the site's data-index part; files
+    from before 2026-11-09 hold none. A --multiturn record is read turn by turn, not
+    from its stamp: every answer in a replayed conversation must name the index, and
+    a conversation with no turns counts as one with none."""
+    if isinstance(data, dict) and "results" in data:
+        meta = (data.get("meta") or {}).get("stamp") or {}
+        vs = [v for r in data["results"]
+              for v in ([t.get("index_version") for t in r["turns"]] or [None] if "turns" in r
+                        else [(r.get("stamp") or meta).get("index_version")])]
+    else:
+        vs = [t.get("index_version") for r in data for t in r.get("turns", [r])]
+    return vs[0] if vs and None not in vs and len(set(vs)) == 1 else None
+
+
 def kind_of(data):
     if isinstance(data, dict) and "results" in data:
         return "e2e_multiturn" if data["results"] and "turns" in data["results"][0] else "e2e"
@@ -221,7 +239,7 @@ def history_lines(data, *, runner, source, label, date, scope, prompt_version=No
         if r["model"] is None and runner == "run_eval":
             r["model"] = "gpt-4o"
         groups.setdefault((r["model"], r["arm"]), []).append(r)
-    out = []
+    out, index = [], index_version_of(data)
     for (model, arm), rs in groups.items():
         cs = [c for c in convs if (c["model"] or model) == model]
         pv = prompt_version
@@ -230,7 +248,8 @@ def history_lines(data, *, runner, source, label, date, scope, prompt_version=No
                          if (d.get("model") or model) == model).most_common(1)[0][0]
         out.append({"run_id": run_id(rs), "date": date, "runner": runner, "kind": kind,
                     "label": label, "source": source, "model": model, "arm": arm,
-                    "prompt_version": pv, "scope": scope, **summarise(rs, cs)})
+                    "prompt_version": pv, "index_version": index, "scope": scope,
+                    **summarise(rs, cs)})
     return out
 
 
