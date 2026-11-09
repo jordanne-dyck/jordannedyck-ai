@@ -67,6 +67,7 @@ from run_eval import (
     SYSTEM_PROMPT,
     conversation_checks,
     fetch_results,
+    last_index_version,
     lead_chunk,
     rewrite_drift,
     run_checks,
@@ -380,8 +381,9 @@ def main_multiturn(args, spec, models):
             query = rw["query"]
             if query not in cache:
                 raw = fetch_results(query, arm["n_results"])
-                cache[query] = (raw, *search_experience(query, arm["n_results"], arm["truncate"], raw))
-            raw, context, retrieved = cache[query]
+                cache[query] = (raw, *search_experience(query, arm["n_results"], arm["truncate"], raw),
+                                last_index_version())
+            raw, context, retrieved, index_version = cache[query]
             chunks = [{"chunk_id": r["metadata"].get("chunk_id"), "similarity": r["similarity"],
                        "content": r["content"]} for r in raw]
             gen = generate(clients, model, q["q"], context, history)
@@ -403,7 +405,8 @@ def main_multiturn(args, spec, models):
             turns.append({"turn": i, "question": q["q"], "search_query": query,
                           "rewrite_status": rw["status"], "rewrite_ms": rw["ms"],
                           "rewrite_cost_usd": rw["cost_usd"],
-                          "retrieved": retrieved, "gen": gen, "checks": checks,
+                          "retrieved": retrieved, "index_version": index_version,
+                          "gen": gen, "checks": checks,
                           "citations": cites, "judge": judge,
                           "lead_chunk": lead_chunk(gen["answer_cited"])})
             history += [{"role": "user", "content": q["q"]},
@@ -497,8 +500,9 @@ def main():
             break
         if q["id"] not in retrieved_cache:
             raw = fetch_results(q["q"], arm["n_results"])
-            retrieved_cache[q["id"]] = (raw, *search_experience(q["q"], arm["n_results"], arm["truncate"], raw))
-        raw, context, retrieved = retrieved_cache[q["id"]]
+            retrieved_cache[q["id"]] = (raw, *search_experience(q["q"], arm["n_results"], arm["truncate"], raw),
+                                        last_index_version())
+        raw, context, retrieved, index_version = retrieved_cache[q["id"]]
         chunks = [{"chunk_id": r["metadata"].get("chunk_id"), "similarity": r["similarity"],
                    "content": r["content"]} for r in raw]
 
@@ -528,7 +532,7 @@ def main():
             "arm": ARM, "model": model, "provider": MODELS[model]["provider"],
             "settings": MODELS[model]["settings"], "run": run, "question": q["q"],
             "expect": q.get("expect", []), "prompt_version": PROMPT_VERSION,
-            "retrieved": retrieved, "gen": gen, "checks": checks,
+            "retrieved": retrieved, "index_version": index_version, "gen": gen, "checks": checks,
             "citations": cites, "judge": judge, "context_chars": len(context),
         })
         args.out.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
