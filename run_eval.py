@@ -820,7 +820,9 @@ JD_NGRAMS = ngrams(JD_TEXT)
 
 
 def extract_figures(text):
-    """Numbers that constitute a factual claim: percentages, money, multiples, counts."""
+    """Numbers that constitute a factual claim: percentages, money, multiples, counts.
+    No longer used by T2.2 (see figure_values). citation_checks.py keeps it because
+    it mirrors claimFigures() in the web repo's lib/citations.ts."""
     out = set()
     for m in re.finditer(r"\$?\d[\d,]*\.?\d*\s*(?:%|x|M|B|K|million|billion|\+)?", text):
         tok = m.group(0).strip()
@@ -833,6 +835,61 @@ def extract_figures(text):
             continue
         out.add(tok)
     return out
+
+
+# T2.2 compares figures as a number and a unit, never as a digit string. Until
+# 2026-11-08 it looked for a figure's digits inside all the context's digits
+# joined together, so "20%" passed on "2018", "$186M" on "2018 ... 6 months" and
+# "50 countries" on "$150M+"; and it skipped every single-digit figure, so "4M+"
+# was never checked. "$" and "+" do not change the figure; the unit does.
+FIGURE_UNITS = {"%": "%", "percent": "%", "x": "x", "times": "x", "M": "M", "million": "M",
+                "B": "B", "bn": "B", "billion": "B", "K": "K", "thousand": "K"}
+FIGURE_TOKEN_RE = re.compile(
+    r"(?<![\w.])(\$)?(\d[\d,]*(?:\.\d+)?)"
+    r"(?:\s?(%|(?i:percent|times|million|billion|thousand|bn)\b|[xMBK]\b))?(\+)?")
+# Context only: "over a million Optimum members" supports "1 million" (W11, 10-22).
+FIGURE_WORD_RE = re.compile(
+    r"\b(a|one|two|three|four|five|six|seven|eight|nine|ten)\s+(million|billion|thousand)\b", re.IGNORECASE)
+NUMBER_WORDS = {w: str(i) for i, w in enumerate(
+    ["a", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], start=1)} | {"one": "1"}
+
+
+def figure_values(text, claims_only=False):
+    """{(number, unit): first token as written}. With claims_only, the figures an
+    answer is held to: years and single digits without a unit are left out, so
+    "2022" and "3 roles" are not checked but "4M+", "9x" and "5%" are."""
+    out = {}
+    for m in FIGURE_TOKEN_RE.finditer(text):
+        num = m.group(2).replace(",", "")
+        if "." in num:
+            num = num.rstrip("0").rstrip(".")
+        unit = FIGURE_UNITS.get(m.group(3) or "", FIGURE_UNITS.get((m.group(3) or "").lower(), ""))
+        if (claims_only and not unit and not m.group(1)
+                and (len(num) <= 1 or re.fullmatch(r"(19|20)\d\d", num))):
+            continue
+        out.setdefault((num, unit), m.group(0).strip())
+    if not claims_only:
+        for m in FIGURE_WORD_RE.finditer(text):
+            out.setdefault((NUMBER_WORDS[m.group(1).lower()], FIGURE_UNITS[m.group(2).lower()]), m.group(0))
+    return out
+
+
+def figure_supported(key, context_figures):
+    """A figure with a unit needs that number with that unit in the context. A
+    bare number needs that number, in any unit: "150" is in "$150M+", "50" is not."""
+    num, unit = key
+    if unit:
+        return key in context_figures
+    return any(n == num for n, _ in context_figures)
+
+
+# T2.2 only, on top of DENIAL_MARKERS. A02's commonest correct answer, "Jordanne
+# Dyck has not spent 20 years as a Chief Technology Officer at a major bank" (9
+# saved runs, 11-04 to 11-07), matched no marker; it passed only because "20"
+# sat inside "2008" in the context. DENIAL_MARKERS is not widened: T2.4 reads it.
+# "does not indicate" denies too (Jord, 2026-11-08; A02, index-ab_f6a61205 run 1).
+FIGURE_DENIAL_RE = re.compile(
+    r"\b(?:has not|hasn't|have not|haven't|was not|wasn't|does not indicate|doesn't indicate)\b")
 
 
 def run_checks(q, arm, context, retrieved, gen):
@@ -865,17 +922,17 @@ def run_checks(q, arm, context, retrieved, gen):
     checks["_expected_hit"] = sorted(set(expected) & set(ids))
     checks["_expected_miss"] = sorted(set(expected) - set(ids))
 
-    ctx_digits = re.sub(r"[^\d]", " ", context)
-    q_digits = {re.sub(r"[^\d]", "", f) for f in extract_figures(q.get("q", ""))}
+    ctx_figures = figure_values(context)
+    q_numbers = {n for n, _ in figure_values(q.get("q", ""), claims_only=True)}
     unsupported = []
-    for fig in extract_figures(ans):
-        d = re.sub(r"[^\d]", "", fig)
-        if d and d not in re.sub(r"\s+", "", ctx_digits) and d not in re.sub(r"[^\d]", "", context):
+    for key, fig in figure_values(ans, claims_only=True).items():
+        if not figure_supported(key, ctx_figures):
             # A figure the visitor supplied, repeated in a sentence that denies
             # it ("no record of 20 years as CTO"), is not a claim. Repeated
             # without a denial it still fails: that is accepting a false premise.
-            if d in q_digits and any(n in s.lower() for s in re.split(r"(?<=[.!?])\s+", ans)
-                                     if fig in s for n in DENIAL_MARKERS):
+            if key[0] in q_numbers and any(
+                    FIGURE_DENIAL_RE.search(s.lower()) or any(n in s.lower() for n in DENIAL_MARKERS)
+                    for s in re.split(r"(?<=[.!?])\s+", ans) if fig in s):
                 continue
             unsupported.append(fig)
     checks["T2.2_figure_fidelity"] = not unsupported
