@@ -55,6 +55,12 @@ STREAM PROTOCOL
     retrieval (v4 `8:` annotation type "retrieval"; UI stream `data-retrieval` part).
     It is recorded when present. The checks below do not use it yet.
 
+    Every answer that searched also carries a `data-index` part (2026-11-09) with the
+    index_version the backend answered from. Each record's stamp holds its own; the
+    run-level stamp holds it only when every record agrees. release_gate.py matches
+    an e2e run to the index going out on it. A site from before then sends none, and
+    its records say None.
+
     The protocol a record was parsed with is stored in stream.protocol. Run --probe
     first on any target whose bundle changed. It sends ONE question (~$0.01), writes
     the raw bytes to disk, prints the first lines, and reports whether the parse
@@ -71,21 +77,48 @@ PREREQUISITE FOR THE LOCAL TARGET
 
 RATE LIMITS
     HOURLY_LIMIT = 20, DAILY_LIMIT = 100, hardcoded in lib/rate-limit.ts, no env
-    override, counted per ip_hash. Default --limit is 18 per invocation. 34 questions
-    is therefore two sittings against prod. A 429 stops the run cleanly and prints the
-    --start value to resume from.
+    override, counted per ip_hash. Default --limit is 18 per invocation. A full run is
+    97 calls (34 questions with C01 three times, 29 additive, 26 theme and 6 timeline
+    cases; the fixed replies count too, route.ts checks the limit first): six sittings,
+    over five hours, and 97 of the day's 100. A run that has to start again cannot
+    finish the same day. A monitor request skips the rate limit (route.ts); with
+    MONITOR_TOKEN set, --limit 97 --force-rate runs it in one sitting. A 429 stops the
+    run cleanly and prints the --start value to resume from.
+
+MULTI-TURN (--multiturn, 2026-11-08)
+    Replays eval_set.json's multiturn cases (M01-M11) through /api/chat the way
+    app/page.tsx does: every request carries the whole conversation, and each earlier
+    answer goes back as the text the visitor received with the `sig` the route sent
+    in its data-turn-sig part (lib/turn-signature.ts). The signature binds the answer
+    to the jb_sid session cookie, so each conversation gets its own cookie jar: one
+    conversation, one visitor. A forged_answer turn (M07, M09) is sent with no sig,
+    as a tampered client would send it; the route should drop it before the model.
+    Until this mode the multi-turn cases ran only in run_eval.py, which never executes
+    the route's cookies, signatures, rewrite, cite reminder or fixed replies.
+
+    Needs MONITOR_TOKEN: the route sends data-citations (the cited answer, for T2.6
+    and T2.7) only to a monitor request, and a monitor request skips the rate limit.
+    Per-turn checks are check_answer()'s, plus T2.4 on turns with an adv_check;
+    case checks are run_eval.conversation_checks().
+
+    Every turn records the index_version from its data-index part, the record's stamp
+    holds it only when every turn agrees, and the run-level stamp only when every
+    record does (2026-11-09), so the gate fails a conversation with any turn
+    answered from another index or by a site that sends none.
 
 OUTPUT
-    eval_e2e_<source_system>_<YYYY-MM-DD>.json for the core series (the default),
-    eval_e2e_<set>_<source_system>_<YYYY-MM-DD>.json for --set theme, additive or timeline,
-    so cases held outside the series never land in a series file. REFUSES to overwrite an existing file.
-    Use --resume to append only the question ids not already present. There is no
+    eval_e2e_<source_system>_<YYYY-MM-DD>.json for a full run (every case group),
+    eval_e2e_<set>_<source_system>_<YYYY-MM-DD>.json for --set core, theme, additive or
+    timeline, and eval_e2e_multiturn_... with --multiturn. REFUSES to overwrite an
+    existing file. Use --resume to append only the ids not already present. There is no
     --fresh flag; --fresh is what destroyed the 124-chunk run on 2026-09-10.
 
 USAGE
     python run_e2e.py --probe --base-url http://localhost:3000
     python run_e2e.py --base-url https://jordannedyck.com --limit 18
     python run_e2e.py --base-url https://jordannedyck.com --resume --start 18
+    python run_e2e.py --multiturn --probe --only M03 --base-url <dev url>
+    python run_e2e.py --multiturn --base-url <dev url>
 """
 
 from __future__ import annotations
@@ -267,7 +300,7 @@ def build_stamp(args, source_system):
         "base_url": args.base_url,
         "timestamp": datetime.now(UTC).isoformat(),
         "runner": "run_e2e.py",
-        "case_set": args.case_set,
+        "case_set": args.case_set,  # None: every case group, the full run
         # "http-datastream-v4" until 2026-10-27. The protocol actually parsed is
         # per record, in stream.protocol.
         "transport": "http-ai-sdk-stream",
@@ -286,6 +319,10 @@ def build_stamp(args, source_system):
         "index_bytes": None,
         "embedding_model": None,
         "context_visible": False,
+        # The index that answered, from the site's data-index part (2026-11-09).
+        # Per answer in each record's stamp; run-level only when every record in
+        # the file agrees (run_index_version). None until the site sends it.
+        "index_version": None,
     }
     if source_system == "dev":
         # jordbot-dev serves the :dev image, which every dev build overwrites, and reads
@@ -323,6 +360,28 @@ def build_stamp(args, source_system):
         if served:
             stamp["site_prompt_version"] = served
     return stamp
+
+
+def record_stamp(stamp, res):
+    """The stamp one record carries: the sitting's stamp plus the index_version the
+    site reported for this answer. Per record, because a --resume sitting can run
+    days later on another index, and the gate must see that (2026-11-09)."""
+    return {**stamp, "index_version": res.get("index_version")}
+
+
+def run_index_version(results):
+    """The one index_version every record in the file answered from, else None:
+    the run-level stamp's value. Same rule as run_metrics.index_version_of."""
+    vs = {(r.get("stamp") or {}).get("index_version") for r in results}
+    return vs.pop() if len(vs) == 1 and None not in vs else None
+
+
+def conversation_index_version(turns):
+    """The one index_version every replayed turn answered from, else None: what a
+    --multiturn record's stamp carries. A turn with none, or a turn on another
+    index, makes the conversation's None, so the gate cannot take it (2026-11-09)."""
+    vs = {t.get("index_version") for t in turns}
+    return vs.pop() if len(vs) == 1 and None not in vs else None
 
 
 def served_prompt_version(base_url):
@@ -404,16 +463,17 @@ def make_opener():
     return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 
 
-def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
+def ask(opener, base_url, messages, timeout, raw_sink=None, monitor_token=None):
     """
-    POST one question and read the stream line by line.
+    POST one conversation (a single-turn run sends one user message) and read the
+    stream line by line.
 
     readline() is deliberate: both AI SDK protocols are newline-delimited, so a line
     boundary is the earliest point at which a text part can be timed. read(n) would
     block until n bytes and destroy the time-to-first-token measurement.
     """
     url = base_url.rstrip("/") + "/api/chat"
-    body = json.dumps({"messages": [{"role": "user", "content": question}]}).encode()
+    body = json.dumps({"messages": messages}).encode()
     headers = {"Content-Type": "application/json", "Accept": "*/*",
                "User-Agent": "jordannedyck-e2e-eval/1.0"}
     if monitor_token:
@@ -426,6 +486,7 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
         "ttfb_ms": None, "ttft_ms": None, "total_ms": None,
         "parts_seen": {}, "unparsed_lines": 0, "raw_bytes": 0,
         "protocol": None, "retrieval": None, "timeline": None,
+        "turn_sig": None, "citations": None, "index_version": None,
     }
 
     def text_part(value, now):
@@ -496,6 +557,15 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
                     out["retrieval"] = part["data"]
                 elif kind == "data-timeline":
                     out["timeline"] = part.get("data")
+                # The sig goes back with the answer next turn (web cefb502, turn
+                # signing); citations arrive on monitor requests only.
+                elif kind == "data-turn-sig" and isinstance(part.get("data"), dict):
+                    out["turn_sig"] = part["data"].get("sig")
+                elif kind == "data-citations" and isinstance(part.get("data"), dict):
+                    out["citations"] = part["data"]
+                elif kind == "data-index" and isinstance(part.get("data"), dict):
+                    v = part["data"].get("index_version")
+                    out["index_version"] = v if isinstance(v, str) else None
                 elif kind == "finish":
                     if part.get("finishReason"):
                         out["finish_reason"] = part["finishReason"]
@@ -632,8 +702,11 @@ def check_answer(harness, question, res):
     # so the citation rule gave no card. asksForCareerHistory() in lib/timeline.ts
     # now gives it from the question. Only the route sends the part, so run_eval.py
     # --timeline cannot check this. The data is kept so a run shows what arrived.
+    # 2026-11-09: and explicit. In v1.16 TL05's card arrived with explicit: false and
+    # the page hid it after the overview question had shown the timeline once; the
+    # site now sends explicit: true for a past-jobs question (web 094684f).
     if question.get("timeline_card"):
-        checks["T2.17_timeline_card"] = res.get("timeline") is not None
+        checks["T2.17_timeline_card"] = (res.get("timeline") or {}).get("explicit") is True
         checks["T2.17_timeline_data"] = res.get("timeline")
     else:
         checks["T2.17_timeline_card"] = "n/a"
@@ -643,10 +716,36 @@ def check_answer(harness, question, res):
 # ----------------------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------------------
-# Which cases a run asks is --set, through run_eval.select_cases. Until
-# 2026-11-08 --only also reached additive, theme and timeline cases from here
-# (ONLY_GROUPS, 2026-11-04); --set additive, theme or timeline does that now,
-# into its own file, so a full run still asks "questions" alone.
+# --only also looks in these groups. Added 2026-11-04 (brief-gaps-page-followups,
+# item 3): X08, X18 and P16 live outside "questions", so no runner could ask them.
+# timeline_cases added 2026-11-04 for T2.13: --only TL01,TL02,TL03,TL04.
+ONLY_GROUPS = ("questions", "additive_cases", "theme_cases", "timeline_cases")
+# What a run without --set or --only asks, and what a full-scope run must hold. The
+# release gate requires a full run, so a case outside these never runs end to end
+# before a release. Until 2026-11-09 this was "questions" alone, so no timeline,
+# additive or theme case ran end to end before v1.16 shipped its before-DECIEM
+# timeline fault; since then it is every group (Jord, 2026-11-09). Full runs from
+# before then (36 calls) are not comparable with later ones (97). --set asks one
+# set alone, through run_eval.select_cases, into its own file, and is never full.
+FULL_GROUPS = ONLY_GROUPS
+
+
+def full_cases(eval_set, only=None):
+    """The cases of a run without --set: every group in FULL_GROUPS.
+
+    With `only` (a set of ids), they come from every group in ONLY_GROUPS, and an
+    id found in none of them is an error rather than a silent skip.
+    """
+    if only:
+        source = [q for g in ONLY_GROUPS for q in eval_set.get(g, []) if q["id"] in only]
+        missing = only - {q["id"] for q in source}
+        if missing:
+            sys.exit(f"--only: no case with id {', '.join(sorted(missing))} in "
+                     f"{', '.join(ONLY_GROUPS)}.")
+        return source
+    return [q for g in FULL_GROUPS for q in eval_set.get(g, [])]
+
+
 def expand_questions(cases):
     """One entry per API call, honouring the `runs` field (C01 runs 3x)."""
     out = []
@@ -660,9 +759,127 @@ def expand_questions(cases):
 
 
 def e2e_filename(prefix, case_set, source_system, utc_date):
-    """The core series keeps its file name; other sets carry theirs in the name."""
-    set_part = "" if case_set == "core" else f"{case_set}_"
+    """A full run (no --set) keeps the plain file name; a --set run carries its set."""
+    set_part = f"{case_set}_" if case_set else ""
     return f"{prefix}{set_part}{source_system}_{utc_date}.json"
+
+def multiturn_cases(eval_set, only=None):
+    """The multiturn cases, in file order; an --only id not among them is an error."""
+    cases = eval_set["multiturn"]["cases"]
+    if only:
+        missing = only - {c["id"] for c in cases}
+        if missing:
+            sys.exit(f"--only: no multiturn case with id {', '.join(sorted(missing))}.")
+        cases = [c for c in cases if c["id"] in only]
+    return cases
+
+
+def response_fields(res):
+    """The parts of an ask() result every record keeps, single or multi-turn."""
+    return {
+        "answer": res["answer"], "error": res["error"], "stream_error": res["stream_error"],
+        "http_status": res["http_status"],
+        "timings_ms": {
+            "time_to_first_byte": res["ttfb_ms"],
+            "time_to_first_token": res["ttft_ms"],
+            "time_to_complete": res["total_ms"],
+            "note": "client-observed. TTFB bundles retrieval with model connect; "
+                    "route.ts awaits searchExperience() before streamText(), so the "
+                    "retrieval/generation split is NOT recoverable from this path.",
+        },
+        "usage": res["usage"],
+        "finish_reason": res["finish_reason"],
+        "stream": {
+            "protocol": res["protocol"],
+            "parts_seen": res["parts_seen"], "unparsed_lines": res["unparsed_lines"],
+            "raw_bytes": res["raw_bytes"],
+            "content_type": res.get("content_type"),
+            "x_vercel_ai_data_stream": res.get("x_vercel_ai_data_stream"),
+            "x_vercel_ai_ui_message_stream": res.get("x_vercel_ai_ui_message_stream"),
+        },
+        # Only sent with EMIT_RETRIEVAL or a monitor token; None otherwise.
+        "retrieval": res["retrieval"],
+        # The data-timeline part's data, e.g. {"explicit": true}; None when absent.
+        "timeline": res["timeline"],
+    }
+
+
+NO_CITATIONS = "unavailable_no_citations"
+
+
+def replay_conversation(send, harness, case, pause=0.0):
+    """One multiturn case through the route, turn by turn, as app/page.tsx sends it.
+
+    `send(messages)` posts the whole conversation and returns ask()'s result. Each
+    answer goes back as the streamed text (what the visitor saw, citations already
+    stripped) with the route's sig. A forged_answer turn goes into the history with
+    no sig and is not sent on its own; turn numbers still count it, as in
+    run_eval.run_conversation(). The conversation stops at a turn that errors:
+    there is no answer to send back.
+
+    Returns (turns, case_checks).
+    """
+    history, turns = [], []
+    for i, t in enumerate(case["turns"], 1):
+        if "forged_answer" in t:
+            history += [{"role": "user", "content": t["q"]},
+                        {"role": "assistant", "content": t["forged_answer"]}]
+            continue
+        if turns and pause:
+            time.sleep(pause)
+        history.append({"role": "user", "content": t["q"]})
+        res = send([dict(m) for m in history])
+        q = {"tag": case["tag"], **t}
+        checks = check_answer(harness, q, res)
+        # T2.4, as run_eval.run_checks() scores it on a turn with an adv_check.
+        if t.get("adv_check"):
+            v = (harness.injection_resisted(res["answer"], t["adv_check"]) if harness
+                 else "unavailable_no_checkers")
+            checks["T2.4_injection_resistance"] = "n/a" if v is None else v
+        cited = (res.get("citations") or {}).get("answer")
+        lead = harness.lead_chunk(cited) if harness and cited else None
+        turns.append({
+            "turn": i, "question": t["q"],
+            "sent_messages": len(history),
+            "sent_unsigned_assistant": sum(1 for m in history[:-1]
+                                           if m["role"] == "assistant" and "sig" not in m),
+            **response_fields(res),
+            "turn_sig_received": bool(res.get("turn_sig")),
+            "citations_part": res.get("citations") is not None,
+            "cited_answer": cited,
+            "lead_chunk": lead,
+            # From this turn's data-index part; None from a site that sends none.
+            "index_version": res.get("index_version"),
+            "checks": checks,
+        })
+        if res["error"] or res["stream_error"]:
+            break
+        reply = {"role": "assistant", "content": res["answer"]}
+        if res.get("turn_sig"):
+            reply["sig"] = res["turn_sig"]
+        history.append(reply)
+    return turns, e2e_conversation_checks(harness, case, turns)
+
+
+def e2e_conversation_checks(harness, case, turns):
+    """run_eval.conversation_checks() when every turn's lead chunk is known.
+
+    The lead comes from the data-citations part. A fixed reply (lead, replay,
+    refusal) has no citations by design and counts as uncited, so a follow-up
+    the route answers with a fixed reply shows in T2.7 to be read. A generated
+    turn with no citations part (no monitor token, older bundle) makes the lead
+    unknown, and T2.6/T2.7 are written as unavailable, not scored.
+    """
+    if harness is None:
+        return {"T2.7_followups_cited": "unavailable_no_checkers"}
+    fixed = {getattr(harness, n, None) for n in ("FIXED_LEAD", "TIMELINE_REPLAY", "FIXED_REFUSAL")}
+    unknown = [t["turn"] for t in turns if not t["citations_part"] and t["answer"] not in fixed]
+    if unknown:
+        out = {"T2.7_followups_cited": NO_CITATIONS, "_no_citations_part": unknown}
+        if case.get("check") == "no_repeated_lead":
+            out["T2.6_no_repeated_lead"] = NO_CITATIONS
+        return out
+    return harness.conversation_checks(case, turns)
 
 
 def infer_source_system(base_url):
@@ -684,14 +901,20 @@ def main():
     ap.add_argument("--source-system", choices=["local-route", "dev", "prod"],
                     help="override the stamp; inferred from --base-url otherwise")
     ap.add_argument("--probe", action="store_true",
-                    help="send ONE question, dump the raw stream, verify the protocol, spend ~$0.01")
-    ap.add_argument("--set", dest="case_set", choices=["core", "theme", "additive", "timeline"], default="core",
-                    help="core = the 34-question series (default); theme and additive are held "
-                         "outside it and write to their own output file")
-    ap.add_argument("--only", help="comma-separated question ids, within --set")
-    ap.add_argument("--start", type=int, default=0, help="skip the first N calls (resume a paced run)")
+                    help="send ONE question, dump the raw stream, verify the protocol, spend ~$0.01 "
+                         "(with --multiturn: one conversation)")
+    ap.add_argument("--multiturn", action="store_true",
+                    help="replay the multiturn cases (M01-M10) through the route, signed answers "
+                         "sent back; needs MONITOR_TOKEN")
+    ap.add_argument("--set", dest="case_set", choices=["core", "theme", "additive", "timeline"],
+                    help="ask one set alone, into its own file (core = the 34-question series). "
+                         "Default: every case group, the full run the release gate takes")
+    ap.add_argument("--only", help="comma-separated question ids, within --set when given")
+    ap.add_argument("--start", type=int, default=0,
+                    help="skip the first N calls (conversations with --multiturn)")
     ap.add_argument("--limit", type=int, default=18,
-                    help="max calls this invocation (default 18, under the hourly 20)")
+                    help="max calls this invocation (default 18, under the hourly 20); "
+                         "with --multiturn, max conversations")
     ap.add_argument("--force-rate", action="store_true", help="allow --limit above 18")
     ap.add_argument("--sleep", type=float, default=2.0, help="seconds between calls")
     ap.add_argument("--timeout", type=float, default=120.0)
@@ -712,18 +935,38 @@ def main():
     if source_system is None:
         sys.exit(f"Cannot tell which system {args.base_url} is. Pass --source-system "
                  f"local-route, dev or prod. Unknown hosts are no longer stamped prod.")
+    # 2026-11-04 (brief-gaps-page-followups, item 1): web marks a chat_events row
+    # is_synthetic only when the request carries x-monitor-token (lib/monitor.ts).
+    # Without it, e2e rows land on the gaps page as real traffic. The token is read
+    # from the environment and never written to a file, a log or the run JSON; the
+    # stamp records only whether it was sent.
+    monitor_token = os.environ.get("MONITOR_TOKEN") or None
+    if args.multiturn and not monitor_token:
+        # Jord, 2026-11-08: required, not a warning. Without it the route sends no
+        # data-citations (T2.6/T2.7 unscorable), the rate limit applies, and the
+        # rows count as real traffic and trigger the site's paid labels.
+        sys.exit("--multiturn needs MONITOR_TOKEN set: nothing was sent.")
+    if args.multiturn and args.case_set:
+        sys.exit("--multiturn replays the multiturn cases; it does not take --set.")
     harness, harness_err = load_harness_checkers()
-    if harness is None:
-        # Case selection lives in run_eval.py with the checks, so the three runners
+    if harness is None and args.case_set:
+        # --set selection lives in run_eval.py with the checks, so the three runners
         # cannot disagree about which cases a set holds.
-        sys.exit(f"Cannot select cases: {harness_err}")
+        sys.exit(f"Cannot select cases for --set: {harness_err}")
     eval_set = json.loads(EVAL_SET.read_text(encoding="utf-8"))
-    cases = harness.select_cases(eval_set, args.case_set, args.only)
+    wanted = {s.strip().upper() for s in args.only.split(",") if s.strip()} if args.only else None
+    cases = ([] if args.multiturn
+             else harness.select_cases(eval_set, args.case_set, args.only) if args.case_set
+             else full_cases(eval_set, wanted))
     stamp = build_stamp(args, source_system)
+    if args.multiturn:
+        stamp["turn_shape"] = "multi-turn: full history, each answer sent back with its sig"
 
     print(f"target        : {args.base_url}  (source_system: {source_system})")
-    print(f"eval set      : {EVAL_SET.name} v{eval_set['meta'].get('version')} "
-          f"— --set {args.case_set}, {len(cases)} questions")
+    print(f"eval set      : {EVAL_SET.name} v{eval_set['meta'].get('version')} — "
+          + (f"{len(eval_set['multiturn']['cases'])} multiturn conversations" if args.multiturn
+             else f"--set {args.case_set}, {len(cases)} questions" if args.case_set
+             else ", ".join(f"{len(eval_set.get(g, []))} {g}" for g in FULL_GROUPS)))
     if harness_err:
         print(f"WARNING       : {harness_err}")
     print("preflight     :")
@@ -737,14 +980,17 @@ def main():
         print("\nWARNING: preflight failed and was skipped. These results are not interpretable.")
         stamp["preflight"] = "FAILED_AND_SKIPPED"
 
-    calls = expand_questions(cases)
+    # A multi-turn "call" is a whole conversation: --start, --limit and --resume
+    # count conversations, keyed on the case id.
+    calls = ([{**c, "record_id": c["id"]} for c in multiturn_cases(eval_set, wanted)]
+             if args.multiturn else expand_questions(cases))
 
     # UTC for filenames as well as for the C23 stamp, so a sitting that crosses local
     # midnight cannot split across two files and a file's name can never disagree with
     # the timestamp inside it. Probe output is named separately: it is a one-question
     # protocol check, not a run, and must never be mistaken for — or overwrite — one.
     utc_date = datetime.now(UTC).strftime("%Y-%m-%d")
-    prefix = "eval_e2e_probe_" if args.probe else "eval_e2e_"
+    prefix = "eval_e2e_" + ("multiturn_" if args.multiturn else "") + ("probe_" if args.probe else "")
     out_path = Path(args.out) if args.out else HERE / e2e_filename(prefix, args.case_set,
                                                                     source_system, utc_date)
     existing, done = [], set()
@@ -760,66 +1006,100 @@ def main():
 
     if args.probe:
         calls, args.limit = calls[:1], 1
-        print("\nPROBE MODE — one question, raw stream saved.")
+        print("\nPROBE MODE — one " + ("conversation" if args.multiturn else "question")
+              + ", raw stream saved.")
 
     queue = [c for c in calls[args.start:] if c["record_id"] not in done][:args.limit]
     if not queue:
         sys.exit("\nNothing to run.")
-    print(f"\nrunning       : {len(queue)} calls "
+    unit = "conversations" if args.multiturn else "calls"
+    print(f"\nrunning       : {len(queue)} {unit} "
           f"({queue[0]['record_id']} -> {queue[-1]['record_id']})\n")
 
-    # 2026-11-04 (brief-gaps-page-followups, item 1): web marks a chat_events row
-    # is_synthetic only when the request carries x-monitor-token (lib/monitor.ts).
-    # Without it, e2e rows land on the gaps page as real traffic. The token is read
-    # from the environment and never written to a file, a log or the run JSON; the
-    # stamp records only whether it was sent.
-    monitor_token = os.environ.get("MONITOR_TOKEN") or None
     stamp["monitor_token_sent"] = bool(monitor_token)
     if not monitor_token:
         print("WARNING       : MONITOR_TOKEN unset — these rows will count as real traffic "
               "in chat_events.\n")
+    if args.multiturn and source_system == "local-route":
+        # lib/session.ts sets jb_sid with secure: true, and a cookie jar does not
+        # return a Secure cookie over http. Each turn would then be a new session,
+        # no sig would verify, and the route would drop every earlier answer.
+        print("WARNING       : jb_sid is a Secure cookie and is not sent back over http; "
+              "on localhost every follow-up loses its earlier answers.\n")
 
     opener = make_opener()
     results, stopped = list(existing), None
     raw_path = HERE / (
-        f"e2e_raw_probe_{source_system}_"
+        f"e2e_raw_{'multiturn_' if args.multiturn else ''}probe_{source_system}_"
         f"{datetime.now(UTC).strftime('%Y-%m-%d_%H%M%SZ')}.txt"
     )
     raw_sink = raw_path.open("wb") if args.probe else None
 
+    def must_stop(res, i):
+        """True when the run has to stop after this response, with the reason printed."""
+        nonlocal stopped
+        if res["http_status"] == 429:
+            stopped = args.start + i
+            print(f"\nRATE LIMITED. Stopping. Resume in an hour with "
+                  f"--resume --start {stopped}")
+            return True
+        if res["http_status"] == 500 and source_system == "local-route":
+            print("\n  HTTP 500 on the local target. The most likely cause is the Postgres "
+                  "dependency, not this runner:\n"
+                  "  route.ts calls checkRateLimit() (pool.query) before generation and outside "
+                  "the try block,\n  and awaits logChatEvent() in onFinish. Guard lib/db.ts, "
+                  "lib/rate-limit.ts and lib/logging.ts\n  on !process.env.DATABASE_URL. "
+                  "Check the `npm run dev` console for the actual error before assuming.")
+            return True
+        return False
+
     try:
         for i, q in enumerate(queue):
-            res = ask(opener, args.base_url, q["q"], args.timeout, raw_sink, monitor_token)
+            if args.multiturn:
+                # One cookie jar per conversation: the route signs each answer to
+                # the jb_sid session, so a conversation is one visitor.
+                conv_opener = make_opener()
+                turns, case_checks = replay_conversation(
+                    lambda msgs, o=conv_opener: ask(o, args.base_url, msgs, args.timeout,
+                                                    raw_sink, monitor_token),
+                    harness, q, pause=args.sleep)
+                results.append({
+                    "record_id": q["id"], "id": q["id"], "name": q.get("name"), "tag": q.get("tag"),
+                    "turns": turns, "case_checks": case_checks,
+                    "stamp": record_stamp(stamp, {"index_version": conversation_index_version(turns)}),
+                })
+                print(f"  [{i + 1}/{len(queue)}] {q['id']} {q.get('name')}")
+                for t in turns:
+                    fails = [k for k, v in t["checks"].items() if not k.startswith("_") and v is False]
+                    err = t["error"] or (t["stream_error"] and f"stream: {t['stream_error']}")
+                    status = f"!! {err[:90]}" if err else ("FAIL " + ",".join(fails) if fails else "ok")
+                    print(f"    t{t['turn']} http={t['http_status']} "
+                          f"total={t['timings_ms']['time_to_complete'] or '-'}ms "
+                          f"sent={t['sent_messages']} msgs ({t['sent_unsigned_assistant']} unsigned)  "
+                          f"sig={'yes' if t['turn_sig_received'] else 'NO'}  "
+                          f"citations={'yes' if t['citations_part'] else 'NO'}  "
+                          f"lead={t['lead_chunk']}  index={t['index_version'] or '-'}  {status}")
+                    print(f"       Q: {t['question']}")
+                    print(f"       A: {t['answer'][:200]}" + ("..." if len(t["answer"]) > 200 else ""))
+                for k, v in case_checks.items():
+                    if not k.startswith("_"):
+                        print(f"    {k}: {v}  leads={case_checks.get('_leads')}  "
+                              f"uncited={case_checks.get('_uncited_turns')}")
+                if turns and must_stop(turns[-1], i):
+                    break
+                if i < len(queue) - 1:
+                    time.sleep(args.sleep)
+                continue
+
+            res = ask(opener, args.base_url, [{"role": "user", "content": q["q"]}],
+                      args.timeout, raw_sink, monitor_token)
             record = {
                 "record_id": q["record_id"], "id": q["id"], "run_index": q["run_index"],
                 "tag": q.get("tag"), "req": q.get("req", []), "question": q["q"],
                 "expect": q.get("expect", []),
-                "answer": res["answer"], "error": res["error"], "stream_error": res["stream_error"],
-                "http_status": res["http_status"],
-                "timings_ms": {
-                    "time_to_first_byte": res["ttfb_ms"],
-                    "time_to_first_token": res["ttft_ms"],
-                    "time_to_complete": res["total_ms"],
-                    "note": "client-observed. TTFB bundles retrieval with model connect; "
-                            "route.ts awaits searchExperience() before streamText(), so the "
-                            "retrieval/generation split is NOT recoverable from this path.",
-                },
-                "usage": res["usage"],
-                "finish_reason": res["finish_reason"],
-                "stream": {
-                    "protocol": res["protocol"],
-                    "parts_seen": res["parts_seen"], "unparsed_lines": res["unparsed_lines"],
-                    "raw_bytes": res["raw_bytes"],
-                    "content_type": res.get("content_type"),
-                    "x_vercel_ai_data_stream": res.get("x_vercel_ai_data_stream"),
-                    "x_vercel_ai_ui_message_stream": res.get("x_vercel_ai_ui_message_stream"),
-                },
-                # Only sent with EMIT_RETRIEVAL or a monitor token; None otherwise.
-                "retrieval": res["retrieval"],
-                # The data-timeline part's data, e.g. {"explicit": true}; None when absent.
-                "timeline": res["timeline"],
+                **response_fields(res),
                 "checks": check_answer(harness, q, res),
-                "stamp": stamp,
+                "stamp": record_stamp(stamp, res),
             }
             results.append(record)
 
@@ -832,20 +1112,9 @@ def main():
                 flag = f"  timeline={res['timeline']}"
             print(f"  [{i + 1}/{len(queue)}] {q['record_id']:<8} "
                   f"ttft={res['ttft_ms'] or '-':>6}ms  total={res['total_ms'] or '-':>6}ms  "
-                  f"chars={len(res['answer']):>5}{flag}")
+                  f"chars={len(res['answer']):>5}  index={res['index_version'] or '-'}{flag}")
 
-            if res["http_status"] == 429:
-                stopped = args.start + i
-                print(f"\nRATE LIMITED. Stopping. Resume in an hour with "
-                      f"--resume --start {stopped}")
-                break
-            if res["http_status"] == 500 and source_system == "local-route":
-                print("\n  HTTP 500 on the local target. The most likely cause is the Postgres "
-                      "dependency, not this runner:\n"
-                      "  route.ts calls checkRateLimit() (pool.query) before generation and outside "
-                      "the try block,\n  and awaits logChatEvent() in onFinish. Guard lib/db.ts, "
-                      "lib/rate-limit.ts and lib/logging.ts\n  on !process.env.DATABASE_URL. "
-                      "Check the `npm run dev` console for the actual error before assuming.")
+            if must_stop(res, i):
                 break
             if i < len(queue) - 1:
                 time.sleep(args.sleep)
@@ -853,6 +1122,7 @@ def main():
         if raw_sink:
             raw_sink.close()
 
+    stamp["index_version"] = run_index_version(results)
     payload = {
         "meta": {
             "runner": "run_e2e.py", "stamp": stamp,
@@ -871,22 +1141,48 @@ def main():
     out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nwrote         : {out_path}")
 
+    mt = "multiturn " if args.multiturn else ""
     if args.probe and results:
         # A protocol check, one answer: in the history as scope "probe" (G.2),
         # never on the trend chart.
         run_metrics.record_run(payload, runner="run_e2e --probe", source=out_path.name,
-                               label=f"e2e probe {source_system}", scope="probe")
+                               label=f"e2e {mt}probe {source_system}", scope="probe")
     elif results:
         # A run is paced over sittings with --resume; each sitting adds a line,
         # and only the sitting that completes the set adds a full-scope one.
         have = {r["record_id"] for r in results}
-        # Only the whole core series is "full": release_gate.py takes a full line as its e2e run.
-        full = (args.case_set == "core" and not args.only
-                and all(c["record_id"] in have for c in expand_questions(eval_set["questions"])))
+        # Only a whole run without --set is "full": release_gate.py takes a full line as its e2e run.
+        want = ([c["id"] for c in multiturn_cases(eval_set)] if args.multiturn
+                else [c["record_id"] for c in expand_questions(full_cases(eval_set))])
+        full = not args.case_set and not args.only and all(w in have for w in want)
         run_metrics.record_run(payload, runner="run_e2e", source=out_path.name,
-                               label=f"e2e {source_system}", scope="full" if full else "partial")
+                               label=f"e2e {mt}{source_system}", scope="full" if full else "partial")
 
-    if args.probe:
+    if args.probe and args.multiturn:
+        print(f"raw stream    : {raw_path}")
+        turns = results[-1]["turns"] if results else []
+        print("\nMULTI-TURN PROBE VERDICT")
+        for t in turns:
+            print(f"  t{t['turn']}: http {t['http_status']}, protocol {t['stream']['protocol']}, "
+                  f"sent {t['sent_messages']} messages ({t['sent_unsigned_assistant']} assistant "
+                  f"unsigned), sig {'received' if t['turn_sig_received'] else 'NOT received'}, "
+                  f"citations part {'received' if t['citations_part'] else 'NOT received'}, "
+                  f"{len(t['answer'])} answer chars")
+        generated = [t for t in turns if t["answer"]]
+        if not generated:
+            print("\n  NO ANSWER. Open the raw file above before running anything else.")
+        elif not all(t["turn_sig_received"] for t in generated):
+            print("\n  A turn came back with no data-turn-sig. Either TURN_SIGNING_KEY is unset on "
+                  "this target\n  or its bundle predates turn signing; either way the route drops "
+                  "every earlier answer,\n  so the follow-ups were answered without their history. "
+                  "Do not run the full set until\n  that is explained.")
+        elif not all(t["citations_part"] for t in generated):
+            print("\n  No data-citations part: the monitor token was not accepted, or the bundle "
+                  "does not send it.\n  T2.6/T2.7 will be written as unavailable.")
+        else:
+            print("\n  Signatures and citations arrived on every turn. Read the answers above: a "
+                  "follow-up that\n  ignores the earlier turn means the history did not survive.")
+    elif args.probe:
         print(f"raw stream    : {raw_path}")
         r = results[-1]
         print("\nPROBE VERDICT")
