@@ -4,7 +4,7 @@ the eval scores every model the way the live site labels gpt-4o's answers.
 
 MUST STAY IN SYNC with jordannedyck-ai-web:
   - parse_citations(), citation_labels()  <-  parseCitations(), citationLabels()
-    in lib/citations.ts
+    in lib/citations.ts (both in engine/citations.py since 2026-11-07)
   - judge_grounding()                     <-  judgeGrounding() in lib/classify.ts
     (same model, temperature, system text, prompt layout and verdict rule)
 Ported 2026-10-15 for the model comparison (run_models.py). Edit both or neither.
@@ -23,13 +23,20 @@ Deliberate differences from the site:
 import json
 import re
 
-from run_eval import _CITE_ID, CITE_RE, SYSTEM_PROMPT, extract_figures
+from engine.citations import (  # noqa: F401  re-exported: run_models.py and selftest.py use them
+    CITE_RE,
+    FIGURE_RE,
+    ID_RE,
+    _claim_figures,
+    _found_in,
+    _push_segment,
+    citation_labels,
+    parse_citations,
+)
+from engine.prompt import SYSTEM_PROMPT
 
 JUDGE_MODEL = "gpt-4o-mini"
 JUDGE_COST_PER_1M_IN, JUDGE_COST_PER_1M_OUT = 0.15, 0.60
-
-ID_RE = re.compile(_CITE_ID, re.IGNORECASE)  # as CITE_RE; ids are lowercased when parsed
-FIGURE_RE = re.compile(r"\$?\d[\d,]*\.?\d*\s*(?:%|x|M|B|K|million|billion|\+)?")
 
 # Answers longer than this many segments are judged on their first ones only.
 MAX_JUDGED_SEGMENTS = 40
@@ -44,66 +51,7 @@ POSITIONING = re.sub(
 
 
 # ── lib/citations.ts ──────────────────────────────────────────────────────────
-
-def _push_segment(segments, text, ids):
-    t = re.sub(r"^[\s.,;:!?)]+", "", text).strip()
-    # Headings, bullet markers and stray punctuation are not claims.
-    if not re.search(r"[a-z]{3}", t, re.IGNORECASE) and not ids:
-        return
-    segments.append({"text": t, "ids": ids})
-
-
-def parse_citations(raw):
-    """Splits the cited answer into segments, each with the ids cited at its end."""
-    segments = []
-    for line in raw.split("\n"):
-        last = 0
-        for m in CITE_RE.finditer(line):
-            _push_segment(segments, line[last:m.start()], [i.lower() for i in ID_RE.findall(m.group(0))])
-            last = m.end()
-        _push_segment(segments, line[last:], [])
-    cited = list(dict.fromkeys(i for s in segments for i in s["ids"]))
-    return segments, cited
-
-
-def _claim_figures(text):
-    """claimFigures(): extract_figures()'s rule, kept in order of appearance."""
-    found = extract_figures(text)
-    tokens = [m.group(0).strip() for m in FIGURE_RE.finditer(text)]
-    return list(dict.fromkeys(t for t in tokens if t in found))
-
-
-def _found_in(figure, haystack):
-    """Digits only, as run_eval.py's figure check does: "$150M+" matches "150"."""
-    return re.sub(r"\D", "", figure) in re.sub(r"\D", "", haystack)
-
-
-def citation_labels(segments, chunks):
-    """invented, unsupported, uncited and top_uncited, as the site stores them."""
-    by_id = {c["chunk_id"]: c["content"] for c in chunks if c.get("chunk_id")}
-    all_context = "\n".join(c["content"] for c in chunks)
-    cited = {i for s in segments for i in s["ids"]}
-    invented = [i for i in dict.fromkeys(i for s in segments for i in s["ids"]) if i not in by_id]
-
-    unsupported = []
-    for s in segments:
-        if not s["ids"]:
-            continue
-        source = "\n".join(by_id.get(i, "") for i in s["ids"])
-        for token in _claim_figures(s["text"]):
-            if not _found_in(token, source):
-                unsupported.append({"ids": s["ids"], "token": token,
-                                    "in_context": _found_in(token, all_context)})
-
-    top = max(chunks, key=lambda c: c["similarity"]) if chunks else None
-    return {
-        "segments": len(segments),
-        "uncited": sum(1 for s in segments if not s["ids"]),
-        "invented": invented,
-        "unsupported": unsupported,
-        "top_uncited": bool(top and top.get("chunk_id") and top["chunk_id"] not in cited),
-    }
-
+# parse_citations() and citation_labels() live in engine/citations.py since 2026-11-07.
 
 def leaked_citations(visible_answer, chunks):
     """Chunk ids still in the text a visitor sees after stripping.
