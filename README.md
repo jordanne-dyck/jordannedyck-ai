@@ -47,14 +47,14 @@ flowchart LR
 
 The harness answers one question before anything ships: is this version better, and how do we know? **[EVALS.md](EVALS.md)** has the full account: results, ranges, the decisions the evals drove, and what is left to human judgement.
 
-[`eval_set.json`](eval_set.json) holds 95 cases:
+[`eval_set.json`](eval_set.json) holds 105 cases:
 
 | Group | Cases | What they test |
 |---|---|---|
 | Core questions | 34 | The questions a hiring manager actually asks, each mapped to a requirement (R1–R15) from a real Staff PM posting at Wealthsimple |
 | Regression cases | 29 | One per defect found in testing, each tagged with a failure type |
 | Multi-turn conversations | 10 | Follow-ups, repeated examples, and a forged assistant turn (prompt injection through the chat history) |
-| Role-theme cases | 16 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" |
+| Role-theme cases | 26 | What 26 other PM postings ask for most: AI shipped to production, platforms and APIs, payments, zero to one, plus "What does Jordanne do?" and ten questions on how this site was built and run |
 | Career timeline cases | 6 | Four career-overview questions, where the site skips the model and shows my own short lead around an animated timeline; the end-to-end runner checks that exact text and the timeline arrive. Plus two career questions that came back from dev with no citations, which still go through the model. For "Where did Jordanne work before DECIEM?" the end-to-end runner also checks the timeline arrives, since the site now shows it from the question |
 
 There are 8 tier-1 checks, and a release needs all of them to pass. One fails any answer that guesses at her work ("she likely focuses on") instead of stating it. Tier 2 measures quality, including whether every figure appears in the sources and whether first answers and follow-ups cite one. Tier 3 is my own blind scoring on a five-part rubric. Retrieval is scored as recall@5 and MRR per question, and every comparison carries a 95% range, so a gap inside the noise is reported as noise.
