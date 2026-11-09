@@ -849,9 +849,9 @@ FIGURE_TOKEN_RE = re.compile(
     r"(?:\s?(%|(?i:percent|times|million|billion|thousand|bn)\b|[xMBK]\b))?(\+)?")
 # Context only: "over a million Optimum members" supports "1 million" (W11, 10-22).
 FIGURE_WORD_RE = re.compile(
-    r"\b(a|one|two|three|four|five|six|seven|eight|nine|ten)\s+(million|billion|thousand)\b", re.I)
+    r"\b(a|one|two|three|four|five|six|seven|eight|nine|ten)\s+(million|billion|thousand)\b", re.IGNORECASE)
 NUMBER_WORDS = {w: str(i) for i, w in enumerate(
-    "a two three four five six seven eight nine ten".split(), start=1)} | {"one": "1"}
+    ["a", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], start=1)} | {"one": "1"}
 
 
 def figure_values(text, claims_only=False):
@@ -864,9 +864,9 @@ def figure_values(text, claims_only=False):
         if "." in num:
             num = num.rstrip("0").rstrip(".")
         unit = FIGURE_UNITS.get(m.group(3) or "", FIGURE_UNITS.get((m.group(3) or "").lower(), ""))
-        if claims_only and not unit and not m.group(1):
-            if len(num) <= 1 or re.fullmatch(r"(19|20)\d\d", num):
-                continue
+        if (claims_only and not unit and not m.group(1)
+                and (len(num) <= 1 or re.fullmatch(r"(19|20)\d\d", num))):
+            continue
         out.setdefault((num, unit), m.group(0).strip())
     if not claims_only:
         for m in FIGURE_WORD_RE.finditer(text):
