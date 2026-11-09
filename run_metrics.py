@@ -111,7 +111,7 @@ def index_version_of(data):
         meta = (data.get("meta") or {}).get("stamp") or {}
         vs = [(r.get("stamp") or meta).get("index_version") for r in data["results"]]
     else:
-        vs = [t.get("index_version") for r in data for t in (r["turns"] if "turns" in r else [r])]
+        vs = [t.get("index_version") for r in data for t in r.get("turns", [r])]
     return vs[0] if vs and None not in vs and len(set(vs)) == 1 else None
 
 
