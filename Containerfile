@@ -15,6 +15,13 @@ RUN UV_PROJECT_ENVIRONMENT=/venv uv sync --frozen --no-dev --no-install-project 
 # Stage 2: runtime — lean image with no build tools
 FROM registry.access.redhat.com/ubi9/python-311
 
+# CVE-2026-111497 (libbrotli out-of-bounds write): the base image ships libbrotli
+# 1.0.9-9; the fix is 1.0.9-10.el9_8.1 (RHSA-2026:90495). Remove once the runtime
+# stage moves to a minimal Python image without Node.js and libbrotli.
+USER root
+RUN dnf update -y brotli libbrotli && dnf clean all
+USER 1001
+
 WORKDIR /opt/app-root/src
 
 # Copy the entire venv from builder
