@@ -1800,6 +1800,51 @@ check("index_version_of: an e2e run whose stamp has no index -> None", RM.index_
     {"meta": {"stamp": {"site_prompt_version": "dd326013"}}, "results": [{"id": "A1"}]}), None)
 check("index_version_of: an e2e stamp with one -> it", RM.index_version_of(
     {"meta": {"stamp": {"index_version": "aaaa1111"}}, "results": [{"id": "A1"}]}), "aaaa1111")
+
+import io
+
+# 2026-11-09 (bug_1794186971153_gec1c5): the site sends the index that answered as
+# a transient data-index part; run_e2e.py records it in each record's stamp, and
+# index_version_of reads it from there. A fake stream, so no request is made.
+class _Stream(io.BytesIO):
+    status = 200
+    headers = {"Content-Type": "text/event-stream"}
+
+class _Opener:
+    def __init__(self, parts):
+        self.body = "".join(f"data: {json.dumps(p)}\n\n" for p in parts).encode() + b"data: [DONE]\n\n"
+    def open(self, req, timeout=None):
+        return _Stream(self.body)
+
+def _sse(index):
+    return [{"type": "start"}, {"type": "data-trace", "id": "trace", "data": {}},
+            *([{"type": "data-index", "data": {"index_version": index}, "transient": True}]
+              if index is not False else []),
+            {"type": "text-start", "id": "text"}, {"type": "text-delta", "id": "text", "delta": "Hi."},
+            {"type": "text-end", "id": "text"}, {"type": "finish"}]
+
+_r = E2E.ask(_Opener(_sse("aaaa1111")), "http://x", "q", 5)
+print(f"  e2e ask: index_version {_r['index_version']!r}, answer {_r['answer']!r}, "
+      f"parts {sorted(_r['parts_seen'])}")
+check("e2e: data-index read from the stream", _r["index_version"], "aaaa1111")
+check("e2e: answer still read alongside it", _r["answer"], "Hi.")
+check("e2e: a site that sends no data-index -> None",
+      E2E.ask(_Opener(_sse(False)), "http://x", "q", 5)["index_version"], None)
+check("e2e: a null index_version -> None",
+      E2E.ask(_Opener(_sse(None)), "http://x", "q", 5)["index_version"], None)
+_sit = {"source_system": "dev", "site_prompt_version": "dd326013", "index_version": None}
+_recs = [{"id": f"A{i}", "stamp": E2E.record_stamp(_sit, {"index_version": "aaaa1111"})} for i in (1, 2)]
+check("e2e: record_stamp leaves the sitting's stamp alone", _sit["index_version"], None)
+check("e2e: run-level index when every record agrees", E2E.run_index_version(_recs), "aaaa1111")
+_e2e = {"meta": {"stamp": {**_sit, "index_version": E2E.run_index_version(_recs)}}, "results": _recs}
+check("index_version_of: e2e records stamped by run_e2e -> it", RM.index_version_of(_e2e), "aaaa1111")
+# A --resume sitting on another index, or one against an older site.
+for label, other in (("another index", "bbbb2222"), ("an older site", None)):
+    _mixed = _recs + [{"id": "A3", "stamp": E2E.record_stamp(_sit, {"index_version": other})}]
+    check(f"e2e: a sitting on {label} -> run-level None", E2E.run_index_version(_mixed), None)
+    check(f"index_version_of: a sitting on {label} -> None", RM.index_version_of(
+        {"meta": {"stamp": {**_sit, "index_version": "aaaa1111"}}, "results": _mixed}), None)
+
 bare = [ans("A1", None), ans("A2", None, ok=False)]
 stamped = [ans("A1", "aaaa1111"), ans("A2", "aaaa1111", ok=False)]
 hl = lambda d, src: RM.history_lines(d, runner="run_eval", source=src, label="t",

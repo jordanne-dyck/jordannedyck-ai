@@ -55,6 +55,12 @@ STREAM PROTOCOL
     retrieval (v4 `8:` annotation type "retrieval"; UI stream `data-retrieval` part).
     It is recorded when present. The checks below do not use it yet.
 
+    Every answer that searched also carries a `data-index` part (2026-11-09) with the
+    index_version the backend answered from. Each record's stamp holds its own; the
+    run-level stamp holds it only when every record agrees. release_gate.py matches
+    an e2e run to the index going out on it. A site from before then sends none, and
+    its records say None.
+
     The protocol a record was parsed with is stored in stream.protocol. Run --probe
     first on any target whose bundle changed. It sends ONE question (~$0.01), writes
     the raw bytes to disk, prints the first lines, and reports whether the parse
@@ -285,6 +291,10 @@ def build_stamp(args, source_system):
         "index_bytes": None,
         "embedding_model": None,
         "context_visible": False,
+        # The index that answered, from the site's data-index part (2026-11-09).
+        # Per answer in each record's stamp; run-level only when every record in
+        # the file agrees (run_index_version). None until the site sends it.
+        "index_version": None,
     }
     if source_system == "dev":
         # jordbot-dev serves the :dev image, which every dev build overwrites, and reads
@@ -322,6 +332,20 @@ def build_stamp(args, source_system):
         if served:
             stamp["site_prompt_version"] = served
     return stamp
+
+
+def record_stamp(stamp, res):
+    """The stamp one record carries: the sitting's stamp plus the index_version the
+    site reported for this answer. Per record, because a --resume sitting can run
+    days later on another index, and the gate must see that (2026-11-09)."""
+    return {**stamp, "index_version": res.get("index_version")}
+
+
+def run_index_version(results):
+    """The one index_version every record in the file answered from, else None:
+    the run-level stamp's value. Same rule as run_metrics.index_version_of."""
+    vs = {(r.get("stamp") or {}).get("index_version") for r in results}
+    return vs.pop() if len(vs) == 1 and None not in vs else None
 
 
 def served_prompt_version(base_url):
@@ -425,6 +449,7 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
         "ttfb_ms": None, "ttft_ms": None, "total_ms": None,
         "parts_seen": {}, "unparsed_lines": 0, "raw_bytes": 0,
         "protocol": None, "retrieval": None, "timeline": None,
+        "index_version": None,
     }
 
     def text_part(value, now):
@@ -495,6 +520,9 @@ def ask(opener, base_url, question, timeout, raw_sink=None, monitor_token=None):
                     out["retrieval"] = part["data"]
                 elif kind == "data-timeline":
                     out["timeline"] = part.get("data")
+                elif kind == "data-index" and isinstance(part.get("data"), dict):
+                    v = part["data"].get("index_version")
+                    out["index_version"] = v if isinstance(v, str) else None
                 elif kind == "finish":
                     if part.get("finishReason"):
                         out["finish_reason"] = part["finishReason"]
@@ -829,7 +857,7 @@ def main():
                 # The data-timeline part's data, e.g. {"explicit": true}; None when absent.
                 "timeline": res["timeline"],
                 "checks": check_answer(harness, q, res),
-                "stamp": stamp,
+                "stamp": record_stamp(stamp, res),
             }
             results.append(record)
 
@@ -842,7 +870,7 @@ def main():
                 flag = f"  timeline={res['timeline']}"
             print(f"  [{i + 1}/{len(queue)}] {q['record_id']:<8} "
                   f"ttft={res['ttft_ms'] or '-':>6}ms  total={res['total_ms'] or '-':>6}ms  "
-                  f"chars={len(res['answer']):>5}{flag}")
+                  f"chars={len(res['answer']):>5}  index={res['index_version'] or '-'}{flag}")
 
             if res["http_status"] == 429:
                 stopped = args.start + i
@@ -863,6 +891,7 @@ def main():
         if raw_sink:
             raw_sink.close()
 
+    stamp["index_version"] = run_index_version(results)
     payload = {
         "meta": {
             "runner": "run_e2e.py", "stamp": stamp,

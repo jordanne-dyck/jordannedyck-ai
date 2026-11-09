@@ -106,7 +106,8 @@ def index_version_of(data):
     """The one index_version every answer in a results file was retrieved from, or
     None when any answer lacks one or they differ (2026-11-09). release_gate.py
     matches a run to the index going out on this, not on the filename. A run_e2e.py
-    file holds it in its stamp once the site reports it; none does yet."""
+    file holds it in each record's stamp, from the site's data-index part; files
+    from before 2026-11-09 hold none."""
     if isinstance(data, dict) and "results" in data:
         meta = (data.get("meta") or {}).get("stamp") or {}
         vs = [(r.get("stamp") or meta).get("index_version") for r in data["results"]]
