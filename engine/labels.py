@@ -7,8 +7,8 @@ import re
 from .prompt import SYSTEM_PROMPT
 
 # MUST STAY IN SYNC with jordannedyck-ai-web/lib/eval-checks.ts, which ports
-# PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE,
-# gap_admitted(), and (from 2026-11-05) coverage_stated(), factual_negative() and
+# PHONE_RE, FIRST_PERSON_RE, GAP_PHRASES, GAP_RE, NO_COVERAGE_RE, (from
+# 2026-11-08) _GAP_SUBJECT and NOT_HAVE_RE, gap_admitted(), and (from 2026-11-05) coverage_stated(), factual_negative() and
 # gap_kind(), so the live dashboard labels an answer the same way this harness
 # scores it. Ported from f4f5b60 on 2026-10-14; edit both or neither.
 PHONE_RE = re.compile(r"(?:\(?647\)?[\s.\-]*454[\s.\-]*2244)|(?:6474542244)")
@@ -18,9 +18,12 @@ FIRST_PERSON_RE = re.compile(
     re.IGNORECASE,
 )
 GAP_PHRASES = [
-    "don't have", "do not have", "doesn't have specific", "not covered",
+    # 2026-11-08: "don't have" and "do not have" moved to NOT_HAVE_RE, "not
+    # something" became "is not something" (X01: "not something built for the
+    # channel"), and "doesn't appear" moved to NO_COVERAGE_RE. See _GAP_SUBJECT.
+    "doesn't have specific", "not covered",
     "isn't covered", "no specific information", "don't have that specific",
-    "not something", "no direct experience", "doesn't appear", "not detailed",
+    "is not something", "no direct experience", "not detailed",
     "no information", "not something the knowledge base",
     # added 2026-09-10 (P1 session): G02 was scored False in BOTH arms while both
     # answers were correct. Arm A said "hasn't specifically built" / "isn't
@@ -32,7 +35,7 @@ GAP_PHRASES = [
     # G01-B and G03-B both open "does not have direct experience ..." — a clean
     # gap admission that matched nothing. "do not have" and "doesn't have
     # specific" were both too narrow to catch the third-person singular.
-    "does not have", "doesn't have",
+    # ("does not have" and "doesn't have" are NOT_HAVE_RE since 2026-11-08.)
     # 2026-11-02 (T2.8 scan, redecide-ff4d_2026-10-22.json): G01 opened
     # "Designing cash-back rewards specifically isn't part of her documented
     # work." T2.3 passed on a later sentence; T2.8 reads the first one alone.
@@ -47,6 +50,24 @@ GAP_RE = re.compile(
     r"(?:built|led|run|managed|owned|worked|done|launched|designed|shipped)\b"
 )
 
+# 2026-11-08 (bug_1794167236506_5t0gvr): a negated verb whose subject is plainly
+# not her or the record is not a gap admission. Until then "so the customer
+# does not have to navigate it" (W03), "financial expertise most people don't
+# have" (W09), "ESG portfolios don't show what the money funds" (W09) and "a
+# reported problem that doesn't address the actual challenge" (W12) counted,
+# and the dashboard labelled those answers gaps. A list of subjects that are
+# allowed was tried first and dropped: gap admissions name the record through
+# relative clauses ("The context retrieved for this turn does not cover"), so
+# it lost 3 real ones in 3,106 stored answers. These are the subjects of every
+# false match in those answers. "have to" is obligation, never a gap.
+# Known limit: "the initial rollout did not include training" (W06) still
+# counts, because G01's "these programs did not include cash-back specifically"
+# is a real admission in the same form.
+_NOT_A_SOURCE = ("that", "who", "you", "they", "people", "individuals", "customer",
+                 "customers", "users", "investors", "portfolios")
+_GAP_SUBJECT = "".join(rf"(?<!\b{w} )" for w in _NOT_A_SOURCE)
+NOT_HAVE_RE = re.compile(_GAP_SUBJECT + r"\b(?:do|does)\s*(?:n't|not)\s+have\b(?!\s+to\b)")
+
 # FOURTH instance of the same coverage defect, found 2026-09-11 in the r3 run.
 # G01 and G02 both scored False on answers that open "The context does not
 # provide specific information about ..." — textbook gap admissions matching
@@ -57,14 +78,21 @@ GAP_RE = re.compile(
 # the checker. The fix belongs here, not in the prompt — writing the prompt to
 # emit a phrase the checker greps for is training on the test.
 NO_COVERAGE_RE = re.compile(
-    r"\b(?:does|do|did)\s*(?:n't|not)\s+"
+    _GAP_SUBJECT + r"\b(?:does|do|did)\s*(?:n't|not)\s+"
     r"(?:appear\s+to\s+|seem\s+to\s+|specifically\s+|explicitly\s+)?"
     # show|say|describe|establish|state|list added 2026-10-30 (plan A.3): saved
     # answers open "The record does not show...", "The context does not say...",
     # "the record does not establish that the alternative launched".
     r"(?:provide|mention|include|contain|cover|specify|detail|indicate|reference|address|note"
     r"|show|say|describe|establish|state|list)\b"
-    r"|\bno\s+(?:mention|record|reference|details?|indication)\s+of\b"
+    # "kept no record of churn" is a fact about a business, not the record (2026-11-08).
+    r"|(?<!kept )(?<!keep )(?<!keeps )\bno\s+(?:mention|record|reference|details?|indication)\s+of\b"
+    # "doesn't appear" was a GAP_PHRASES entry until 2026-11-08, and read "The
+    # Ordinary doesn't appear in department stores" as a gap. A gap is absent
+    # from the record; anything else that does not appear is a fact.
+    r"|\b(?:does|do)\s*(?:n't|not)\s+appear\s+in\s+(?:the\s+|her\s+)?(?:context|record"
+    r"|knowledge\s+base|material|sources|documents|information|work|experience|background"
+    r"|history|career)\b"
     r"|\bnothing\s+in\s+the\s+(?:context|knowledge\s+base|record|material)\b"
     # provided|stated|mentioned|... and the optional adverb added 2026-10-30
     # (plan A.3, from C.1 dev traffic): #128 said "not provided in the context".
@@ -90,7 +118,8 @@ def gap_admitted(ans):
 def coverage_stated(ans):
     """The answer says the record does not cover this: GAP_PHRASES or NO_COVERAGE_RE."""
     low = ans.lower()
-    return any(pz in low for pz in GAP_PHRASES) or bool(NO_COVERAGE_RE.search(low))
+    return (any(pz in low for pz in GAP_PHRASES) or bool(NOT_HAVE_RE.search(low))
+            or bool(NO_COVERAGE_RE.search(low)))
 
 
 def factual_negative(ans):

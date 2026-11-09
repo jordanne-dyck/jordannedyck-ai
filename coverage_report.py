@@ -19,7 +19,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 OUT_MD = HERE / "COVERAGE.md"
-CASE_GROUPS = ("questions", "additive_cases", "theme_cases")
+CASE_GROUPS = ("questions", "additive_cases", "theme_cases", "timeline_cases")
 
 
 def load(path=EVAL_SET):

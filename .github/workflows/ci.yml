@@ -20,6 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - uses: astral-sh/ruff-action@0ce1b0bf8b818ef400413f810f8a11cdbda0034b  # v4
+        # Pinned: unpinned, the action takes the newest ruff, and a new release
+        # can fail lint on code that has not changed. Bump it in its own PR.
+        with:
+          version: "0.17.4"
 
   selftest:
     name: Eval checker selftest
@@ -27,10 +31,32 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.13.7"  # same uv as the Containerfile
+      # Fails when pyproject.toml changed and uv.lock was not regenerated.
+      - run: uv lock --check
       # No API keys and no network beyond the install: selftest.py uses a stub
       # OpenAI client and a fake /search on localhost.
       - run: uv sync --frozen --no-install-project
       - run: uv run --no-sync python selftest.py
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0  # gitleaks reads the whole history, not just this commit
+      # The binary, not gitleaks-action: pinned by version and checksum, no licence key.
+      - name: gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -sSfL -o gitleaks.tar.gz             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks git --no-banner --redact .
 
   scan:
     name: Vulnerability scan
@@ -60,5 +86,8 @@ jobs:
           scan-type: fs
           scan-ref: .
           severity: HIGH,CRITICAL
+          # A CVE with no fixed version cannot be fixed by a PR, so it does not
+          # fail one. It still reaches the Security tab through the scan above.
+          ignore-unfixed: true
           exit-code: '1'
           format: table

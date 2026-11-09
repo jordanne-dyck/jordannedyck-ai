@@ -18,15 +18,16 @@ SOURCE_FORMAT = "labelled"
 
 
 def search(query, n_results, search_url=SEARCH_URL):
-    """The raw /search results, before they are formatted, and the ranker
-    /search reported (None from a backend that predates it)."""
+    """The raw /search results, before they are formatted, and what /search
+    reported about itself: {ranker, index_version}, each None from a backend
+    that predates it."""
     body = json.dumps({"query": query, "n_results": n_results}).encode()
     req = urllib.request.Request(
         search_url, data=body, headers={"Content-Type": "application/json"}
     )
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read().decode())
-    return data.get("results") or [], data.get("ranker")
+    return data.get("results") or [], {"ranker": data.get("ranker"), "index_version": data.get("index_version")}
 
 
 def format_context(results, truncate=None, source_format=SOURCE_FORMAT):

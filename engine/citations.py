@@ -7,7 +7,10 @@ import re
 # jordannedyck-ai-web/lib/citations.ts, which removes the same markers from the
 # site's stream. Added 2026-10-15 with the "Cite every claim" instruction.
 _CITE_ID = r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*-\d+"
-CITE_RE = re.compile(rf"[ \t]*\[{_CITE_ID}(?:\s*,\s*{_CITE_ID})*\]")
+# Case-insensitive since 2026-11-08 (bug_1794167236506_5t0gvr): every id in the
+# index is lowercase, but "[Exp-001]" was neither stripped nor counted, so a
+# visitor would have seen it. 0 of 9,247 stored citations were capitalised.
+CITE_RE = re.compile(rf"[ \t]*\[{_CITE_ID}(?:\s*,\s*{_CITE_ID})*\]", re.IGNORECASE)
 
 
 def strip_citations(ans):
@@ -16,7 +19,9 @@ def strip_citations(ans):
 
 
 def extract_figures(text):
-    """Numbers that constitute a factual claim: percentages, money, multiples, counts."""
+    """Numbers that constitute a factual claim: percentages, money, multiples, counts.
+    No longer used by T2.2 (see figure_values). citation_checks.py keeps it because
+    it mirrors claimFigures() in the web repo's lib/citations.ts."""
     out = set()
     for m in re.finditer(r"\$?\d[\d,]*\.?\d*\s*(?:%|x|M|B|K|million|billion|\+)?", text):
         tok = m.group(0).strip()
@@ -34,7 +39,7 @@ def extract_figures(text):
 # ── segments and citation labels (lib/citations.ts) ─────────────────────────────
 # Moved here from citation_checks.py on 2026-11-07.
 
-ID_RE = re.compile(_CITE_ID)
+ID_RE = re.compile(_CITE_ID, re.IGNORECASE)  # as CITE_RE; ids are lowercased when parsed
 FIGURE_RE = re.compile(r"\$?\d[\d,]*\.?\d*\s*(?:%|x|M|B|K|million|billion|\+)?")
 
 
@@ -52,7 +57,7 @@ def parse_citations(raw):
     for line in raw.split("\n"):
         last = 0
         for m in CITE_RE.finditer(line):
-            _push_segment(segments, line[last:m.start()], ID_RE.findall(m.group(0)))
+            _push_segment(segments, line[last:m.start()], [i.lower() for i in ID_RE.findall(m.group(0))])
             last = m.end()
         _push_segment(segments, line[last:], [])
     cited = list(dict.fromkeys(i for s in segments for i in s["ids"]))
@@ -147,7 +152,7 @@ def build_sources(segments, chunks):
 # Holds back the tail of the text that could still become a citation: an open
 # "[" whose text so far fits an id list, and any spaces before it. Everything
 # else is safe to send. Ported 2026-11-07.
-OPEN_TAIL_RE = re.compile(r"[ \t]*(?:\[[a-z0-9,\s-]*)?\Z")
+OPEN_TAIL_RE = re.compile(r"[ \t]*(?:\[[a-z0-9,\s-]*)?\Z", re.IGNORECASE)
 MAX_HELD = 200
 
 
