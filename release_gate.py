@@ -12,7 +12,8 @@ Each needs, for the prompt and index it will run with:
   - (2026-11-09) each of those three answered from the index going out, by the
     index_version its answers recorded from /search, never by filename, and its
     results file still holding the answers its history line was written from (same
-    run_id). The site does not report its index yet, so no e2e run passes this.
+    run_id). An e2e run proves its index only from a site that sends the
+    data-index part (web, 2026-11-09); an older run recorded none and does not count.
   - every failing check signed off by Jord, by case, in the evidence file; a tier-1
     failure only as "checker miss: <why>", or as "not served: <why>" when the e2e run
     passed that case on dev, since a release needs every tier-1 check
@@ -294,14 +295,14 @@ def main():
         if why:
             problems.append(f"{kind} run {row['run_id']}: {why}")
             continue
-        # Read from the answers themselves, not the history line. The site does not
-        # report its index yet (bug_1794186971153_gec1c5), so no e2e run can prove
-        # one, and the gate blocks until it can (Jord, 2026-11-08).
+        # Read from the answers themselves, not the history line. An e2e run has
+        # it only from a site that sends data-index (bug_1794186971153_gec1c5); the
+        # gate blocks any e2e run that cannot prove its index (Jord, 2026-11-08).
         index_read[kind] = RM.index_version_of(data)
         if index_read[kind] != args.index:
             problems.append(f"{kind} run {row['run_id']}: answered from index_version "
                             f"{index_read[kind]}, not {args.index}"
-                            + (" (the dev site does not report its index yet)" if kind == "e2e" else ""))
+                            + (" (a run from before the site sent data-index, or one with a sitting on another index)" if kind == "e2e" else ""))
         for (case, check), (n, total, qs) in sorted(failures(data).items()):
             passed = case in e2e_clean or (bool(qs) and all(q.strip() in e2e_clean_q for q in qs))
             fails.append({"kind": kind, "case": case, "check": check, "failed": n, "of": total,
