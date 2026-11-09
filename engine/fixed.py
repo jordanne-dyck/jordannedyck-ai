@@ -2,7 +2,11 @@
 lead (and its replay) and the refusal to repeat the instructions, plus the
 questions that trigger them. Moved here from run_eval.py on 2026-11-07, text
 unchanged. run_eval.py's timeline_drift() and refusal_drift() compare them with
-the web repo's copies until the site calls this engine."""
+the web repo's copies until the site calls this engine.
+
+Also which questions get the build story (2026-11-09, option D): the engine
+decides, the channel holds the words. No story text lives here;
+story_trigger_drift() compares the trigger only."""
 
 import re
 
@@ -94,6 +98,33 @@ def asks_for_instructions(query):
     return bool(EXTRACTION_RE.search(query))
 
 
+# ── build story ──────────────────────────────────────────────────────────────
+# MUST STAY IN SYNC with SELF, HOW, YOU and STORY_CARD in
+# jordannedyck-ai-web/lib/build-story.ts (web PR #95, revised #106).
+# run_eval.py's story_trigger_drift() compares. Decided 2026-11-09, option D: the
+# engine decides whether a question gets the story; the channel writes it. The
+# site keeps storyLead(), STORY_REPLAY and the trace; no copy here, so there is
+# no text to keep in sync. Temporary: once route.ts stops carrying its own
+# pipeline (phase 2 step 5) this is the only copy and the drift check goes.
+_STORY_SELF = r"\b(?:this|your)\s+(?:web\s*site|site|chat\s*bot|bot|assistant|ai[- ]powered\s+resume|ai\s+resume|resume\s+site|portfolio\s+site)\b|\bthe\s+(?:chat\s*bot|bot)\b|\bjordbot\b|\bjordannedyck(?:\.com)?\b"
+_STORY_HOW = r"\b(?:build|built|building|made|make|created|developed|engineered|architected|works?|architecture|tech\s+stack|stack|under\s+the\s+hood|behind)\b|\btell\s+(?:me|us)\s+about\b|\bwhat\s+is\b|\bwhat'?s\b"
+_STORY_YOU = r"\bhow\s+(?:were|are|was)\s+you\s+(?:built|made|created|developed)\b|\bhow\s+do\s+you\s+work\b"
+# The ai-resume card's own question opens the story, from that card only.
+STORY_CARD = {"slug": "ai-resume", "question": "How did she build it?"}
+
+
+def asks_for_build_story(query):
+    """asksForBuildStory(): a question about how this site or bot was built. Needs
+    a self-reference, so "How did she build the AI Personal Shopper?" doesn't match."""
+    return bool(re.search(_STORY_YOU, query, re.IGNORECASE)) or (
+        bool(re.search(_STORY_SELF, query, re.IGNORECASE)) and bool(re.search(_STORY_HOW, query, re.IGNORECASE)))
+
+
+def story_from_card(project, query):
+    """storyFromCard(): "How did she build it?" asked from the ai-resume card."""
+    return project == STORY_CARD["slug"] and query.strip() == STORY_CARD["question"]
+
+
 # ── which fixed reply, and whether the timeline card shows ────────────────────
 # Ported 2026-11-07 from route.ts (web master bbed85c) and lib/timeline.ts.
 
@@ -109,11 +140,13 @@ def leads_with_career(chunks):
     return bool(chunks) and chunks[0].get("chunk_id") in CAREER_CHUNKS
 
 
-def fixed_reply(query, timeline_shown=False):
+def fixed_reply(query, timeline_shown=False, story_shown=False, project=None):
     """The reply the site gives without calling the model, or None. An
     instruction request gets the refusal; an overview question gets the lead
-    (the replay once the page has shown the timeline this visit). `flags` are
-    what the chat_events row records."""
+    (the replay once the page has shown the timeline this visit); a build-story
+    question gets the story, in that order, as in route.ts. `flags` are what the
+    chat_events row records. A story's `answer` is None: the channel writes it
+    (storyLead() or STORY_REPLAY on the site, as story_lead says)."""
     if asks_for_instructions(query):
         return {"id": "refusal", "answer": FIXED_REFUSAL, "timeline": False,
                 "flags": {"fixed_refusal": True}}
@@ -122,6 +155,10 @@ def fixed_reply(query, timeline_shown=False):
         return {"id": "lead", "answer": TIMELINE_REPLAY if replay else FIXED_LEAD, "timeline": True,
                 "flags": {"timeline": "explicit" if asks_for_timeline(query) else "overview",
                           "timeline_lead": "replay" if replay else "fixed"}}
+    card = story_from_card(project, query)
+    if card or asks_for_build_story(query):
+        return {"id": "story", "answer": None, "timeline": False,
+                "flags": {"story": "card" if card else "asked", "story_lead": "replay" if story_shown else "fixed"}}
     return None
 
 

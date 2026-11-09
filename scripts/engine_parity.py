@@ -8,7 +8,8 @@ live), run by Node (scripts/engine_parity.mjs). The inputs:
     ids it retrieved), with each chunk's text, title and file read from the
     local index (faiss_db/). The index can be newer than the run; both sides
     get the same chunks, which is all a parity test needs.
-  - every eval question, for the fixed-reply and timeline triggers.
+  - every eval question, for the fixed-reply, timeline and build-story triggers,
+    plus the story cases in the web repo's scripts/build-story.test.mjs.
   - every chunk in the index, for its section heading.
 
 Compared: segments and cited ids, the sources list, the citation labels, the
@@ -26,6 +27,7 @@ import io
 import json
 import pickle
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -105,7 +107,9 @@ def python_side(fx):
             "instructions": fixed.asks_for_instructions(q), "overview": fixed.asks_for_overview(q),
             "timeline": fixed.asks_for_timeline(q), "careerHistory": fixed.asks_for_career_history(q),
             "replay": fixed.is_timeline_replay(q, True),
-            "timelineForUncited": fixed.timeline_card(q, [], []), "freeLabelsQueryOnly": labels.free_labels(q, None),
+            "timelineForUncited": fixed.timeline_card(q, [], []),
+            "buildStory": fixed.asks_for_build_story(q), "storyFromCard": fixed.story_from_card("ai-resume", q),
+            "freeLabelsQueryOnly": labels.free_labels(q, None),
         })
     res["sections"] = [citations.section_of(s["content"], s["title"]) for s in fx["sections"]]
     res["costs"] = [cost.estimate_cost_usd(c["model"], c["prompt"], c["completion"]) for c in fx["costs"]]
@@ -137,9 +141,18 @@ def main():
     for a in answers:
         a["deltas"] = deltas_of(a["answer_cited"], rng)
     spec = json.loads((HERE / "eval_set.json").read_text(encoding="utf-8"))
+    # No eval question asks for the build story, so the web repo's own story
+    # cases go in too, read at the same ref.
+    story_test = subprocess.run(["git", "-C", args.web, "show", f"{args.web_ref}:scripts/build-story.test.mjs"],
+                                capture_output=True, text=True, encoding="utf-8", check=True).stdout
+    story_qs = {a or b for name in ("MUST", "MUST_NOT")
+                for a, b in re.findall(r"'((?:[^'\\]|\\.)*)'|\"((?:[^\"\\]|\\.)*)\"",
+                                       re.search(rf"const {name} = \[(.*?)\];", story_test, re.DOTALL).group(1))}
     questions = sorted({q["q"] if "q" in q else q["question"] for q in spec["questions"] + spec["timeline_cases"]}
                        | {t["q"] for c in spec["multiturn"]["cases"] for t in c["turns"]}
-                       | {a["query"] for a in answers})
+                       | {a["query"] for a in answers} | story_qs
+                       # the ai-resume card's question, with a variant, for storyFromCard
+                       | {fixed.STORY_CARD["question"], " " + fixed.STORY_CARD["question"] + " "})
     fx = {"answers": answers, "questions": questions,
           "sections": [{"content": c["content"], "title": c["title"]} for c in index.values()],
           "costs": [{"model": m, "prompt": p, "completion": c} for m in ("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "nope")

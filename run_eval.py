@@ -726,6 +726,32 @@ def refusal_drift_line():
     return f"{drift}; origin/master copy (not checked out): {refusal_drift(ts=ts) or 'agrees'}"
 
 
+# ── build story trigger ───────────────────────────────────────────────────────
+# The trigger only (option D, 2026-11-09): the story's text stays with the site,
+# so there is no text to compare. Temporary, until route.ts drops its own
+# pipeline (answer-engine plan, phase 2 step 5).
+BUILD_STORY_TS = HERE.parent / "jordannedyck-ai-web" / "lib" / "build-story.ts"
+
+
+def story_trigger_drift(path=BUILD_STORY_TS):
+    """None when lib/build-story.ts's SELF, HOW, YOU and STORY_CARD agree with
+    engine/fixed.py, else what differs."""
+    if not path.exists():
+        return f"{path} not found (web checkout predates PR #95?)"
+    ts = path.read_text(encoding="utf-8")
+    out = []
+    for name, ours in (("SELF", fixed._STORY_SELF), ("HOW", fixed._STORY_HOW), ("YOU", fixed._STORY_YOU)):
+        m = re.search(rf"const {name} =\s*/(.+?)/i;", ts)
+        if not m:
+            out.append(f"no {name}")
+        elif m.group(1) != ours:
+            out.append(f"{name} differs")
+    m = re.search(r"STORY_CARD = \{ slug: '([^']*)', question: '([^']*)' \}", ts)
+    if not m or {"slug": m.group(1), "question": m.group(2)} != fixed.STORY_CARD:
+        out.append(f"STORY_CARD differs: {m.group(0) if m else 'missing'}")
+    return "; ".join(out) or None
+
+
 # ── multi-turn ────────────────────────────────────────────────────────────────
 
 RESULTS_MULTITURN = HERE / "eval_results_multiturn.json"
@@ -1087,6 +1113,7 @@ def main():
 
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     print(f"refusal drift: {refusal_drift_line()}")
+    print(f"story trigger drift: {story_trigger_drift() or 'ok, agrees with lib/build-story.ts'}")
     if args.timeline and (args.multiturn or args.corrective or args.probe):
         sys.exit("--timeline runs on its own: not with --multiturn, --corrective or --probe")
     # fixed_lead cases never reach the answer model on the site (option D, 2026-11-04).

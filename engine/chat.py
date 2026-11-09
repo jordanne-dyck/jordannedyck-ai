@@ -10,9 +10,15 @@ turns that passed those checks; this module checks the shape again.
 
 Events, in order:
   meta   once, before any text: prompt and index versions, the rewrite, the
-         retrieved chunks, and which fixed reply (if any) this turn gets
+         retrieved chunks, and which fixed reply (if any) this turn gets:
+         refusal, lead or story
   text   {delta}: answer text a visitor may see, citations already removed.
          A fixed overview reply carries the {{timeline}} marker, as on the site.
+         A story reply has none: the engine decides the question gets the
+         build story, the channel supplies the wording (option D, 2026-11-09).
+         done follows meta directly, with answer None and flags story
+         (card or asked) and story_lead (fixed or replay); its free_labels are
+         the question's only, where the site also labels the story text.
   done   once, at the end: the cited answer, sources, cards, labels, usage.
          timeline is {explicit, reason} when the page should show the timeline:
          explicit for a fixed overview reply (reason explicit or overview),
@@ -22,6 +28,7 @@ Events, in order:
   error  instead of done: {reason, message}; message is what a visitor sees
 """
 
+import re
 import time
 
 from openai import APITimeoutError
@@ -46,6 +53,8 @@ FIRST_CHUNK_S, TOTAL_S = 20, 60
 MAX_USER_TURNS = 20
 MAX_USER_MESSAGE_CHARS = 2000
 MAX_ASSISTANT_MESSAGE_CHARS = 4 * MAX_USER_MESSAGE_CHARS
+# parseProjectSlug() in lib/chat-input.ts.
+_SLUG = re.compile(r"[a-z0-9-]{1,80}")
 
 
 class _TotalTimeout(Exception):
@@ -53,8 +62,11 @@ class _TotalTimeout(Exception):
 
 
 def parse_request(body):
-    """(messages, timeline_shown) from a /chat body, or ValueError with the reason.
-    Messages are user and assistant turns ending on a user turn."""
+    """(messages, options) from a /chat body, or ValueError with the reason.
+    Messages are user and assistant turns ending on a user turn. options are
+    run_turn()'s keyword arguments: timeline_shown and story_shown (true only
+    when sent as true) and project, the card a panel question was asked from
+    (a slug, as parseProjectSlug() checks; anything else is None, not a 400)."""
     if not isinstance(body, dict) or not isinstance(body.get("messages"), list):
         raise ValueError("body must be a JSON object with a messages list")  # noqa: TRY004  a bad request, answered 400
     messages = []
@@ -71,10 +83,13 @@ def parse_request(body):
         cap = MAX_USER_MESSAGE_CHARS if m["role"] == "user" else MAX_ASSISTANT_MESSAGE_CHARS
         if len(m["content"]) > cap:
             raise ValueError(f"{m['role']} message longer than {cap} characters")
-    return messages, body.get("timeline_shown") is True
+    project = body.get("project")
+    return messages, {"timeline_shown": body.get("timeline_shown") is True,
+                      "story_shown": body.get("story_shown") is True,
+                      "project": project if isinstance(project, str) and _SLUG.fullmatch(project) else None}
 
 
-def run_turn(client, search, messages, timeline_shown=False):
+def run_turn(client, search, messages, timeline_shown=False, story_shown=False, project=None):
     """Yields the events for one turn. `client` is an OpenAI client. `search` is
     (query, n_results) -> (results, info): /search's result list and
     {index_version, ranker}; it raises when retrieval fails."""
@@ -95,7 +110,7 @@ def run_turn(client, search, messages, timeline_shown=False):
                "title": r["metadata"].get("title"), "similarity": round(r["similarity"], 4),
                "content": r["content"]} for r in results]
     best = max(results, key=lambda r: r["similarity"]) if results else None
-    reply = fixed.fixed_reply(query, timeline_shown)
+    reply = fixed.fixed_reply(query, timeline_shown, story_shown, project)
     yield {"type": "meta",
            "prompt_version": prompt.PROMPT_VERSION,
            "index_version": info.get("index_version"),
@@ -108,6 +123,17 @@ def run_turn(client, search, messages, timeline_shown=False):
            "cite_reminder": bool(history) and not reply,
            "fixed": reply["id"] if reply else None,
            "model": None if reply else answer.MODEL}
+
+    # A build-story question: the channel writes the story, so no text events.
+    # Labels are the question's only: there is no text here, and the text is
+    # Jordanne's own. (The site today also runs freeLabels on the story text.)
+    if reply and reply["id"] == "story":
+        yield {"type": "done", "answer": None, "answer_cited": None, "segments": [], "cited_ids": [],
+               "sources": citations.build_sources([], chunks), "project": None, "project_predicted": None,
+               "timeline": None, "flags": reply["flags"],
+               "free_labels": labels.free_labels(query, None), "citation_labels": None,
+               "usage": None, "cost_usd": None, "ttft_ms": ms(start), "latency_ms": ms(start)}
+        return
 
     # An overview question or an instruction request: the fixed reply, with no
     # model call. Retrieval still ran, so the row records what an answer would
