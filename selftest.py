@@ -596,11 +596,13 @@ c = E2E.check_answer(R, {"id": "P16", "tag": "ws_core"}, {**_res, "answer": "Her
 check("speculation caught end to end, span kept", (c["T1.8_no_speculation"], c["T1.8_speculation_spans"]),
       (False, ["Her work likely"]))
 
-# 2026-11-04: --only reaches additive and theme cases; a full run still asks "questions" only.
+# 2026-11-04: --only reaches additive and theme cases. 2026-11-09: a full run asks
+# every group, so the release gate's e2e run covers them all.
 _spec = {"questions": [{"id": "G01", "q": "g"}, {"id": "C01", "q": "c", "runs": 2}],
-         "additive_cases": [{"id": "X08", "q": "x"}], "theme_cases": [{"id": "P16", "q": "p"}]}
-check("full run asks only the questions group, runs honoured",
-      [c["record_id"] for c in E2E.expand_questions(_spec)], ["G01", "C01#1", "C01#2"])
+         "additive_cases": [{"id": "X08", "q": "x"}], "theme_cases": [{"id": "P16", "q": "p"}],
+         "timeline_cases": [{"id": "TL05", "q": "t"}]}
+check("full run asks every group, runs honoured",
+      [c["record_id"] for c in E2E.expand_questions(_spec)], ["G01", "C01#1", "C01#2", "X08", "P16", "TL05"])
 check("--only takes ids from every group",
       [c["record_id"] for c in E2E.expand_questions(_spec, {"G01", "X08", "P16"})], ["G01", "X08", "P16"])
 try:
@@ -1207,12 +1209,25 @@ def _e2e_card(q, timeline):
     c = E2E.check_answer(R, {"tag": "timeline", **q}, {"answer": "She worked at Loblaw. [exp-001]", "error": None,
                                                       "stream_error": None, "total_ms": 1, "timeline": timeline})
     return c["T2.17_timeline_card"], c.get("T2.17_timeline_data")
-check("T2.17: card arrives", _e2e_card({"timeline_card": True}, {"explicit": False}), (True, {"explicit": False}))
+check("T2.17: card arrives, explicit", _e2e_card({"timeline_card": True}, {"explicit": True}), (True, {"explicit": True}))
+# v1.16 QA (2026-11-07): the card arrived with explicit: false and the page hid it.
+check("T2.17: card arrives not explicit fails", _e2e_card({"timeline_card": True}, {"explicit": False}),
+      (False, {"explicit": False}))
 check("T2.17: no card fails", _e2e_card({"timeline_card": True}, None), (False, None))
 check("T2.17: n/a elsewhere", _e2e_card({}, {"explicit": False}), ("n/a", None))
 check("T2.17: only TL05 sets timeline_card", [c["id"] for c in tl_cases if c.get("timeline_card")], ["TL05"])
 check("e2e --only reaches timeline_cases", [q["id"] for q in E2E.expand_questions(
       json.load(open(R.EVAL_SET, encoding="utf-8")), {"TL01", "TL03"})], ["TL01", "TL03"])
+_full = [c["record_id"] for c in E2E.expand_questions(json.load(open(R.EVAL_SET, encoding="utf-8")))]
+_spec_all = json.load(open(R.EVAL_SET, encoding="utf-8"))
+print(f"  e2e full set: {len(_full)} calls, ending {', '.join(_full[-7:])}")
+check("e2e full set holds TL01-TL06 (the release gate requires it)",
+      [i for i in _full if i.startswith("TL")], ["TL01", "TL02", "TL03", "TL04", "TL05", "TL06"])
+check("e2e full set holds every single-turn case",
+      sorted({i.split("#")[0] for i in _full}),
+      sorted(c["id"] for g in E2E.ONLY_GROUPS for c in _spec_all[g]))
+check("e2e full set: 34 questions with C01 three times, 29 additive, 26 theme, 6 timeline",
+      len(_full), 97)
 
 print("\n--- fixed refusal, T2.16 (2026-11-05, web PR #85) ---")
 # The same 23 strings as jordannedyck-ai-web/scripts/prompt-request.test.mjs.
@@ -1835,6 +1850,30 @@ with tempfile.TemporaryDirectory() as td:
               (None, ["results file eval_e2e_dev_gone.json not found (eval_runs/ is not in git)"]))
         check("find_runs: another index does not match",
               G.find_runs([good], "dd326013", "bbbb2222", None)["single"], None)
+        # 2026-11-09: an e2e run labelled full before the timeline cases joined the
+        # full set (36 calls, no TL) is passed over; one that holds them counts.
+        def e2e_run(ids):
+            return {"meta": {"stamp": {"source_system": "dev", "site_prompt_version": "dd326013",
+                                       "timestamp": "2026-11-09T12:00:00+00:00"}},
+                    "results": [{"id": i, "record_id": i, "question": f"q {i}",
+                                 "checks": {"T1.1_response_returned": True}} for i in ids]}
+        def e2e_line(src, ids):
+            (G.HERE / "eval_runs" / src).write_text(json.dumps(e2e_run(ids)))
+            return dict(RM.history_lines(e2e_run(ids), runner="run_e2e", source=src, label="e2e dev",
+                                         date="2026-11-09", scope="full")[0], prompt_version="dd326013")
+        old_e2e = e2e_line("eval_e2e_dev_core.json", ["W01", "C01#1"])
+        new_e2e = e2e_line("eval_e2e_dev_tl.json", ["W01", "C01#1", "TL05"])
+        want = ["W01", "C01#1", "TL05"]
+        skipped = []
+        found = G.find_runs([new_e2e, old_e2e], "dd326013", "aaaa1111", None, skipped, want)
+        print(f"  find_runs e2e -> {found['e2e'] and found['e2e']['source']}; passed over: {skipped}")
+        check("find_runs: an e2e run without the timeline cases is passed over and said why",
+              skipped, [f"eval_e2e_dev_core.json (run {old_e2e['run_id']}) does not cover today's "
+                        f"full e2e set: no TL05"])
+        check("find_runs: the earlier e2e run that holds them is taken",
+              found["e2e"]["source"], "eval_e2e_dev_tl.json")
+        check("find_runs: none taken when no e2e run holds them",
+              G.find_runs([old_e2e], "dd326013", "aaaa1111", None, None, want)["e2e"], None)
     finally:
         G.HERE = real_here
 import coverage_report as CR
