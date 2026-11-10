@@ -71,6 +71,9 @@ QA = [
     "One conversation of three follow-ups keeps context and cites every answer",
     "/dashboard/admin loads; /api/health reports ok, db and the expected prompt_version",
     "Five answers read end to end for voice, not just for a response",
+    # 2026-11-10 (Jord): prod #112 turned the lead form on before lead email had worked
+    # on dev once (Mailgun 401 until a sending key went in). Dev first, every release.
+    "Lead email on dev: scripts/lead-check.mjs (web repo) ends OK, and one real lead from the dev site reaches Jordanne's inbox",
 ]
 
 RESULTS_LOG = HERE / "nimbalyst-local" / "results-log.md"
