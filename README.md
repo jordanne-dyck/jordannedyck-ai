@@ -6,7 +6,7 @@ The retrieval backend and evaluation harness for **jordbot**, the chat assistant
 
 I run it as a product, not a demo. Every change to the prompt, the index or the model goes through an eval set before it ships. Every answer in production is labelled for grounding, safety and cost.
 
-This repo holds the Python side: the knowledge-base indexer, the `/search` API, an MCP server, and the eval harness. The chat interface, the production route and the monitoring dashboard are in [jordannedyck-ai-web](https://github.com/jordanne-dyck/jordannedyck-ai-web).
+This repo holds the Python side: the knowledge-base indexer, the answer engine served at `/chat`, the `/search` API, an MCP server, and the eval harness. The site sends each chat turn to `/chat`, and the eval runners import the same engine, so what is tested is the code that answers visitors. The chat interface, the production route and the monitoring dashboard are in [jordannedyck-ai-web](https://github.com/jordanne-dyck/jordannedyck-ai-web).
 
 ## What it does
 
@@ -26,8 +26,9 @@ This repo holds the Python side: the knowledge-base indexer, the `/search` API, 
 flowchart LR
     KB["Knowledge base<br/>Markdown, ~150 chunks"] --> EMB["embed_knowledge_faiss.py"]
     EMB --> IDX[("FAISS index")]
-    V["Visitor question"] --> RW["Query rewrite<br/>gpt-4o-mini, follow-ups only"]
-    RW --> S["/search<br/>api_server.py"]
+    V["Visitor question"] --> SITE["Site route<br/>input checks, signed turns"]
+    SITE --> RW["/chat, engine/<br/>query rewrite: gpt-4o-mini, follow-ups only"]
+    RW --> S["Search<br/>embeddings and BM25"]
     IDX --> S
     S --> A["Answer<br/>gpt-4o, streamed, cited"]
     A --> V
@@ -64,15 +65,16 @@ There are 8 tier-1 checks, and a release needs all of them to pass. One fails an
 What the evals decided, in brief:
 - **The answering model, twice.** gpt-4o scored highest in the second blind round (4.76 of 5), but all gaps to Sonnet 5.5, Flash and Opus 5.5 were inside the noise. It stays on quality-first grounds, not on a measured lead.
 - **Follow-ups that cited nothing** became check T2.7 and a query rewrite. The rewrite did not close it for gpt-4o; a cite reminder did in testing. First answers then started citing nothing too, after a prompt change: gpt-4o left none of 285 stored first answers uncited before it and 14-18% after. That became check T2.14.
-- **A false claim in the knowledge base** was found by blind scoring and removed.- **Newer embedding models** ranked worse than ada-002 here, because chunks titled with my name crowded their top results. ada-002 stays.
+- **A false claim in the knowledge base** was found by blind scoring and removed.
+- **Newer embedding models** ranked worse than ada-002 here, because chunks titled with my name crowded their top results. ada-002 stays.
 
 What the results taught me, and the ideas I tested and dropped, are in **[DECISIONS.md](DECISIONS.md)**.
 
-The harness mirrors production: same prompt, same source layout. `run_e2e.py` checks the index and the prompt against the live route before its first paid call. `selftest.py` runs in CI and fails when this README's case counts, models, timeouts or ranking limits no longer match the code.
+The harness and the site share one answer pipeline, `engine/`. After the move into it, the single-turn eval repeated the previous release run exactly: 35 of 36 answers passed every check, with the same chunks retrieved for all 36. `run_e2e.py` checks the index and the prompt against the live route before its first paid call. `selftest.py` runs in CI and fails when this README's case counts, models, timeouts or ranking limits no longer match the code.
 
 ## Operating it
 
-- **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases. A request for the bot's own prompt gets a fixed reply on the site, with no model call, because every prompt rewrite that fixed it broke the false-claim case. The end-to-end runner checks that exact reply; the eval still sends the request to the model, to measure the prompt's own refusal as a backstop.
+- **Safety.** The phone number is kept out of what the AI returns. Every eval run checks answers for private names, and runs the injection cases. A request for the bot's own prompt gets a fixed reply on the site, with no model call, because every prompt rewrite that fixed it broke the false-claim case. The end-to-end runner checks that exact reply; the eval still sends the request to the model, to measure the prompt's own refusal as a backstop. That refusal still ends on an offer of help, which fails the voice check; the cause is open. The site signs every answer it sends. An earlier answer sent back without a valid signature is dropped before the model sees it, so a forged turn in the chat history never reaches the answer.
 - **Cost.** `/search` caps query length and result count, because each query is a paid embedding call. Eval runners record the cost of every call.
 - **Traceability.** `/health` reports chunk count, index size, the index fingerprint, the embedding model and whether the OpenAI key works. The indexer records its model next to the index; the server embeds questions with that model and refuses to start on an index whose vectors do not match it.
 - **Release gate.** A prod release or index promotion cannot merge without an evidence file from `release_gate.py`: full single-turn and multi-turn runs on the exact prompt and index going out, and two end-to-end runs on dev, one asking every single-turn case (the 34 core questions, the additive, theme and career timeline cases) and one replaying every multi-turn conversation, every failing check signed off by me, per run, a QA list done on dev, and this README, EVALS, DECISIONS, COVERAGE and the site's README brought up to date, read and approved by me. A tier-1 failure passes only if it is a checker miss, or text the site never sends that the end-to-end run checked on dev. A run counts for an index only by the `index_version` its answers recorded, never by its filename, and only while its results file still holds the answers its history line was written from. The site reports the index behind each answer, and the end-to-end runs record it per answer, every turn of a conversation included, so a run with any answer from another index, or from a site too old to report one, does not count. CI in the site repo re-checks the file; rollbacks need none.
@@ -92,7 +94,7 @@ The harness mirrors production: same prompt, same source layout. `run_e2e.py` ch
 ## Repository layout
 
 ```
-api_server.py                 /search, /chat (one chat turn from engine/, not yet called by the site) and /health
+api_server.py                 /search, /chat (one chat turn from engine/, the site's answer path) and /health
 scripts/embed_knowledge_faiss.py   builds the FAISS index from the knowledge base
 mcp_server/server_faiss.py    MCP server over the same index
 engine/                       the answer pipeline: prompt, fixed replies, follow-up rewrite, context layout, model call,
@@ -130,6 +132,7 @@ uv run python api_server.py                      # http://localhost:5000
 
 ```
 POST /search   { "query": "string", "n_results": 5 }
+POST /chat     { "messages": [{ "role": "user", "content": "string" }] }   streams newline-delimited JSON
 GET  /health
 ```
 

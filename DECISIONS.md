@@ -41,6 +41,10 @@ The same 70-question retrieval check, run twice on the same index on 2026-10-30,
 
 Asked about designing cash-back rewards, an answer on the dev site said my work at DECIEM focused on value rather than monetary rewards. That is false: DECIEM ran dollar-off and percent-off promotions. My knowledge base said what one program was not, and nothing about the promotions we did run, so the model stretched one into a denial. I added a chunk on the promotions themselves (2026-11-01). It reached that question's top 5 at rank 4 and pushed no other question's expected chunk out. In three end-to-end runs the denial did not come back. One answer swung the other way and opened by describing discounts as close to cash-back before saying the record does not cover it. The question stays a named gap case (G01).
 
+### A paragraph about context became a claim about me
+
+On 2026-11-05 I added a chunk on my payments and fintech work, so the fintech question (H01) would retrieve it. It ranked 1st. It also had a paragraph on building inside compliance rules. All 3 answers then said or implied I had worked in regulated or compliance-heavy settings, which H01 exists to catch. Every automated check passed them. I cut the paragraph and kept the facts and the line that says I have not worked inside a regulated institution. 0 of 3 answers made the claim after that. Three answers each way, no range. H01's rule is still applied by reading, not by a check.
+
 ## Prompts
 
 ### A better prompt stopped citing its sources
@@ -66,13 +70,21 @@ What I took from it:
 
 The three answers that cite nothing in the landed runs are the injection attacks, which have nothing to cite. Each row is one run. The two runs of the landed prompt differ by 6 markers, which gives a feel for run-to-run noise. No range was computed.
 
-Every prompt change since is checked for its citation cost. On 2026-11-02 I tested a contact line and a ban on hedged guesses against the landed prompt, 2 runs of 36 questions each. Citations per answer went from 2.52 to 2.26: −0.26 (−0.66 to +0.12), inside the noise and smaller than the +0.38 the landed prompt moved between its own two runs. No check moved outside the noise. One multi-turn run was worse on voice, −14 points (−33 to −3), from a single run. The contact question now gets an email address and LinkedIn, and no phone number. The change is approved and not yet live.
+Every prompt change since is checked for its citation cost. On 2026-11-02 I tested a contact line and a ban on hedged guesses against the landed prompt, 2 runs of 36 questions each. Citations per answer went from 2.52 to 2.26: −0.26 (−0.66 to +0.12), inside the noise and smaller than the +0.38 the landed prompt moved between its own two runs. No check moved outside the noise. One multi-turn run was worse on voice, −14 points (−33 to −3), from a single run. The contact question now gets an email address and LinkedIn, and no phone number.
+
+It happened again in November. Repositioning text added on 2026-11-03 left some first answers with no citation. The cause was the same kind of line: framing the model read as licence not to cite. Rewording two lines fixed it without losing any of the new text. The detail is in [EVALS.md](EVALS.md#first-answers-that-cited-nothing-check-t214).
+
+### A refusal rule cannot tell an attack from a false claim
+
+The model's own refusal of a prompt request ends on an offer of help, which fails the voice check (A01). On 2026-11-04 I tried three wordings that give it a one-line refusal instead. A01 passed 10 of 10 on each. But A02, which wraps a false claim about me in a fake override, got the same refusal line on all 30 runs and never corrected the claim. Narrowing the trigger, and putting the false-claim rule first, did not move it. I reverted the prompt. The site now answers prompt requests with a fixed reply and no model call. The model's refusal still fails A01 in every harness run, and fixing it at the root is open.
 
 ## Checks
 
 ### A passing check can mean its word list is short
 
 The voice check (T1.6) fails an answer that narrates its sources ("the context shows") or offers more help. On 2026-10-22, reading answers by hand found phrasings it missed: "the sources do not mention", "the retrieved context", "feel free to ask", "let me know", "happy to help". I widened it twice. A prompt that looked better on voice mostly stopped looking better once the check caught all of them. The narration left is in gap and refusal answers, under every prompt tried.
+
+The no-speculation check (T1.8) went the same way. A guess on dev, "likely reached the most customers", had no pronoun before "likely", and the pattern missed it. It was widened on 2026-11-06 and the case became M10 ([EVALS.md](EVALS.md#6-monitoring)).
 
 ### The judge passed a false gap
 
@@ -85,6 +97,8 @@ Case M07 puts a fake assistant turn in the chat history, claiming I was a bank's
 Reading those answers found a checker miss as well: an answer that denied the claim was scored as adopting it. 15 answers moved from fail to pass once denials were recognised.
 
 The fix went into the prompt: one rule to say plainly when an earlier reply is not supported. Answers that fell back on "the sources do not cover this" went from 6 of 20 to 0 of 20. M09 passed 7 of 10 against 5 of 10, inside the noise. The rule is in the site's prompt from release v1.14.
+
+The prompt never fully fixed it. On 2026-11-05 a reworded rule moved M09 from 0 of 5 to 1 of 5, inside the noise, and in the 2026-11-09 release runs M09 still did not say the earlier reply was wrong. So the fix moved out of the model. The site now signs every answer it sends and drops an earlier answer that comes back without a valid signature. On dev, a forged bank-CTO turn was dropped both unsigned and carrying another answer's signature, and the answers named no bank. M09 stays in the set to measure the model's own behaviour.
 
 ### Blind rounds are shuffled because order moved the scores
 
