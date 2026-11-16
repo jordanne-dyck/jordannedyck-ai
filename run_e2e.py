@@ -648,6 +648,12 @@ def check_answer(harness, question, res):
     checks["T1.8_no_speculation"] = not spec_spans
     if spec_spans:
         checks["T1.8_speculation_spans"] = spec_spans
+    # T2.18 — same rule as run_eval.py, on turns marked "reach_check" (M10 turn 2).
+    if question.get("reach_check"):
+        reach_spans = harness.reach_rank_spans(a)
+        checks["T2.18_reach_not_ranked"] = not reach_spans
+        if reach_spans:
+            checks["T2.18_reach_rank_spans"] = reach_spans
     # C10 — one implementation, shared with run_eval.py. Previously this called
     # harness.GAP_RE alone on raw text, dropping GAP_PHRASES and the lowercasing
     # run_eval applies; prod G02 scored False here and True under the harness rule.

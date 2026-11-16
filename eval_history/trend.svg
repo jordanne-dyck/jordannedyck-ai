@@ -14,72 +14,74 @@
 <text class="t2" x="64" y="136.5" text-anchor="end">75%</text>
 <line class="grid" x1="70" x2="880" y1="90.0" y2="90.0"/>
 <text class="t2" x="64" y="94.0" text-anchor="end">100%</text>
-<polyline class="s0" fill="none" stroke-width="2" points="102.1,116.7 115.0,137.3 140.7,127.7 166.4,118.4 192.1,113.6 217.9,113.6 243.6,127.7 269.3,123.0 295.0,113.6 307.9,123.0 320.7,123.0 346.4,132.5 359.3,127.7 385.0,110.1 436.4,108.9 449.3,113.6 475.0,114.7 487.9,112.1 500.7,108.9 513.6,118.4 526.4,108.9 539.3,99.5 552.1,203.4 565.0,104.1 577.9,99.5 590.7,203.4 603.6,132.5 616.4,113.6 629.3,104.1 642.1,104.1 655.0,99.5 667.9,113.6 680.7,99.5 693.6,99.5 732.1,94.8 783.6,94.8 796.4,94.8 847.9,94.8" style="fill:none"/>
-<circle class="s0" cx="102.1" cy="116.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): 84%</title></circle>
-<circle class="s0" cx="115.0" cy="137.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): 72%</title></circle>
-<circle class="s0" cx="140.7" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): 78%</title></circle>
-<circle class="s0" cx="166.4" cy="118.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): 83%</title></circle>
-<circle class="s0" cx="192.1" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): 86%</title></circle>
-<circle class="s0" cx="217.9" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): 86%</title></circle>
-<circle class="s0" cx="243.6" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): 78%</title></circle>
-<circle class="s0" cx="269.3" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): 81%</title></circle>
-<circle class="s0" cx="295.0" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): 86%</title></circle>
-<circle class="s0" cx="307.9" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): 81%</title></circle>
-<circle class="s0" cx="320.7" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): 81%</title></circle>
-<circle class="s0" cx="346.4" cy="132.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): 75%</title></circle>
-<circle class="s0" cx="359.3" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): 78%</title></circle>
-<circle class="s0" cx="385.0" cy="110.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 ff4d5612 labelled (single, 102 answers): 88%</title></circle>
-<circle class="s0" cx="436.4" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 89%</title></circle>
-<circle class="s0" cx="449.3" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 36 answers): 86%</title></circle>
-<circle class="s0" cx="475.0" cy="114.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 69 answers): 86%</title></circle>
-<circle class="s0" cx="487.9" cy="112.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 69 answers): 87%</title></circle>
-<circle class="s0" cx="500.7" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 89%</title></circle>
-<circle class="s0" cx="513.6" cy="118.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 83%</title></circle>
-<circle class="s0" cx="526.4" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 89%</title></circle>
-<circle class="s0" cx="539.3" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 2fa2c4bb labelled (single, 36 answers): 94%</title></circle>
-<circle class="s0" cx="552.1" cy="203.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled timeline 9e1492bd (single, 18 answers): 33%</title></circle>
-<circle class="s0" cx="565.0" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled (single, 36 answers): 92%</title></circle>
-<circle class="s0" cx="577.9" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 94%</title></circle>
-<circle class="s0" cx="590.7" cy="203.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled timeline (single, 6 answers): 33%</title></circle>
-<circle class="s0" cx="603.6" cy="132.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 75%</title></circle>
-<circle class="s0" cx="616.4" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 92397316 labelled (single, 36 answers): 86%</title></circle>
-<circle class="s0" cx="629.3" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 f6a61205 labelled (single, 36 answers): 92%</title></circle>
-<circle class="s0" cx="642.1" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 091be540 labelled (single, 36 answers): 92%</title></circle>
-<circle class="s0" cx="655.0" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 09133344 labelled (single, 36 answers): 94%</title></circle>
-<circle class="s0" cx="667.9" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 91174512 labelled (single, 36 answers): 86%</title></circle>
-<circle class="s0" cx="680.7" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 dd326013 labelled (single, 36 answers): 94%</title></circle>
-<circle class="s0" cx="693.6" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 af0b6edc labelled (single, 36 answers): 94%</title></circle>
-<circle class="s0" cx="732.1" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 dd326013 labelled (single, 36 answers): 97%</title></circle>
-<circle class="s0" cx="783.6" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-07 dd326013 labelled (single, 36 answers): 97%</title></circle>
-<circle class="s0" cx="796.4" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 dd326013 labelled (single, 36 answers): 97%</title></circle>
-<circle class="s0" cx="847.9" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 20c6301d labelled (single, 36 answers): 97%</title></circle>
-<polyline class="s1" fill="none" stroke-width="2" points="127.9,110.1 153.6,90.0 179.3,99.5 205.0,99.5 230.7,90.0 256.4,107.8 282.1,108.9 333.6,99.5 372.1,99.5 397.9,106.2 410.7,110.6 423.6,105.5 462.1,120.9 706.4,97.7 719.3,105.5 745.0,97.7 770.7,104.1 809.3,102.6 860.7,107.5" style="fill:none"/>
-<circle class="s1" cx="127.9" cy="110.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): 88%</title></circle>
-<circle class="s1" cx="153.6" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): 100%</title></circle>
-<circle class="s1" cx="179.3" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): 94%</title></circle>
-<circle class="s1" cx="205.0" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): 94%</title></circle>
-<circle class="s1" cx="230.7" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): 100%</title></circle>
-<circle class="s1" cx="256.4" cy="107.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): 90%</title></circle>
-<circle class="s1" cx="282.1" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): 89%</title></circle>
-<circle class="s1" cx="333.6" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): 94%</title></circle>
-<circle class="s1" cx="372.1" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): 94%</title></circle>
-<circle class="s1" cx="397.9" cy="106.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 multiturn ff4d5612 (multiturn, 21 answers): 90%</title></circle>
-<circle class="s1" cx="410.7" cy="110.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 88%</title></circle>
-<circle class="s1" cx="423.6" cy="105.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 91%</title></circle>
-<circle class="s1" cx="462.1" cy="120.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 multiturn f6a61205 (multiturn, 22 answers): 82%</title></circle>
-<circle class="s1" cx="706.4" cy="97.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn 7142b895 (multiturn, 22 answers): 96%</title></circle>
-<circle class="s1" cx="719.3" cy="105.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn dd326013 (multiturn, 22 answers): 91%</title></circle>
-<circle class="s1" cx="745.0" cy="97.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 22 answers): 96%</title></circle>
-<circle class="s1" cx="770.7" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 24 answers): 92%</title></circle>
-<circle class="s1" cx="809.3" cy="102.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 multiturn dd326013 (multiturn, 27 answers): 93%</title></circle>
-<circle class="s1" cx="860.7" cy="107.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 20c6301d (multiturn, 29 answers): 90%</title></circle>
-<polyline class="s2" fill="none" stroke-width="2" points="76.4,104.1 89.3,99.5 757.9,90.0 822.1,91.7 835.0,91.7 873.6,93.4" style="fill:none"/>
-<circle class="s2" cx="76.4" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route (e2e, 36 answers): 92%</title></circle>
-<circle class="s2" cx="89.3" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route r2 (e2e, 36 answers): 94%</title></circle>
-<circle class="s2" cx="757.9" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 e2e dev (e2e, 36 answers): 100%</title></circle>
-<circle class="s2" cx="822.1" cy="91.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 e2e dev (e2e, 97 answers): 99%</title></circle>
-<circle class="s2" cx="835.0" cy="91.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-10 e2e dev (e2e, 97 answers): 99%</title></circle>
-<circle class="s2" cx="873.6" cy="93.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 e2e dev (e2e, 98 answers): 98%</title></circle>
+<polyline class="s0" fill="none" stroke-width="2" points="101.2,116.7 113.6,137.3 138.5,127.7 163.5,118.4 188.4,113.6 213.3,113.6 238.2,127.7 263.2,123.0 288.1,113.6 300.5,123.0 313.0,123.0 337.9,132.5 350.4,127.7 375.3,110.1 425.2,108.9 437.6,113.6 462.5,114.7 475.0,112.1 487.5,108.9 499.9,118.4 512.4,108.9 524.8,99.5 537.3,203.4 549.8,104.1 562.2,99.5 574.7,203.4 587.2,132.5 599.6,113.6 612.1,104.1 624.5,104.1 637.0,99.5 649.5,113.6 661.9,99.5 674.4,99.5 711.8,94.8 761.6,94.8 774.1,94.8 823.9,94.8 861.3,104.1" style="fill:none"/>
+<circle class="s0" cx="101.2" cy="116.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): 84%</title></circle>
+<circle class="s0" cx="113.6" cy="137.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): 72%</title></circle>
+<circle class="s0" cx="138.5" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): 78%</title></circle>
+<circle class="s0" cx="163.5" cy="118.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): 83%</title></circle>
+<circle class="s0" cx="188.4" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="213.3" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="238.2" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): 78%</title></circle>
+<circle class="s0" cx="263.2" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): 81%</title></circle>
+<circle class="s0" cx="288.1" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="300.5" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): 81%</title></circle>
+<circle class="s0" cx="313.0" cy="123.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): 81%</title></circle>
+<circle class="s0" cx="337.9" cy="132.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): 75%</title></circle>
+<circle class="s0" cx="350.4" cy="127.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): 78%</title></circle>
+<circle class="s0" cx="375.3" cy="110.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 ff4d5612 labelled (single, 102 answers): 88%</title></circle>
+<circle class="s0" cx="425.2" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 89%</title></circle>
+<circle class="s0" cx="437.6" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="462.5" cy="114.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 69 answers): 86%</title></circle>
+<circle class="s0" cx="475.0" cy="112.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 69 answers): 87%</title></circle>
+<circle class="s0" cx="487.5" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 89%</title></circle>
+<circle class="s0" cx="499.9" cy="118.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 83%</title></circle>
+<circle class="s0" cx="512.4" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 89%</title></circle>
+<circle class="s0" cx="524.8" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 2fa2c4bb labelled (single, 36 answers): 94%</title></circle>
+<circle class="s0" cx="537.3" cy="203.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled timeline 9e1492bd (single, 18 answers): 33%</title></circle>
+<circle class="s0" cx="549.8" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled (single, 36 answers): 92%</title></circle>
+<circle class="s0" cx="562.2" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 94%</title></circle>
+<circle class="s0" cx="574.7" cy="203.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled timeline (single, 6 answers): 33%</title></circle>
+<circle class="s0" cx="587.2" cy="132.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 75%</title></circle>
+<circle class="s0" cx="599.6" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 92397316 labelled (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="612.1" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 f6a61205 labelled (single, 36 answers): 92%</title></circle>
+<circle class="s0" cx="624.5" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 091be540 labelled (single, 36 answers): 92%</title></circle>
+<circle class="s0" cx="637.0" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 09133344 labelled (single, 36 answers): 94%</title></circle>
+<circle class="s0" cx="649.5" cy="113.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 91174512 labelled (single, 36 answers): 86%</title></circle>
+<circle class="s0" cx="661.9" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 dd326013 labelled (single, 36 answers): 94%</title></circle>
+<circle class="s0" cx="674.4" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 af0b6edc labelled (single, 36 answers): 94%</title></circle>
+<circle class="s0" cx="711.8" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 dd326013 labelled (single, 36 answers): 97%</title></circle>
+<circle class="s0" cx="761.6" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-07 dd326013 labelled (single, 36 answers): 97%</title></circle>
+<circle class="s0" cx="774.1" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 dd326013 labelled (single, 36 answers): 97%</title></circle>
+<circle class="s0" cx="823.9" cy="94.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 20c6301d labelled (single, 36 answers): 97%</title></circle>
+<circle class="s0" cx="861.3" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 099eb3e4 labelled (single, 36 answers): 92%</title></circle>
+<polyline class="s1" fill="none" stroke-width="2" points="126.1,110.1 151.0,90.0 175.9,99.5 200.8,99.5 225.8,90.0 250.7,107.8 275.6,108.9 325.5,99.5 362.8,99.5 387.8,106.2 400.2,110.6 412.7,105.5 450.1,120.9 686.8,97.7 699.3,105.5 724.2,97.7 749.2,104.1 786.5,102.6 836.4,107.5 873.8,119.2" style="fill:none"/>
+<circle class="s1" cx="126.1" cy="110.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): 88%</title></circle>
+<circle class="s1" cx="151.0" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): 100%</title></circle>
+<circle class="s1" cx="175.9" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): 94%</title></circle>
+<circle class="s1" cx="200.8" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): 94%</title></circle>
+<circle class="s1" cx="225.8" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): 100%</title></circle>
+<circle class="s1" cx="250.7" cy="107.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): 90%</title></circle>
+<circle class="s1" cx="275.6" cy="108.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): 89%</title></circle>
+<circle class="s1" cx="325.5" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): 94%</title></circle>
+<circle class="s1" cx="362.8" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): 94%</title></circle>
+<circle class="s1" cx="387.8" cy="106.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 multiturn ff4d5612 (multiturn, 21 answers): 90%</title></circle>
+<circle class="s1" cx="400.2" cy="110.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 88%</title></circle>
+<circle class="s1" cx="412.7" cy="105.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 91%</title></circle>
+<circle class="s1" cx="450.1" cy="120.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 multiturn f6a61205 (multiturn, 22 answers): 82%</title></circle>
+<circle class="s1" cx="686.8" cy="97.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn 7142b895 (multiturn, 22 answers): 96%</title></circle>
+<circle class="s1" cx="699.3" cy="105.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn dd326013 (multiturn, 22 answers): 91%</title></circle>
+<circle class="s1" cx="724.2" cy="97.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 22 answers): 96%</title></circle>
+<circle class="s1" cx="749.2" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 24 answers): 92%</title></circle>
+<circle class="s1" cx="786.5" cy="102.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 multiturn dd326013 (multiturn, 27 answers): 93%</title></circle>
+<circle class="s1" cx="836.4" cy="107.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 20c6301d (multiturn, 29 answers): 90%</title></circle>
+<circle class="s1" cx="873.8" cy="119.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 099eb3e4 (multiturn, 29 answers): 83%</title></circle>
+<polyline class="s2" fill="none" stroke-width="2" points="76.2,104.1 88.7,99.5 736.7,90.0 799.0,91.7 811.5,91.7 848.8,93.4" style="fill:none"/>
+<circle class="s2" cx="76.2" cy="104.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route (e2e, 36 answers): 92%</title></circle>
+<circle class="s2" cx="88.7" cy="99.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route r2 (e2e, 36 answers): 94%</title></circle>
+<circle class="s2" cx="736.7" cy="90.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 e2e dev (e2e, 36 answers): 100%</title></circle>
+<circle class="s2" cx="799.0" cy="91.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 e2e dev (e2e, 97 answers): 99%</title></circle>
+<circle class="s2" cx="811.5" cy="91.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-10 e2e dev (e2e, 97 answers): 99%</title></circle>
+<circle class="s2" cx="848.8" cy="93.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 e2e dev (e2e, 98 answers): 98%</title></circle>
 <text class="t1" x="70" y="298" font-weight="600">Latency, p95 (seconds)</text>
 <line class="grid" x1="70" x2="880" y1="476.0" y2="476.0"/>
 <text class="t2" x="64" y="480.0" text-anchor="end">0.0</text>
@@ -91,205 +93,211 @@
 <text class="t2" x="64" y="352.5" text-anchor="end">8.9</text>
 <line class="grid" x1="70" x2="880" y1="306.0" y2="306.0"/>
 <text class="t2" x="64" y="310.0" text-anchor="end">11.9</text>
-<polyline class="s0" fill="none" stroke-width="2" points="102.1,425.9 115.0,406.6 140.7,420.2 166.4,434.2 192.1,432.8 217.9,381.0 243.6,432.5 269.3,424.1 295.0,421.5 307.9,408.6 320.7,431.6 346.4,426.5 359.3,435.6 385.0,429.9 436.4,421.5 449.3,437.2 475.0,383.1 487.9,395.9 500.7,426.3 513.6,400.3 526.4,404.9 539.3,403.2 552.1,443.9 565.0,440.1 577.9,425.3 590.7,444.2 603.6,407.0 616.4,403.3 629.3,409.0 642.1,377.3 655.0,407.7 667.9,387.9 680.7,402.3 693.6,408.0 732.1,377.4 783.6,437.4 796.4,403.9 847.9,410.0" style="fill:none"/>
-<circle class="s0" cx="102.1" cy="425.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): 3.5</title></circle>
-<circle class="s0" cx="115.0" cy="406.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): 4.8</title></circle>
-<circle class="s0" cx="140.7" cy="420.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): 3.9</title></circle>
-<circle class="s0" cx="166.4" cy="434.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): 2.9</title></circle>
-<circle class="s0" cx="192.1" cy="432.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): 3.0</title></circle>
-<circle class="s0" cx="217.9" cy="381.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): 6.6</title></circle>
-<circle class="s0" cx="243.6" cy="432.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): 3.0</title></circle>
-<circle class="s0" cx="269.3" cy="424.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): 3.6</title></circle>
-<circle class="s0" cx="295.0" cy="421.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): 3.8</title></circle>
-<circle class="s0" cx="307.9" cy="408.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): 4.7</title></circle>
-<circle class="s0" cx="320.7" cy="431.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): 3.1</title></circle>
-<circle class="s0" cx="346.4" cy="426.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): 3.5</title></circle>
-<circle class="s0" cx="359.3" cy="435.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): 2.8</title></circle>
-<circle class="s0" cx="385.0" cy="429.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 ff4d5612 labelled (single, 102 answers): 3.2</title></circle>
-<circle class="s0" cx="436.4" cy="421.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 3.8</title></circle>
-<circle class="s0" cx="449.3" cy="437.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 36 answers): 2.7</title></circle>
-<circle class="s0" cx="475.0" cy="383.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 69 answers): 6.5</title></circle>
-<circle class="s0" cx="487.9" cy="395.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 69 answers): 5.6</title></circle>
-<circle class="s0" cx="500.7" cy="426.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 3.5</title></circle>
-<circle class="s0" cx="513.6" cy="400.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 5.3</title></circle>
-<circle class="s0" cx="526.4" cy="404.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 5.0</title></circle>
-<circle class="s0" cx="539.3" cy="403.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 2fa2c4bb labelled (single, 36 answers): 5.1</title></circle>
-<circle class="s0" cx="552.1" cy="443.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled timeline 9e1492bd (single, 18 answers): 2.2</title></circle>
-<circle class="s0" cx="565.0" cy="440.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled (single, 36 answers): 2.5</title></circle>
-<circle class="s0" cx="577.9" cy="425.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 3.5</title></circle>
-<circle class="s0" cx="590.7" cy="444.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled timeline (single, 6 answers): 2.2</title></circle>
-<circle class="s0" cx="603.6" cy="407.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 4.8</title></circle>
-<circle class="s0" cx="616.4" cy="403.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 92397316 labelled (single, 36 answers): 5.1</title></circle>
-<circle class="s0" cx="629.3" cy="409.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 f6a61205 labelled (single, 36 answers): 4.7</title></circle>
-<circle class="s0" cx="642.1" cy="377.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 091be540 labelled (single, 36 answers): 6.9</title></circle>
-<circle class="s0" cx="655.0" cy="407.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 09133344 labelled (single, 36 answers): 4.8</title></circle>
-<circle class="s0" cx="667.9" cy="387.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 91174512 labelled (single, 36 answers): 6.2</title></circle>
-<circle class="s0" cx="680.7" cy="402.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 dd326013 labelled (single, 36 answers): 5.2</title></circle>
-<circle class="s0" cx="693.6" cy="408.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 af0b6edc labelled (single, 36 answers): 4.8</title></circle>
-<circle class="s0" cx="732.1" cy="377.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 dd326013 labelled (single, 36 answers): 6.9</title></circle>
-<circle class="s0" cx="783.6" cy="437.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-07 dd326013 labelled (single, 36 answers): 2.7</title></circle>
-<circle class="s0" cx="796.4" cy="403.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 dd326013 labelled (single, 36 answers): 5.0</title></circle>
-<circle class="s0" cx="847.9" cy="410.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 20c6301d labelled (single, 36 answers): 4.6</title></circle>
-<polyline class="s1" fill="none" stroke-width="2" points="127.9,420.5 153.6,417.8 179.3,436.1 205.0,433.2 230.7,392.4 256.4,429.4 282.1,426.3 333.6,428.9 372.1,438.2 397.9,436.2 410.7,427.1 423.6,436.9 462.1,440.4 706.4,415.6 719.3,419.6 745.0,321.5 770.7,416.9 809.3,418.9 860.7,427.2" style="fill:none"/>
-<circle class="s1" cx="127.9" cy="420.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): 3.9</title></circle>
-<circle class="s1" cx="153.6" cy="417.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): 4.1</title></circle>
-<circle class="s1" cx="179.3" cy="436.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): 2.8</title></circle>
-<circle class="s1" cx="205.0" cy="433.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): 3.0</title></circle>
-<circle class="s1" cx="230.7" cy="392.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): 5.8</title></circle>
-<circle class="s1" cx="256.4" cy="429.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): 3.3</title></circle>
-<circle class="s1" cx="282.1" cy="426.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): 3.5</title></circle>
-<circle class="s1" cx="333.6" cy="428.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): 3.3</title></circle>
-<circle class="s1" cx="372.1" cy="438.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): 2.6</title></circle>
-<circle class="s1" cx="397.9" cy="436.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 multiturn ff4d5612 (multiturn, 21 answers): 2.8</title></circle>
-<circle class="s1" cx="410.7" cy="427.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 3.4</title></circle>
-<circle class="s1" cx="423.6" cy="436.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 2.7</title></circle>
-<circle class="s1" cx="462.1" cy="440.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 multiturn f6a61205 (multiturn, 22 answers): 2.5</title></circle>
-<circle class="s1" cx="706.4" cy="415.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn 7142b895 (multiturn, 22 answers): 4.2</title></circle>
-<circle class="s1" cx="719.3" cy="419.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn dd326013 (multiturn, 22 answers): 3.9</title></circle>
-<circle class="s1" cx="745.0" cy="321.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 22 answers): 10.8</title></circle>
-<circle class="s1" cx="770.7" cy="416.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 24 answers): 4.1</title></circle>
-<circle class="s1" cx="809.3" cy="418.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 multiturn dd326013 (multiturn, 27 answers): 4.0</title></circle>
-<circle class="s1" cx="860.7" cy="427.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 20c6301d (multiturn, 29 answers): 3.4</title></circle>
-<polyline class="s2" fill="none" stroke-width="2" points="76.4,428.2 89.3,422.8 757.9,408.3 822.1,410.6 835.0,414.6 873.6,418.0" style="fill:none"/>
-<circle class="s2" cx="76.4" cy="428.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route (e2e, 36 answers): 3.3</title></circle>
-<circle class="s2" cx="89.3" cy="422.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route r2 (e2e, 36 answers): 3.7</title></circle>
-<circle class="s2" cx="757.9" cy="408.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 e2e dev (e2e, 36 answers): 4.7</title></circle>
-<circle class="s2" cx="822.1" cy="410.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 e2e dev (e2e, 97 answers): 4.6</title></circle>
-<circle class="s2" cx="835.0" cy="414.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-10 e2e dev (e2e, 97 answers): 4.3</title></circle>
-<circle class="s2" cx="873.6" cy="418.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 e2e dev (e2e, 98 answers): 4.0</title></circle>
+<polyline class="s0" fill="none" stroke-width="2" points="101.2,425.9 113.6,406.6 138.5,420.2 163.5,434.2 188.4,432.8 213.3,381.0 238.2,432.5 263.2,424.1 288.1,421.5 300.5,408.6 313.0,431.6 337.9,426.5 350.4,435.6 375.3,429.9 425.2,421.5 437.6,437.2 462.5,383.1 475.0,395.9 487.5,426.3 499.9,400.3 512.4,404.9 524.8,403.2 537.3,443.9 549.8,440.1 562.2,425.3 574.7,444.2 587.2,407.0 599.6,403.3 612.1,409.0 624.5,377.3 637.0,407.7 649.5,387.9 661.9,402.3 674.4,408.0 711.8,377.4 761.6,437.4 774.1,403.9 823.9,410.0 861.3,336.9" style="fill:none"/>
+<circle class="s0" cx="101.2" cy="425.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): 3.5</title></circle>
+<circle class="s0" cx="113.6" cy="406.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): 4.8</title></circle>
+<circle class="s0" cx="138.5" cy="420.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): 3.9</title></circle>
+<circle class="s0" cx="163.5" cy="434.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): 2.9</title></circle>
+<circle class="s0" cx="188.4" cy="432.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): 3.0</title></circle>
+<circle class="s0" cx="213.3" cy="381.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): 6.6</title></circle>
+<circle class="s0" cx="238.2" cy="432.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): 3.0</title></circle>
+<circle class="s0" cx="263.2" cy="424.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): 3.6</title></circle>
+<circle class="s0" cx="288.1" cy="421.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): 3.8</title></circle>
+<circle class="s0" cx="300.5" cy="408.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): 4.7</title></circle>
+<circle class="s0" cx="313.0" cy="431.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): 3.1</title></circle>
+<circle class="s0" cx="337.9" cy="426.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): 3.5</title></circle>
+<circle class="s0" cx="350.4" cy="435.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): 2.8</title></circle>
+<circle class="s0" cx="375.3" cy="429.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 ff4d5612 labelled (single, 102 answers): 3.2</title></circle>
+<circle class="s0" cx="425.2" cy="421.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 3.8</title></circle>
+<circle class="s0" cx="437.6" cy="437.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 36 answers): 2.7</title></circle>
+<circle class="s0" cx="462.5" cy="383.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 69 answers): 6.5</title></circle>
+<circle class="s0" cx="475.0" cy="395.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 69 answers): 5.6</title></circle>
+<circle class="s0" cx="487.5" cy="426.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): 3.5</title></circle>
+<circle class="s0" cx="499.9" cy="400.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 5.3</title></circle>
+<circle class="s0" cx="512.4" cy="404.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): 5.0</title></circle>
+<circle class="s0" cx="524.8" cy="403.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 2fa2c4bb labelled (single, 36 answers): 5.1</title></circle>
+<circle class="s0" cx="537.3" cy="443.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled timeline 9e1492bd (single, 18 answers): 2.2</title></circle>
+<circle class="s0" cx="549.8" cy="440.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled (single, 36 answers): 2.5</title></circle>
+<circle class="s0" cx="562.2" cy="425.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 3.5</title></circle>
+<circle class="s0" cx="574.7" cy="444.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled timeline (single, 6 answers): 2.2</title></circle>
+<circle class="s0" cx="587.2" cy="407.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): 4.8</title></circle>
+<circle class="s0" cx="599.6" cy="403.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 92397316 labelled (single, 36 answers): 5.1</title></circle>
+<circle class="s0" cx="612.1" cy="409.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 f6a61205 labelled (single, 36 answers): 4.7</title></circle>
+<circle class="s0" cx="624.5" cy="377.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 091be540 labelled (single, 36 answers): 6.9</title></circle>
+<circle class="s0" cx="637.0" cy="407.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 09133344 labelled (single, 36 answers): 4.8</title></circle>
+<circle class="s0" cx="649.5" cy="387.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 91174512 labelled (single, 36 answers): 6.2</title></circle>
+<circle class="s0" cx="661.9" cy="402.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 dd326013 labelled (single, 36 answers): 5.2</title></circle>
+<circle class="s0" cx="674.4" cy="408.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 af0b6edc labelled (single, 36 answers): 4.8</title></circle>
+<circle class="s0" cx="711.8" cy="377.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 dd326013 labelled (single, 36 answers): 6.9</title></circle>
+<circle class="s0" cx="761.6" cy="437.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-07 dd326013 labelled (single, 36 answers): 2.7</title></circle>
+<circle class="s0" cx="774.1" cy="403.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 dd326013 labelled (single, 36 answers): 5.0</title></circle>
+<circle class="s0" cx="823.9" cy="410.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 20c6301d labelled (single, 36 answers): 4.6</title></circle>
+<circle class="s0" cx="861.3" cy="336.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 099eb3e4 labelled (single, 36 answers): 9.7</title></circle>
+<polyline class="s1" fill="none" stroke-width="2" points="126.1,420.5 151.0,417.8 175.9,436.1 200.8,433.2 225.8,392.4 250.7,429.4 275.6,426.3 325.5,428.9 362.8,438.2 387.8,436.2 400.2,427.1 412.7,436.9 450.1,440.4 686.8,415.6 699.3,419.6 724.2,321.5 749.2,416.9 786.5,418.9 836.4,427.2 873.8,401.9" style="fill:none"/>
+<circle class="s1" cx="126.1" cy="420.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): 3.9</title></circle>
+<circle class="s1" cx="151.0" cy="417.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): 4.1</title></circle>
+<circle class="s1" cx="175.9" cy="436.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): 2.8</title></circle>
+<circle class="s1" cx="200.8" cy="433.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): 3.0</title></circle>
+<circle class="s1" cx="225.8" cy="392.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): 5.8</title></circle>
+<circle class="s1" cx="250.7" cy="429.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): 3.3</title></circle>
+<circle class="s1" cx="275.6" cy="426.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): 3.5</title></circle>
+<circle class="s1" cx="325.5" cy="428.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): 3.3</title></circle>
+<circle class="s1" cx="362.8" cy="438.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): 2.6</title></circle>
+<circle class="s1" cx="387.8" cy="436.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 multiturn ff4d5612 (multiturn, 21 answers): 2.8</title></circle>
+<circle class="s1" cx="400.2" cy="427.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 3.4</title></circle>
+<circle class="s1" cx="412.7" cy="436.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): 2.7</title></circle>
+<circle class="s1" cx="450.1" cy="440.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 multiturn f6a61205 (multiturn, 22 answers): 2.5</title></circle>
+<circle class="s1" cx="686.8" cy="415.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn 7142b895 (multiturn, 22 answers): 4.2</title></circle>
+<circle class="s1" cx="699.3" cy="419.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn dd326013 (multiturn, 22 answers): 3.9</title></circle>
+<circle class="s1" cx="724.2" cy="321.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 22 answers): 10.8</title></circle>
+<circle class="s1" cx="749.2" cy="416.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 24 answers): 4.1</title></circle>
+<circle class="s1" cx="786.5" cy="418.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 multiturn dd326013 (multiturn, 27 answers): 4.0</title></circle>
+<circle class="s1" cx="836.4" cy="427.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 20c6301d (multiturn, 29 answers): 3.4</title></circle>
+<circle class="s1" cx="873.8" cy="401.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 099eb3e4 (multiturn, 29 answers): 5.2</title></circle>
+<polyline class="s2" fill="none" stroke-width="2" points="76.2,428.2 88.7,422.8 736.7,408.3 799.0,410.6 811.5,414.6 848.8,418.0" style="fill:none"/>
+<circle class="s2" cx="76.2" cy="428.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route (e2e, 36 answers): 3.3</title></circle>
+<circle class="s2" cx="88.7" cy="422.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-09-11 e2e local-route r2 (e2e, 36 answers): 3.7</title></circle>
+<circle class="s2" cx="736.7" cy="408.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 e2e dev (e2e, 36 answers): 4.7</title></circle>
+<circle class="s2" cx="799.0" cy="410.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 e2e dev (e2e, 97 answers): 4.6</title></circle>
+<circle class="s2" cx="811.5" cy="414.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-10 e2e dev (e2e, 97 answers): 4.3</title></circle>
+<circle class="s2" cx="848.8" cy="418.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 e2e dev (e2e, 98 answers): 4.0</title></circle>
 <text class="t1" x="70" y="514" font-weight="600">Cost per answer (USD)</text>
 <line class="grid" x1="70" x2="880" y1="692.0" y2="692.0"/>
 <text class="t2" x="64" y="696.0" text-anchor="end">$0.0000</text>
 <line class="grid" x1="70" x2="880" y1="649.5" y2="649.5"/>
-<text class="t2" x="64" y="653.5" text-anchor="end">$0.0032</text>
+<text class="t2" x="64" y="653.5" text-anchor="end">$0.0034</text>
 <line class="grid" x1="70" x2="880" y1="607.0" y2="607.0"/>
-<text class="t2" x="64" y="611.0" text-anchor="end">$0.0064</text>
+<text class="t2" x="64" y="611.0" text-anchor="end">$0.0068</text>
 <line class="grid" x1="70" x2="880" y1="564.5" y2="564.5"/>
-<text class="t2" x="64" y="568.5" text-anchor="end">$0.0096</text>
+<text class="t2" x="64" y="568.5" text-anchor="end">$0.0101</text>
 <line class="grid" x1="70" x2="880" y1="522.0" y2="522.0"/>
-<text class="t2" x="64" y="526.0" text-anchor="end">$0.0128</text>
-<polyline class="s0" fill="none" stroke-width="2" points="102.1,565.7 115.0,566.4 140.7,567.2 166.4,563.7 192.1,561.6 217.9,563.7 243.6,566.8 269.3,569.5 295.0,563.3 307.9,563.3 320.7,563.2 346.4,563.1 359.3,563.1 385.0,561.8 436.4,562.5 449.3,559.4 475.0,562.0 487.9,559.5 500.7,562.0 513.6,555.1 526.4,551.0 539.3,550.1 552.1,549.1 565.0,547.8 577.9,547.4 590.7,544.4 603.6,547.4 616.4,547.0 629.3,558.6 642.1,551.0 655.0,550.3 667.9,549.4 680.7,546.5 693.6,546.6 732.1,547.4 783.6,546.9 796.4,547.7 847.9,545.0" style="fill:none"/>
-<circle class="s0" cx="102.1" cy="565.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): $0.0095</title></circle>
-<circle class="s0" cx="115.0" cy="566.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): $0.0095</title></circle>
-<circle class="s0" cx="140.7" cy="567.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): $0.0094</title></circle>
-<circle class="s0" cx="166.4" cy="563.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="192.1" cy="561.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): $0.0098</title></circle>
-<circle class="s0" cx="217.9" cy="563.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="243.6" cy="566.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): $0.0094</title></circle>
-<circle class="s0" cx="269.3" cy="569.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): $0.0092</title></circle>
-<circle class="s0" cx="295.0" cy="563.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="307.9" cy="563.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="320.7" cy="563.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="346.4" cy="563.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="359.3" cy="563.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="385.0" cy="561.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 ff4d5612 labelled (single, 102 answers): $0.0098</title></circle>
-<circle class="s0" cx="436.4" cy="562.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): $0.0097</title></circle>
-<circle class="s0" cx="449.3" cy="559.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 36 answers): $0.0100</title></circle>
-<circle class="s0" cx="475.0" cy="562.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 69 answers): $0.0098</title></circle>
-<circle class="s0" cx="487.9" cy="559.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 69 answers): $0.0100</title></circle>
-<circle class="s0" cx="500.7" cy="562.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): $0.0098</title></circle>
-<circle class="s0" cx="513.6" cy="555.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): $0.0103</title></circle>
-<circle class="s0" cx="526.4" cy="551.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): $0.0106</title></circle>
-<circle class="s0" cx="539.3" cy="550.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 2fa2c4bb labelled (single, 36 answers): $0.0107</title></circle>
-<circle class="s0" cx="552.1" cy="549.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled timeline 9e1492bd (single, 18 answers): $0.0108</title></circle>
-<circle class="s0" cx="565.0" cy="547.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="577.9" cy="547.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="590.7" cy="544.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled timeline (single, 6 answers): $0.0111</title></circle>
-<circle class="s0" cx="603.6" cy="547.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="616.4" cy="547.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 92397316 labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="629.3" cy="558.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 f6a61205 labelled (single, 36 answers): $0.0100</title></circle>
-<circle class="s0" cx="642.1" cy="551.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 091be540 labelled (single, 36 answers): $0.0106</title></circle>
-<circle class="s0" cx="655.0" cy="550.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 09133344 labelled (single, 36 answers): $0.0107</title></circle>
-<circle class="s0" cx="667.9" cy="549.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 91174512 labelled (single, 36 answers): $0.0107</title></circle>
-<circle class="s0" cx="680.7" cy="546.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 dd326013 labelled (single, 36 answers): $0.0110</title></circle>
-<circle class="s0" cx="693.6" cy="546.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 af0b6edc labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="732.1" cy="547.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 dd326013 labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="783.6" cy="546.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-07 dd326013 labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="796.4" cy="547.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 dd326013 labelled (single, 36 answers): $0.0109</title></circle>
-<circle class="s0" cx="847.9" cy="545.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 20c6301d labelled (single, 36 answers): $0.0111</title></circle>
-<polyline class="s1" fill="none" stroke-width="2" points="127.9,564.9 153.6,566.0 179.3,562.0 205.0,557.2 230.7,559.0 256.4,564.0 282.1,562.5 333.6,561.1 372.1,560.2 397.9,563.1 410.7,562.1 423.6,564.3 462.1,562.5 706.4,542.9 719.3,542.5 745.0,543.6 770.7,542.1 809.3,540.1 860.7,537.5" style="fill:none"/>
-<circle class="s1" cx="127.9" cy="564.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): $0.0096</title></circle>
-<circle class="s1" cx="153.6" cy="566.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): $0.0095</title></circle>
-<circle class="s1" cx="179.3" cy="562.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): $0.0098</title></circle>
-<circle class="s1" cx="205.0" cy="557.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): $0.0101</title></circle>
-<circle class="s1" cx="230.7" cy="559.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): $0.0100</title></circle>
-<circle class="s1" cx="256.4" cy="564.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): $0.0096</title></circle>
-<circle class="s1" cx="282.1" cy="562.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): $0.0097</title></circle>
-<circle class="s1" cx="333.6" cy="561.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): $0.0099</title></circle>
-<circle class="s1" cx="372.1" cy="560.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): $0.0099</title></circle>
-<circle class="s1" cx="397.9" cy="563.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 multiturn ff4d5612 (multiturn, 21 answers): $0.0097</title></circle>
-<circle class="s1" cx="410.7" cy="562.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): $0.0098</title></circle>
-<circle class="s1" cx="423.6" cy="564.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): $0.0096</title></circle>
-<circle class="s1" cx="462.1" cy="562.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 multiturn f6a61205 (multiturn, 22 answers): $0.0097</title></circle>
-<circle class="s1" cx="706.4" cy="542.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn 7142b895 (multiturn, 22 answers): $0.0112</title></circle>
-<circle class="s1" cx="719.3" cy="542.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn dd326013 (multiturn, 22 answers): $0.0113</title></circle>
-<circle class="s1" cx="745.0" cy="543.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 22 answers): $0.0112</title></circle>
-<circle class="s1" cx="770.7" cy="542.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 24 answers): $0.0113</title></circle>
-<circle class="s1" cx="809.3" cy="540.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 multiturn dd326013 (multiturn, 27 answers): $0.0114</title></circle>
-<circle class="s1" cx="860.7" cy="537.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 20c6301d (multiturn, 29 answers): $0.0116</title></circle>
-<text class="t2" font-size="10" transform="translate(76.4,722) rotate(45)">09-11 e2e local-route</text>
-<text class="t2" font-size="10" transform="translate(89.3,722) rotate(45)">09-11 e2e local-route r2</text>
-<text class="t2" font-size="10" transform="translate(102.1,722) rotate(45)">10-16 model pass 1</text>
-<text class="t2" font-size="10" transform="translate(115.0,722) rotate(45)">10-19 baseline</text>
-<text class="t2" font-size="10" transform="translate(127.9,722) rotate(45)">10-19 baseline</text>
-<text class="t2" font-size="10" transform="translate(140.7,722) rotate(45)">10-20 kb-r1</text>
-<text class="t2" font-size="10" transform="translate(153.6,722) rotate(45)">10-20 kb-r1</text>
-<text class="t2" font-size="10" transform="translate(166.4,722) rotate(45)">10-21 kb-r2</text>
-<text class="t2" font-size="10" transform="translate(179.3,722) rotate(45)">10-21 kb-r2</text>
-<text class="t2" font-size="10" transform="translate(192.1,722) rotate(45)">10-21 kb-r3</text>
-<text class="t2" font-size="10" transform="translate(205.0,722) rotate(45)">10-21 kb-r3</text>
-<text class="t2" font-size="10" transform="translate(217.9,722) rotate(45)">10-21 labelled-ab60</text>
-<text class="t2" font-size="10" transform="translate(230.7,722) rotate(45)">10-21 labelled-ab60</text>
-<text class="t2" font-size="10" transform="translate(243.6,722) rotate(45)">10-21 oldprompt-newkb</text>
-<text class="t2" font-size="10" transform="translate(256.4,722) rotate(45)">10-21 oldprompt-newkb</text>
-<text class="t2" font-size="10" transform="translate(269.3,722) rotate(45)">10-22 labelled-f138</text>
-<text class="t2" font-size="10" transform="translate(282.1,722) rotate(45)">10-22 labelled-f138</text>
-<text class="t2" font-size="10" transform="translate(295.0,722) rotate(45)">10-22 variant-A</text>
-<text class="t2" font-size="10" transform="translate(307.9,722) rotate(45)">10-22 variant-C</text>
-<text class="t2" font-size="10" transform="translate(320.7,722) rotate(45)">10-22 hybrid-ff4d</text>
-<text class="t2" font-size="10" transform="translate(333.6,722) rotate(45)">10-22 hybrid-ff4d</text>
-<text class="t2" font-size="10" transform="translate(346.4,722) rotate(45)">10-22 hybrid-ff4d r2</text>
-<text class="t2" font-size="10" transform="translate(359.3,722) rotate(45)">10-22 re-decide ff4d</text>
-<text class="t2" font-size="10" transform="translate(372.1,722) rotate(45)">10-22 re-decide ff4d</text>
-<text class="t2" font-size="10" transform="translate(385.0,722) rotate(45)">10-30 ff4d5612 labelled</text>
-<text class="t2" font-size="10" transform="translate(397.9,722) rotate(45)">10-30 multiturn ff4d5612</text>
-<text class="t2" font-size="10" transform="translate(410.7,722) rotate(45)">11-01 multiturn ff4d5612</text>
-<text class="t2" font-size="10" transform="translate(423.6,722) rotate(45)">11-01 multiturn ff4d5612</text>
-<text class="t2" font-size="10" transform="translate(436.4,722) rotate(45)">11-02 ff4d5612 labelled</text>
-<text class="t2" font-size="10" transform="translate(449.3,722) rotate(45)">11-02 f6a61205 labelled</text>
-<text class="t2" font-size="10" transform="translate(462.1,722) rotate(45)">11-02 multiturn f6a61205</text>
-<text class="t2" font-size="10" transform="translate(475.0,722) rotate(45)">11-02 ff4d5612 labelled</text>
-<text class="t2" font-size="10" transform="translate(487.9,722) rotate(45)">11-02 f6a61205 labelled</text>
-<text class="t2" font-size="10" transform="translate(500.7,722) rotate(45)">11-02 ff4d5612 labelled</text>
-<text class="t2" font-size="10" transform="translate(513.6,722) rotate(45)">11-04 09b85beb labelled</text>
-<text class="t2" font-size="10" transform="translate(526.4,722) rotate(45)">11-04 09b85beb labelled</text>
-<text class="t2" font-size="10" transform="translate(539.3,722) rotate(45)">11-04 2fa2c4bb labelled</text>
-<text class="t2" font-size="10" transform="translate(552.1,722) rotate(45)">11-05 2fa2c4bb labelled timeline 9e1492bd</text>
-<text class="t2" font-size="10" transform="translate(565.0,722) rotate(45)">11-05 2fa2c4bb labelled</text>
-<text class="t2" font-size="10" transform="translate(577.9,722) rotate(45)">11-05 7142b895 labelled</text>
-<text class="t2" font-size="10" transform="translate(590.7,722) rotate(45)">11-05 7142b895 labelled timeline</text>
-<text class="t2" font-size="10" transform="translate(603.6,722) rotate(45)">11-05 7142b895 labelled</text>
-<text class="t2" font-size="10" transform="translate(616.4,722) rotate(45)">11-05 92397316 labelled</text>
-<text class="t2" font-size="10" transform="translate(629.3,722) rotate(45)">11-05 f6a61205 labelled</text>
-<text class="t2" font-size="10" transform="translate(642.1,722) rotate(45)">11-05 091be540 labelled</text>
-<text class="t2" font-size="10" transform="translate(655.0,722) rotate(45)">11-05 09133344 labelled</text>
-<text class="t2" font-size="10" transform="translate(667.9,722) rotate(45)">11-05 91174512 labelled</text>
-<text class="t2" font-size="10" transform="translate(680.7,722) rotate(45)">11-05 dd326013 labelled</text>
-<text class="t2" font-size="10" transform="translate(693.6,722) rotate(45)">11-05 af0b6edc labelled</text>
-<text class="t2" font-size="10" transform="translate(706.4,722) rotate(45)">11-05 multiturn 7142b895</text>
-<text class="t2" font-size="10" transform="translate(719.3,722) rotate(45)">11-05 multiturn dd326013</text>
-<text class="t2" font-size="10" transform="translate(732.1,722) rotate(45)">11-06 dd326013 labelled</text>
-<text class="t2" font-size="10" transform="translate(745.0,722) rotate(45)">11-06 multiturn dd326013</text>
-<text class="t2" font-size="10" transform="translate(757.9,722) rotate(45)">11-06 e2e dev</text>
-<text class="t2" font-size="10" transform="translate(770.7,722) rotate(45)">11-06 multiturn dd326013</text>
-<text class="t2" font-size="10" transform="translate(783.6,722) rotate(45)">11-07 dd326013 labelled</text>
-<text class="t2" font-size="10" transform="translate(796.4,722) rotate(45)">11-09 dd326013 labelled</text>
-<text class="t2" font-size="10" transform="translate(809.3,722) rotate(45)">11-09 multiturn dd326013</text>
-<text class="t2" font-size="10" transform="translate(822.1,722) rotate(45)">11-09 e2e dev</text>
-<text class="t2" font-size="10" transform="translate(835.0,722) rotate(45)">11-10 e2e dev</text>
-<text class="t2" font-size="10" transform="translate(847.9,722) rotate(45)">11-16 20c6301d labelled</text>
-<text class="t2" font-size="10" transform="translate(860.7,722) rotate(45)">11-16 multiturn 20c6301d</text>
-<text class="t2" font-size="10" transform="translate(873.6,722) rotate(45)">11-16 e2e dev</text>
+<text class="t2" x="64" y="526.0" text-anchor="end">$0.0135</text>
+<polyline class="s0" fill="none" stroke-width="2" points="101.2,572.5 113.6,573.1 138.5,573.9 163.5,570.6 188.4,568.6 213.3,570.6 238.2,573.5 263.2,576.0 288.1,570.2 300.5,570.2 313.0,570.1 337.9,570.0 350.4,570.0 375.3,568.7 425.2,569.5 437.6,566.5 462.5,569.0 475.0,566.6 487.5,569.0 499.9,562.5 512.4,558.6 524.8,557.7 537.3,556.8 549.8,555.5 562.2,555.2 574.7,552.3 587.2,555.2 599.6,554.8 612.1,565.7 624.5,558.6 637.0,557.9 649.5,557.1 661.9,554.3 674.4,554.4 711.8,555.2 761.6,554.7 774.1,555.4 823.9,552.9 861.3,548.3" style="fill:none"/>
+<circle class="s0" cx="101.2" cy="572.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-16 model pass 1 (single, 102 answers): $0.0095</title></circle>
+<circle class="s0" cx="113.6" cy="573.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (single, 36 answers): $0.0095</title></circle>
+<circle class="s0" cx="138.5" cy="573.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (single, 36 answers): $0.0094</title></circle>
+<circle class="s0" cx="163.5" cy="570.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="188.4" cy="568.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (single, 36 answers): $0.0098</title></circle>
+<circle class="s0" cx="213.3" cy="570.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="238.2" cy="573.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (single, 36 answers): $0.0094</title></circle>
+<circle class="s0" cx="263.2" cy="576.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (single, 36 answers): $0.0092</title></circle>
+<circle class="s0" cx="288.1" cy="570.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-A (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="300.5" cy="570.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 variant-C (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="313.0" cy="570.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="337.9" cy="570.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d r2 (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="350.4" cy="570.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="375.3" cy="568.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 ff4d5612 labelled (single, 102 answers): $0.0098</title></circle>
+<circle class="s0" cx="425.2" cy="569.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): $0.0097</title></circle>
+<circle class="s0" cx="437.6" cy="566.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 36 answers): $0.0100</title></circle>
+<circle class="s0" cx="462.5" cy="569.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 69 answers): $0.0098</title></circle>
+<circle class="s0" cx="475.0" cy="566.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 f6a61205 labelled (single, 69 answers): $0.0100</title></circle>
+<circle class="s0" cx="487.5" cy="569.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 ff4d5612 labelled (single, 36 answers): $0.0098</title></circle>
+<circle class="s0" cx="499.9" cy="562.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): $0.0103</title></circle>
+<circle class="s0" cx="512.4" cy="558.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 09b85beb labelled (single, 36 answers): $0.0106</title></circle>
+<circle class="s0" cx="524.8" cy="557.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-04 2fa2c4bb labelled (single, 36 answers): $0.0107</title></circle>
+<circle class="s0" cx="537.3" cy="556.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled timeline 9e1492bd (single, 18 answers): $0.0108</title></circle>
+<circle class="s0" cx="549.8" cy="555.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 2fa2c4bb labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="562.2" cy="555.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="574.7" cy="552.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled timeline (single, 6 answers): $0.0111</title></circle>
+<circle class="s0" cx="587.2" cy="555.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 7142b895 labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="599.6" cy="554.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 92397316 labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="612.1" cy="565.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 f6a61205 labelled (single, 36 answers): $0.0100</title></circle>
+<circle class="s0" cx="624.5" cy="558.6" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 091be540 labelled (single, 36 answers): $0.0106</title></circle>
+<circle class="s0" cx="637.0" cy="557.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 09133344 labelled (single, 36 answers): $0.0107</title></circle>
+<circle class="s0" cx="649.5" cy="557.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 91174512 labelled (single, 36 answers): $0.0107</title></circle>
+<circle class="s0" cx="661.9" cy="554.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 dd326013 labelled (single, 36 answers): $0.0110</title></circle>
+<circle class="s0" cx="674.4" cy="554.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 af0b6edc labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="711.8" cy="555.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 dd326013 labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="761.6" cy="554.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-07 dd326013 labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="774.1" cy="555.4" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 dd326013 labelled (single, 36 answers): $0.0109</title></circle>
+<circle class="s0" cx="823.9" cy="552.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 20c6301d labelled (single, 36 answers): $0.0111</title></circle>
+<circle class="s0" cx="861.3" cy="548.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 099eb3e4 labelled (single, 36 answers): $0.0114</title></circle>
+<polyline class="s1" fill="none" stroke-width="2" points="126.1,571.8 151.0,572.8 175.9,569.0 200.8,564.5 225.8,566.1 250.7,570.9 275.6,569.5 325.5,568.1 362.8,567.2 387.8,570.0 400.2,569.1 412.7,571.1 450.1,569.5 686.8,550.9 699.3,550.5 724.2,551.5 749.2,550.1 786.5,548.3 836.4,545.7 873.8,537.5" style="fill:none"/>
+<circle class="s1" cx="126.1" cy="571.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-19 baseline (multiturn, 17 answers): $0.0096</title></circle>
+<circle class="s1" cx="151.0" cy="572.8" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-20 kb-r1 (multiturn, 17 answers): $0.0095</title></circle>
+<circle class="s1" cx="175.9" cy="569.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r2 (multiturn, 18 answers): $0.0098</title></circle>
+<circle class="s1" cx="200.8" cy="564.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 kb-r3 (multiturn, 18 answers): $0.0101</title></circle>
+<circle class="s1" cx="225.8" cy="566.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 labelled-ab60 (multiturn, 18 answers): $0.0100</title></circle>
+<circle class="s1" cx="250.7" cy="570.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-21 oldprompt-newkb (multiturn, 19 answers): $0.0096</title></circle>
+<circle class="s1" cx="275.6" cy="569.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 labelled-f138 (multiturn, 18 answers): $0.0097</title></circle>
+<circle class="s1" cx="325.5" cy="568.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 hybrid-ff4d (multiturn, 18 answers): $0.0099</title></circle>
+<circle class="s1" cx="362.8" cy="567.2" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-22 re-decide ff4d (multiturn, 18 answers): $0.0099</title></circle>
+<circle class="s1" cx="387.8" cy="570.0" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-10-30 multiturn ff4d5612 (multiturn, 21 answers): $0.0097</title></circle>
+<circle class="s1" cx="400.2" cy="569.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): $0.0098</title></circle>
+<circle class="s1" cx="412.7" cy="571.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-01 multiturn ff4d5612 (multiturn, 66 answers): $0.0096</title></circle>
+<circle class="s1" cx="450.1" cy="569.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-02 multiturn f6a61205 (multiturn, 22 answers): $0.0097</title></circle>
+<circle class="s1" cx="686.8" cy="550.9" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn 7142b895 (multiturn, 22 answers): $0.0112</title></circle>
+<circle class="s1" cx="699.3" cy="550.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-05 multiturn dd326013 (multiturn, 22 answers): $0.0113</title></circle>
+<circle class="s1" cx="724.2" cy="551.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 22 answers): $0.0112</title></circle>
+<circle class="s1" cx="749.2" cy="550.1" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-06 multiturn dd326013 (multiturn, 24 answers): $0.0113</title></circle>
+<circle class="s1" cx="786.5" cy="548.3" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-09 multiturn dd326013 (multiturn, 27 answers): $0.0114</title></circle>
+<circle class="s1" cx="836.4" cy="545.7" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 20c6301d (multiturn, 29 answers): $0.0116</title></circle>
+<circle class="s1" cx="873.8" cy="537.5" r="4.5" stroke="#fcfcfb" stroke-width="2"><title>2026-11-16 multiturn 099eb3e4 (multiturn, 29 answers): $0.0123</title></circle>
+<text class="t2" font-size="10" transform="translate(76.2,722) rotate(45)">09-11 e2e local-route</text>
+<text class="t2" font-size="10" transform="translate(88.7,722) rotate(45)">09-11 e2e local-route r2</text>
+<text class="t2" font-size="10" transform="translate(101.2,722) rotate(45)">10-16 model pass 1</text>
+<text class="t2" font-size="10" transform="translate(113.6,722) rotate(45)">10-19 baseline</text>
+<text class="t2" font-size="10" transform="translate(126.1,722) rotate(45)">10-19 baseline</text>
+<text class="t2" font-size="10" transform="translate(138.5,722) rotate(45)">10-20 kb-r1</text>
+<text class="t2" font-size="10" transform="translate(151.0,722) rotate(45)">10-20 kb-r1</text>
+<text class="t2" font-size="10" transform="translate(163.5,722) rotate(45)">10-21 kb-r2</text>
+<text class="t2" font-size="10" transform="translate(175.9,722) rotate(45)">10-21 kb-r2</text>
+<text class="t2" font-size="10" transform="translate(188.4,722) rotate(45)">10-21 kb-r3</text>
+<text class="t2" font-size="10" transform="translate(200.8,722) rotate(45)">10-21 kb-r3</text>
+<text class="t2" font-size="10" transform="translate(213.3,722) rotate(45)">10-21 labelled-ab60</text>
+<text class="t2" font-size="10" transform="translate(225.8,722) rotate(45)">10-21 labelled-ab60</text>
+<text class="t2" font-size="10" transform="translate(238.2,722) rotate(45)">10-21 oldprompt-newkb</text>
+<text class="t2" font-size="10" transform="translate(250.7,722) rotate(45)">10-21 oldprompt-newkb</text>
+<text class="t2" font-size="10" transform="translate(263.2,722) rotate(45)">10-22 labelled-f138</text>
+<text class="t2" font-size="10" transform="translate(275.6,722) rotate(45)">10-22 labelled-f138</text>
+<text class="t2" font-size="10" transform="translate(288.1,722) rotate(45)">10-22 variant-A</text>
+<text class="t2" font-size="10" transform="translate(300.5,722) rotate(45)">10-22 variant-C</text>
+<text class="t2" font-size="10" transform="translate(313.0,722) rotate(45)">10-22 hybrid-ff4d</text>
+<text class="t2" font-size="10" transform="translate(325.5,722) rotate(45)">10-22 hybrid-ff4d</text>
+<text class="t2" font-size="10" transform="translate(337.9,722) rotate(45)">10-22 hybrid-ff4d r2</text>
+<text class="t2" font-size="10" transform="translate(350.4,722) rotate(45)">10-22 re-decide ff4d</text>
+<text class="t2" font-size="10" transform="translate(362.8,722) rotate(45)">10-22 re-decide ff4d</text>
+<text class="t2" font-size="10" transform="translate(375.3,722) rotate(45)">10-30 ff4d5612 labelled</text>
+<text class="t2" font-size="10" transform="translate(387.8,722) rotate(45)">10-30 multiturn ff4d5612</text>
+<text class="t2" font-size="10" transform="translate(400.2,722) rotate(45)">11-01 multiturn ff4d5612</text>
+<text class="t2" font-size="10" transform="translate(412.7,722) rotate(45)">11-01 multiturn ff4d5612</text>
+<text class="t2" font-size="10" transform="translate(425.2,722) rotate(45)">11-02 ff4d5612 labelled</text>
+<text class="t2" font-size="10" transform="translate(437.6,722) rotate(45)">11-02 f6a61205 labelled</text>
+<text class="t2" font-size="10" transform="translate(450.1,722) rotate(45)">11-02 multiturn f6a61205</text>
+<text class="t2" font-size="10" transform="translate(462.5,722) rotate(45)">11-02 ff4d5612 labelled</text>
+<text class="t2" font-size="10" transform="translate(475.0,722) rotate(45)">11-02 f6a61205 labelled</text>
+<text class="t2" font-size="10" transform="translate(487.5,722) rotate(45)">11-02 ff4d5612 labelled</text>
+<text class="t2" font-size="10" transform="translate(499.9,722) rotate(45)">11-04 09b85beb labelled</text>
+<text class="t2" font-size="10" transform="translate(512.4,722) rotate(45)">11-04 09b85beb labelled</text>
+<text class="t2" font-size="10" transform="translate(524.8,722) rotate(45)">11-04 2fa2c4bb labelled</text>
+<text class="t2" font-size="10" transform="translate(537.3,722) rotate(45)">11-05 2fa2c4bb labelled timeline 9e1492bd</text>
+<text class="t2" font-size="10" transform="translate(549.8,722) rotate(45)">11-05 2fa2c4bb labelled</text>
+<text class="t2" font-size="10" transform="translate(562.2,722) rotate(45)">11-05 7142b895 labelled</text>
+<text class="t2" font-size="10" transform="translate(574.7,722) rotate(45)">11-05 7142b895 labelled timeline</text>
+<text class="t2" font-size="10" transform="translate(587.2,722) rotate(45)">11-05 7142b895 labelled</text>
+<text class="t2" font-size="10" transform="translate(599.6,722) rotate(45)">11-05 92397316 labelled</text>
+<text class="t2" font-size="10" transform="translate(612.1,722) rotate(45)">11-05 f6a61205 labelled</text>
+<text class="t2" font-size="10" transform="translate(624.5,722) rotate(45)">11-05 091be540 labelled</text>
+<text class="t2" font-size="10" transform="translate(637.0,722) rotate(45)">11-05 09133344 labelled</text>
+<text class="t2" font-size="10" transform="translate(649.5,722) rotate(45)">11-05 91174512 labelled</text>
+<text class="t2" font-size="10" transform="translate(661.9,722) rotate(45)">11-05 dd326013 labelled</text>
+<text class="t2" font-size="10" transform="translate(674.4,722) rotate(45)">11-05 af0b6edc labelled</text>
+<text class="t2" font-size="10" transform="translate(686.8,722) rotate(45)">11-05 multiturn 7142b895</text>
+<text class="t2" font-size="10" transform="translate(699.3,722) rotate(45)">11-05 multiturn dd326013</text>
+<text class="t2" font-size="10" transform="translate(711.8,722) rotate(45)">11-06 dd326013 labelled</text>
+<text class="t2" font-size="10" transform="translate(724.2,722) rotate(45)">11-06 multiturn dd326013</text>
+<text class="t2" font-size="10" transform="translate(736.7,722) rotate(45)">11-06 e2e dev</text>
+<text class="t2" font-size="10" transform="translate(749.2,722) rotate(45)">11-06 multiturn dd326013</text>
+<text class="t2" font-size="10" transform="translate(761.6,722) rotate(45)">11-07 dd326013 labelled</text>
+<text class="t2" font-size="10" transform="translate(774.1,722) rotate(45)">11-09 dd326013 labelled</text>
+<text class="t2" font-size="10" transform="translate(786.5,722) rotate(45)">11-09 multiturn dd326013</text>
+<text class="t2" font-size="10" transform="translate(799.0,722) rotate(45)">11-09 e2e dev</text>
+<text class="t2" font-size="10" transform="translate(811.5,722) rotate(45)">11-10 e2e dev</text>
+<text class="t2" font-size="10" transform="translate(823.9,722) rotate(45)">11-16 20c6301d labelled</text>
+<text class="t2" font-size="10" transform="translate(836.4,722) rotate(45)">11-16 multiturn 20c6301d</text>
+<text class="t2" font-size="10" transform="translate(848.8,722) rotate(45)">11-16 e2e dev</text>
+<text class="t2" font-size="10" transform="translate(861.3,722) rotate(45)">11-16 099eb3e4 labelled</text>
+<text class="t2" font-size="10" transform="translate(873.8,722) rotate(45)">11-16 multiturn 099eb3e4</text>
 <circle class="s0" cx="75" cy="818" r="5"/><text class="t1" x="85" y="822">gpt-4o, single-turn</text>
 <circle class="s1" cx="265" cy="818" r="5"/><text class="t1" x="275" y="822">gpt-4o, multi-turn</text>
 <circle class="s2" cx="455" cy="818" r="5"/><text class="t1" x="465" y="822">site, end to end</text>

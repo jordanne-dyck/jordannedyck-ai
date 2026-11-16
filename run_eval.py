@@ -367,6 +367,41 @@ ROLE_DENIAL_RE = re.compile(
 ROLE_QUALIFIER_RE = re.compile(r"^\s*,?\s*(?:like|such as|as|at|with the title|titled|of)\b")
 
 
+# T2.18 — reach not ranked. Added 2026-11-16 (Jord, v1.18 gate, case M10). On prompts
+# a774a894 and 099eb3e4 and four rewordings tried that day, M10 turn 2 ("Which of those
+# reached the most customers?") named email, Regimen Builder, TikTok Shop or the
+# Salesforce transformation as reaching the most, with no reach figure for the others,
+# or used the 4M+ DTC database as reach. Every automated check passed 18 of the 20 probe
+# answers. Jord's ruling: 4M+ is customers acquired, not reach (2026-11-06), and the
+# correct answer leads with the DTC site's stated traffic, 4-6M visitors a month
+# (2026-11-16). So a "reached the most" claim passes only in a sentence that carries a
+# visitors/visits figure. Applies only to turns marked "reach_check" in eval_set.json.
+REACH_RANK_RE = re.compile(
+    r"\breach(?:ed|es|ing)?\s+the\s+(?:most|largest|widest|broadest|greatest)\b"
+    r"|\b(?:largest|widest|broadest|greatest|biggest|most\s+extensive)\s+reach\b"
+    r"|\bmost\s+(?:customers|people)\s+reached\b", re.I)
+SITE_TRAFFIC_RE = re.compile(r"\bvisit(?:or)?s\b", re.I)
+DB_4M_RE = re.compile(r"\b(?:4|four)\s*(?:M\b\+?|million)\+?", re.I)
+DB_WORD_RE = re.compile(r"\b(?:database|accounts?|account holders|customer base)\b", re.I)
+REACH_WORD_RE = re.compile(r"\breach", re.I)
+
+
+def reach_rank_spans(ans):
+    """T2.18 — superlative reach claims without a traffic figure, and the 4M+
+    database used as reach (in the same or the next sentence)."""
+    sents = [s for s in re.split(r"(?<=[.!?])\s+", ans) if s.strip()]
+    spans = []
+    for i, s in enumerate(sents):
+        m = REACH_RANK_RE.search(s)
+        if m and not SITE_TRAFFIC_RE.search(s):
+            spans.append(m.group(0))
+        if DB_4M_RE.search(s) and DB_WORD_RE.search(s):
+            window = s + " " + (sents[i + 1] if i + 1 < len(sents) else "")
+            if REACH_WORD_RE.search(window):
+                spans.append("4M+ database as reach: " + s.strip()[:80])
+    return spans
+
+
 def role_denial_spans(ans):
     """T2.15 — sentences that deny she held any technology role, unqualified."""
     return [m.group(0).strip() for m in ROLE_DENIAL_RE.finditer(ans.lower())
@@ -640,6 +675,13 @@ def run_checks(q, arm, context, retrieved, gen):
     role_spans = role_denial_spans(ans)
     checks["T2.15_role_not_denied"] = not role_spans
     checks["_role_denial_spans"] = role_spans
+
+    if q.get("reach_check"):
+        reach_spans = reach_rank_spans(ans)
+        checks["T2.18_reach_not_ranked"] = not reach_spans
+        checks["_reach_rank_spans"] = reach_spans
+    else:
+        checks["T2.18_reach_not_ranked"] = None
 
     return checks
 

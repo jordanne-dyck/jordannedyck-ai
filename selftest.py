@@ -320,6 +320,23 @@ for name, ans, want in [
     c = R.run_checks(qv, "B", CTX, R_MOCK, mk(ans))
     check(name, c["T2.15_role_not_denied"], want)
 
+print("\n--- T2.18 reach not ranked (2026-11-16, M10, Jord's ruling) ---")
+qr = {"id": "M10", "tag": "multiturn", "expect": [], "reach_check": True}
+for name, ans, want in [
+    # Stored M10 turn-2 answers, cut: 099eb3e4 eval_results_multiturn.json; e2e 2026-11-16b;
+    # probe e675958e run 2; probe 58eec4f9 run 2.
+    ("a winner with no traffic figure fails", "The personalization work that Jordanne implemented at DECIEM reached the most customers. She expanded email from one million to four million weekly sends.", False),
+    ("'most extensive reach' fails", "The **Digital Transformation Salesforce** project at DECIEM had the most extensive reach.", False),
+    ("the 4M+ database as reach fails", "The Regimen Builder contributed to DECIEM's DTC customer base growing to over **4 million** accounts. These figures show its reach.", False),
+    ("no winner passes", "The **TikTok Shop Integration** reached a significant number of new customers for DECIEM. It became the company's strongest acquisition channel.", True),
+    # Jord's ruled answer, 2026-11-16.
+    ("the site with its visitors figure passes", "The DTC site she built reached the most people: theordinary.com averaged 4-6 million visitors a month. Email went from one million to four million weekly sends.", True),
+]:
+    c = R.run_checks(qr, "B", CTX, R_MOCK, mk(ans))
+    check(name, c["T2.18_reach_not_ranked"], want)
+c = R.run_checks({"id": "W01", "tag": "ws_core", "expect": []}, "B", CTX, R_MOCK, mk("Email reached the most customers."))
+check("T2.18 is None on a turn without reach_check", c["T2.18_reach_not_ranked"], None)
+
 print("\n--- T2.14 answer cited, first turns (2026-11-05, R-20261105-03) ---")
 # The TL06 answer from eval_runs/timeline_223bcfc0_2026-11-05.json run 1, cut: exp-028
 # ranked #1 and the answer cited nothing.
