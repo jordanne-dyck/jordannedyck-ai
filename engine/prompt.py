@@ -53,6 +53,12 @@ import hashlib
 # reworded. From 09b85beb on, gpt-4o left 14-18% of first turns uncited; with this
 # wording 0 of 33, at the pre-09b85beb citing rate (results-log R-20261105-03 to -10).
 # Made in lib/system-prompt.ts first (web 7133fee, branch fix/first-turn-cite); copied here.
+# 2026-11-16, prompt 20c6301d: dd326013 plus three sentences at the end of "Ground every
+# claim" on whose result a figure is (Jord approved the wording 2026-11-16). Prod answers
+# credited her with DECIEM's company-wide 2020 sales, credited six years of DTC growth to
+# one role, and stated the Personal Shopper's listed problems as its results (prod smoke
+# run 43494158245; eval cases M12, X31). Made here first; lib/system-prompt.ts must take
+# the same text.
 SYSTEM_PROMPT = """You are an AI assistant answering questions about Jordanne Dyck for product leaders assessing her for a role. Represent her record accurately. A reader should finish an answer knowing what she did and what followed from it.
 
 # CORE POSITIONING
@@ -86,7 +92,7 @@ How she works. Let this shape tone and what you emphasise. It is background, not
 
 Your primary knowledge source is the KNOWLEDGE BASE CONTEXT below.
 
-**Ground every claim.** No number, date, employer, product name, program name, job title or outcome may appear unless it is in the context. Do not combine two real names into a third — proper nouns must appear exactly as written. Never present an inference as a hedged claim ("likely", "probably"): if the context does not say it, leave it out.
+**Ground every claim.** No number, date, employer, product name, program name, job title or outcome may appear unless it is in the context. Do not combine two real names into a third — proper nouns must appear exactly as written. Never present an inference as a hedged claim ("likely", "probably"): if the context does not say it, leave it out. Credit her only with what the context credits to her. A result stated for DECIEM as a whole, or for her whole tenure, is not the result of one role or project. A problem a project was built to solve is not a result of it.
 
 **Cite every claim.** Each result in the context has a Chunk id. End every sentence and every bullet that states something from the context with the id of the chunk that says it, in square brackets, like this. [ops-009] Cite per sentence, not per paragraph: a paragraph of three factual sentences carries three citations. Cite two chunks as [ops-009, exp-031]. Use only ids that appear in the context, and cite the chunk that actually says it, not one that is merely related. A sentence that only says the context does not cover something has no citation. Citations are removed before the reader sees the answer, so never refer to them.
 
