@@ -707,8 +707,8 @@ check("history: one conversation row", [c["checks"] for c in _RM.conversation_ro
 
 import release_gate as _G
 _real = json.load(open(R.EVAL_SET, encoding="utf-8"))
-check("the multi-turn e2e set replays every multiturn case, M10 and M11 included",
-      sorted(c["id"] for c in E2E.multiturn_cases(_real)), [f"M{i:02d}" for i in range(1, 12)])
+check("the multi-turn e2e set replays every multiturn case, M10 to M12 included",
+      sorted(c["id"] for c in E2E.multiturn_cases(_real)), [f"M{i:02d}" for i in range(1, 13)])
 check("gate: a failed turn makes a multi-turn record not clean",
       [_G.clean(r) for r in _mt_file["results"]] + [_G.clean({"checks": {"T1.1": True, "_x": False}})],
       [False, True])
@@ -1329,8 +1329,8 @@ check("e2e full set holds TL01-TL06 (the release gate requires it)",
 check("e2e full set holds every single-turn case",
       sorted({i.split("#")[0] for i in _full}),
       sorted(c["id"] for g in E2E.ONLY_GROUPS for c in _spec_all[g]))
-check("e2e full set: 34 questions with C01 three times, 29 additive, 26 theme, 6 timeline",
-      len(_full), 97)
+check("e2e full set: 34 questions with C01 three times, 30 additive, 26 theme, 6 timeline",
+      len(_full), 98)
 
 print("\n--- fixed refusal, T2.16 (2026-11-05, web PR #85) ---")
 # The same 23 strings as jordannedyck-ai-web/scripts/prompt-request.test.mjs.
