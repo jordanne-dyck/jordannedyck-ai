@@ -2100,6 +2100,14 @@ check("same run and count keeps the ruling", by_case["M09"]["signoff"],
 again = {f["case"]: f for f in G.carry_signoffs(new_fails, [dict(by_case["A01"])])}
 check("previous_signoff survives a re-run while still unsigned",
       again["A01"]["previous_signoff"]["run_id"], "266e50ccd5fa")
+# 2026-11-17 (Jord): a tier-1 failure may be signed off "known: <why>" only when the
+# sign-off names the results-log entry that measured its rate.
+check("known: with a results-log id names a rate",
+      bool(G.KNOWN_RATE_RE.search("known: closing offer, 1 in 5 (R-20261116-09)")), True)
+check("known: without a results-log id does not",
+      bool(G.KNOWN_RATE_RE.search("known: happens sometimes")), False)
+check("a template id is not a results-log id",
+      bool(G.KNOWN_RATE_RE.search("known: see R-YYYYMMDD-NN")), False)
 
 # Release gate, evidence (bugs 2026-11-07): the gate matched a run to the index by
 # its filename (no results file said which index answered), read results files

@@ -22,8 +22,9 @@ Each needs, for the prompt and index it will run with:
     data-index part (web, 2026-11-09); an older run recorded none and does not count.
     A multi-turn e2e run needs it on every turn of every conversation.
   - every failing check signed off by Jord, by case, in the evidence file; a tier-1
-    failure only as "checker miss: <why>", or as "not served: <why>" when the e2e run
-    passed that case on dev, since a release needs every tier-1 check
+    failure only as "checker miss: <why>", as "not served: <why>" when the e2e run
+    passed that case on dev, or (Jord, 2026-11-17) as "known: <why>" naming the
+    results-log entry that measured its rate (R-YYYYMMDD-NN)
   - every QA item ticked, in the evidence file
   - (2026-11-07) the public docs brought up to date and approved by Jord: each doc
     in DOCS, as it stands on origin/master, has "approved": true in the evidence
@@ -58,6 +59,9 @@ from pathlib import Path
 
 import run_e2e as E2E
 import run_metrics as RM
+
+# A "known:" tier-1 sign-off names the results-log entry that measured the rate.
+KNOWN_RATE_RE = re.compile(r"\bR-\d{8}-\d{2}\b")
 
 HERE = Path(__file__).resolve().parent
 HISTORY = HERE / "eval_history" / "history.jsonl"
@@ -361,14 +365,19 @@ def main():
     # README: "a release needs all [tier-1 checks] to pass". A tier-1 failure can
     # be signed off only as a checker miss, or (Jord, 2026-11-06) as "not served:"
     # text the site never sends, which counts only when the e2e run passed that
-    # case on dev. A known defect is never accepted. First use: A01, whose model
-    # refusal the site replaces with FIXED_REFUSAL (web #85).
+    # case on dev. First use: A01, whose model refusal the site replaces with
+    # FIXED_REFUSAL (web #85).
+    # 2026-11-17 (Jord): a known defect is accepted as "known: <why>" when the
+    # sign-off names the results-log entry that measured its rate. The a94aeead gate
+    # runs failed A02 T1.6 ("feel free to ask") and M11 t3 T1.8 ("likely contributed"),
+    # draws from nonzero rates (R-20261116-09, R-20261117-06) that no ruling covered.
     t1 = tuple(f"{k}_" for k in eval_set["checks"]["tier1"])
 
     def tier1_ok(f):
         so = f["signoff"].strip().lower()
         return so.startswith("checker miss") or (
-            so.startswith("not served") and f["kind"] not in E2E_KINDS and f["e2e_case_passed"])
+            so.startswith("not served") and f["kind"] not in E2E_KINDS and f["e2e_case_passed"]) or (
+            so.startswith("known:") and bool(KNOWN_RATE_RE.search(f["signoff"])))
 
     tier1 = [f for f in fails if f["check"].startswith(t1) and (f["signoff"] or "").strip()
              and not tier1_ok(f)]
@@ -380,9 +389,10 @@ def main():
     if unsigned:
         problems.append(f"{len(unsigned)} failing check(s) without Jord's sign-off")
     if tier1:
-        problems.append(f"{len(tier1)} tier-1 failure(s) not signed off as 'checker miss: ...' "
-                        "or as 'not served: ...' with the e2e run passing that case; "
-                        "a tier-1 failure blocks the release")
+        problems.append(f"{len(tier1)} tier-1 failure(s) not signed off as 'checker miss: ...', "
+                        "as 'not served: ...' with the e2e run passing that case, or as "
+                        "'known: ...' naming the results-log entry (R-YYYYMMDD-NN) that measured "
+                        "its rate; a tier-1 failure blocks the release")
     if undone:
         problems.append(f"{len(undone)} QA item(s) not ticked")
 
