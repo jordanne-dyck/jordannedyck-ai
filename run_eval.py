@@ -379,11 +379,11 @@ ROLE_QUALIFIER_RE = re.compile(r"^\s*,?\s*(?:like|such as|as|at|with the title|t
 REACH_RANK_RE = re.compile(
     r"\breach(?:ed|es|ing)?\s+the\s+(?:most|largest|widest|broadest|greatest)\b"
     r"|\b(?:largest|widest|broadest|greatest|biggest|most\s+extensive)\s+reach\b"
-    r"|\bmost\s+(?:customers|people)\s+reached\b", re.I)
-SITE_TRAFFIC_RE = re.compile(r"\bvisit(?:or)?s\b", re.I)
-DB_4M_RE = re.compile(r"\b(?:4|four)\s*(?:M\b\+?|million)\+?", re.I)
-DB_WORD_RE = re.compile(r"\b(?:database|accounts?|account holders|customer base)\b", re.I)
-REACH_WORD_RE = re.compile(r"\breach", re.I)
+    r"|\bmost\s+(?:customers|people)\s+reached\b", re.IGNORECASE)
+SITE_TRAFFIC_RE = re.compile(r"\bvisit(?:or)?s\b", re.IGNORECASE)
+DB_4M_RE = re.compile(r"\b(?:4|four)\s*(?:M\b\+?|million)\+?", re.IGNORECASE)
+DB_WORD_RE = re.compile(r"\b(?:database|accounts?|account holders|customer base)\b", re.IGNORECASE)
+REACH_WORD_RE = re.compile(r"\breach", re.IGNORECASE)
 
 
 def reach_rank_spans(ans):
