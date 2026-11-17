@@ -156,6 +156,10 @@ def gap_kind(ans):
 # all inferences stated as hedged claims ("suggests her natural pull is…").
 SPECULATION_RE = re.compile(
     r"\bsuggests?\s+(?:that\s+)?(?:jordanne|she|her)\b"
+    # 2026-11-17 (R-20261117-07): M11 t3 run 1 ended "which suggests a significant
+    # operational improvement". The answer's own inference, any subject. 6 matches in
+    # 3,940 stored answers, all hedged inferences; "The data suggests" still passes.
+    r"|\b(?:which|this|that)\s+(?:also\s+)?suggests?\b"
     r"|"
     r"\b(?:jordanne|she|her work|her role|this role|the role|it|they|which|this)\s+"
     r"(?:(?:would|will|is|was|has|had)\s+)?(?:most\s+)?(?:likely|probably|presumably)\b"

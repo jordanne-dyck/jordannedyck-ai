@@ -497,7 +497,9 @@ VOICE_RE = {
         r"|\bsources (?:available|provided|given)\b"
         # 2026-10-22: the context-worded prompt (ff4d5612) narrates as "The
         # retrieved context does not cover", which "the context" misses.
-        r"|\b(?:retrieved|provided) context\b"
+        # 2026-11-17 (R-20261117-07): M11 t3 run 4 "not provided in the available
+        # context" passed. 9 matches in 3,940 stored answers, all narration.
+        r"|\b(?:retrieved|provided|available) context\b"
         # 2026-11-04 (R-20261104-11): narration with no source noun. 6 of 1,699
         # stored answers, none a false positive: "the information available",
         # "her career, as outlined", "Jordanne Dyck's experience does not
