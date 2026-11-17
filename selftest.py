@@ -475,6 +475,10 @@ for name, ans, want in [
     ("'suggests her' caught", "That suggests her natural pull is toward moving quickly.", False),
     ("'suggests that she' caught", "Her work on FundLocal suggests that she values access.", False),
     ("'suggests' about a product passes", "The data suggests the bundle sold better.", True),
+    # M11 t3 run 1, eval_runs/rate-2026-11-17/m11-a94aeead.json (a94aeead), R-20261117-07.
+    ("'which suggests a' caught", "Agents focused on high-value interactions, which suggests a "
+     "significant operational improvement.", False),
+    ("'This suggests a strong interest' caught", "This suggests a strong interest in access.", False),
 ]:
     c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T1.8_no_speculation"], want)
@@ -502,6 +506,10 @@ for name, ans, want in [
     ("a fact about her background passes",
      "Her background does not include building core banking backends.", True),
     ("'has not designed' passes", "Jordanne has not specifically designed cash-back rewards.", True),
+    # M11 t3 run 4, eval_runs/rate-2026-11-17/m11-a94aeead.json (a94aeead), R-20261117-07.
+    ("'the available context' caught",
+     "Precise impact metrics are not provided in the available context.", False),
+    ("'available' alone passes", "The AI Personal Shopper was available in every market.", True),
 ]:
     c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T1.6_voice"], want)
