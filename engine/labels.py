@@ -150,7 +150,13 @@ def gap_kind(ans):
 # as/more/most/less/would/will, so "twice as likely to buy again" and the KB's
 # "would likely have underperformed" still pass. 2 new matches in 2,794 stored
 # answers, both guesses ("likely helped avoid", "likely contributed").
+# Widened 2026-11-17 (Jord, R-20261117-04): "suggests" + she/Jordanne/her, the
+# hedge word the prompt bans by name. P14 run 5 on a94aeead ended "This approach
+# suggests she would maintain…" and passed. 8 matches in 3,861 stored answers,
+# all inferences stated as hedged claims ("suggests her natural pull is…").
 SPECULATION_RE = re.compile(
+    r"\bsuggests?\s+(?:that\s+)?(?:jordanne|she|her)\b"
+    r"|"
     r"\b(?:jordanne|she|her work|her role|this role|the role|it|they|which|this)\s+"
     r"(?:(?:would|will|is|was|has|had)\s+)?(?:most\s+)?(?:likely|probably|presumably)\b"
     r"|\blikely (?:to )?(?:focus|involv|includ|cover|span|centr|draw|leverag|enta|requir|reflect)\w*"

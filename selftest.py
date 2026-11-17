@@ -469,6 +469,12 @@ for name, ans, want in [
     ("'and likely contributed' caught", "It helped engagement and likely contributed to retention.", False),
     ("'more likely to' passes", "Programs that were more likely to resonate with customers.", True),
     ("KB counterfactual passes", "A strategy that would likely have underperformed.", True),
+    # P14 run 5 on a94aeead, 2026-11-17 (R-20261117-04), and stored answers.
+    ("'suggests she would' caught", "This approach suggests she would maintain a strong focus "
+     "on regulatory requirements.", False),
+    ("'suggests her' caught", "That suggests her natural pull is toward moving quickly.", False),
+    ("'suggests that she' caught", "Her work on FundLocal suggests that she values access.", False),
+    ("'suggests' about a product passes", "The data suggests the bundle sold better.", True),
 ]:
     c = R.run_checks(q2, "A", CTX, R_MOCK, mk(ans))
     check(name, c["T1.8_no_speculation"], want)
