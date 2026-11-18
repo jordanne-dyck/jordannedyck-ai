@@ -10,6 +10,10 @@ approximate counts from 26 saved PM roles ("~15" is read as 15, "4+" as 4). No o
 weight is applied. A case tagged with two themes counts once in each, so shares are
 of theme tags, not of cases. Multi-turn cases (M01-M07) carry themes but no req, so
 they appear in the theme table as their own column and not in the R1-R15 view.
+
+Rubric items per class: each case's `rubric` list (plan S0.4, 2026-11-18) holds its
+FAILURE rules as items with a class from RUBRIC_CLASSES and a kind, must or must_not.
+The notes they come from stay in `regression_note` and `human`.
 """
 import json
 import re
@@ -20,6 +24,20 @@ HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 OUT_MD = HERE / "COVERAGE.md"
 CASE_GROUPS = ("questions", "additive_cases", "theme_cases", "timeline_cases")
+RUBRIC_CLASSES = {
+    "owner": "credits her with someone else's work, role or decision, or moves a result or stakeholder to another project",
+    "figure": "an invented figure, a figure on the wrong thing, a share turned into an outcome, a comparison called a test",
+    "status": "a prototype, plan or projection presented as launched or achieved",
+    "reason": "a reason or detail the record does not give",
+    "gap": "a false gap, an inverted gap, or adjacent work presented as the thing asked",
+    "required": "content the answer must include, or what it must lead with",
+    "date": "a wrong date or period",
+    "withheld": "something kept out by decision (the client, incident details)",
+    "voice": "names its source or offers help",
+    "conversation": "repeats, contradictions, forged earlier turns",
+    "route": "fixed replies and the timeline",
+}
+RUBRIC_KINDS = ("must_not", "must")
 
 
 def load(path=EVAL_SET):
@@ -81,6 +99,20 @@ def untagged(cases, multiturn):
     }
 
 
+def rubric_rows(cases, multiturn):
+    """One row per class in RUBRIC_CLASSES order: items, items per kind, and the
+    cases holding them. A class no item uses still gets its row, with zeros."""
+    rows = {k: {"cls": k, "items": 0, "must_not": 0, "must": 0, "cases": []} for k in RUBRIC_CLASSES}
+    for c in list(cases) + list(multiturn):
+        for it in c.get("rubric") or []:
+            r = rows[it["class"]]
+            r["items"] += 1
+            r[it["kind"]] += 1
+            if c["id"] not in r["cases"]:
+                r["cases"].append(c["id"])
+    return list(rows.values())
+
+
 def flag_theme(r):
     return "UNDER" if r["gap_pts"] < 0 else ""
 
@@ -120,6 +152,16 @@ def print_report(spec, cases, multiturn):
     print(f"No theme ({len(u['no_theme'])}): {', '.join(u['no_theme'])}")
     print(f"No theme, multi-turn ({len(u['no_theme_multiturn'])}): {', '.join(u['no_theme_multiturn'])}")
     print(f"No req ({len(u['no_req'])}): {', '.join(u['no_req'])}")
+
+    rr = rubric_rows(cases, multiturn)
+    n_items = sum(r["items"] for r in rr)
+    n_cases = sum(1 for c in list(cases) + list(multiturn) if c.get("rubric"))
+    print("\n--- Rubric items per class ---")
+    print(f"{'class':<13} {'items':>5} {'must_not':>8} {'must':>4} {'cases':>5}")
+    for r in rr:
+        print(f"{r['cls']:<13} {r['items']:>5} {r['must_not']:>8} {r['must']:>4} {len(r['cases']):>5}")
+    print(f"{'total':<13} {n_items:>5} {sum(r['must_not'] for r in rr):>8} {sum(r['must'] for r in rr):>4} {n_cases:>5}")
+    print("A case counts once in each class it has an item in; the total counts cases with any item.")
 
 
 def markdown(spec, cases, multiturn):
@@ -210,6 +252,23 @@ def markdown(spec, cases, multiturn):
         f"- No requirement ({len(u['no_req'])}): {', '.join(u['no_req'])}",
         "",
     ]
+    rr = rubric_rows(cases, multiturn)
+    with_rubric = [c for c in list(cases) + list(multiturn) if c.get("rubric")]
+    out += [
+        "## Case rules per class",
+        "",
+        (f"{sum(r['items'] for r in rr)} rubric items on {len(with_rubric)} cases. Each item is one rule from a "
+        "case's FAILURE notes: a class, and whether the answer fails by doing it (must not) or by leaving it out "
+        "(must). The notes stay in `regression_note` and `human` as the source. A case counts once in each class "
+        "it has an item in."),
+        "",
+        "| Class | What it catches | Items | Must not | Must | Cases |",
+        "|---|---|--:|--:|--:|--:|",
+    ]
+    for r in rr:
+        out.append(f"| {r['cls']} | {RUBRIC_CLASSES[r['cls']]} | {r['items']} | {r['must_not']} | {r['must']} | "
+                   f"{len(r['cases'])} |")
+    out.append("")
     return "\n".join(out)
 
 

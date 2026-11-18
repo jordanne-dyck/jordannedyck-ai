@@ -1731,6 +1731,46 @@ check(f"estimate counts the {n_theme_cases} theme cases",
       f"--set theme: {n_theme_cases} questions x 1 models" in est, True)
 check("estimate points at the theme file", "eval_results_models_theme.json" in est, True)
 
+print("\n--- case rules: rubric items ---")
+# S0.4, 2026-11-18: a case's FAILURE rules are also a `rubric` list, one item per
+# rule, so a runner can read them. The notes stay as their source. These checks keep
+# the list complete and well formed; Jord's read of a sample checks the meaning.
+import coverage_report as CR
+rb_cases = [c for key in CR.CASE_GROUPS for c in SPEC[key]] + SPEC["multiturn"]["cases"]
+rb_notes = lambda c: f"{c.get('regression_note') or ''} {c.get('human') or ''}"
+rb_items = [it for c in rb_cases for it in c.get("rubric") or []]
+check("rubric: every case whose notes say FAILURE has an item",
+      [c["id"] for c in rb_cases if "FAILURE" in rb_notes(c) and not c.get("rubric")], [])
+check("rubric: no item on a case whose notes have no FAILURE rule",
+      [c["id"] for c in rb_cases if c.get("rubric") and "FAILURE" not in rb_notes(c)], [])
+n_failure = sum(rb_notes(c).count("FAILURE") for c in rb_cases)
+check(f"rubric: at least one item per FAILURE in regression_note and human ({n_failure}, 139 counted 2026-11-18 "
+      f"before the conversations' regression_note)", len(rb_items) >= n_failure >= 139, True)
+check("rubric: the eleven classes", list(CR.RUBRIC_CLASSES),
+      ["owner", "figure", "status", "reason", "gap", "required", "date", "withheld", "voice", "conversation", "route"])
+check("rubric: every class is one of the eleven", sorted({it.get("class") for it in rb_items} - set(CR.RUBRIC_CLASSES)), [])
+check("rubric: every kind is must or must_not", sorted({it.get("kind") for it in rb_items} - {"must", "must_not"}), [])
+check("rubric: item ids are unique", len({it.get("id") for it in rb_items}), len(rb_items))
+check("rubric: an item id is its case id, -r and a number",
+      [it.get("id") for c in rb_cases for it in c.get("rubric") or []
+       if not re.fullmatch(re.escape(c["id"]) + r"-r\d+", str(it.get("id")))], [])
+check("rubric: an item has id, class, kind and a one-line rule, and nothing else but turn",
+      [it.get("id") for it in rb_items if not {"id", "class", "kind", "rule"} <= set(it) <= {"id", "class", "kind", "rule", "turn"}
+       or not str(it["rule"]).strip() or "\n" in str(it["rule"])], [])
+rb_turns = {c["id"]: len(c["turns"]) for c in SPEC["multiturn"]["cases"]}
+check("rubric: turn only on a conversation, and one of its turns",
+      [it["id"] for c in rb_cases for it in c.get("rubric") or [] if "turn" in it
+       and not (c["id"] in rb_turns and type(it["turn"]) is int and 1 <= it["turn"] <= rb_turns[c["id"]])], [])
+_spec_rr, cases_rr, mt_rr = CR.load()
+rows_rr = CR.rubric_rows(cases_rr, mt_rr)
+check("coverage: one rubric row per class, in order", [r["cls"] for r in rows_rr], list(CR.RUBRIC_CLASSES))
+check("coverage: rubric rows add up to every item", sum(r["items"] for r in rows_rr), len(rb_items))
+fx = CR.rubric_rows([{"id": "A", "rubric": [{"class": "owner", "kind": "must_not"}, {"class": "owner", "kind": "must"}]},
+                     {"id": "B"}], [{"id": "M", "rubric": [{"class": "route", "kind": "must"}]}])
+check("coverage: fixture counts items, kinds and cases per class",
+      [(r["cls"], r["items"], r["must_not"], r["must"], r["cases"]) for r in fx if r["items"]],
+      [("owner", 2, 1, 1, ["A"]), ("route", 1, 0, 1, ["M"])])
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.

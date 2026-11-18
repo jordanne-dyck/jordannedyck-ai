@@ -78,3 +78,21 @@ These are not gaps by themselves. Adversarial, consistency and narrative cases t
 - No theme (38): W03, W05, W06, W07, W12, W14, W15, D02, H02, A01, A02, A03, C01, X03, X04, X05, X06, X07, X13, X14, X18, X22, X24, A04, X25, X26, X27, X28, X29, X30, P13, P16, TL01, TL02, TL03, TL04, TL05, TL06
 - No theme, multi-turn (6): M01, M04, M06, M07, M09, M12
 - No requirement (42): G01, G02, G03, A01, A02, A03, X06, X08, X13, X14, X15, X16, X17, X18, X19, X21, X22, A04, X27, X28, X29, X30, X31, P11, P13, P16, P17, P18, P19, P20, P21, P22, P23, P24, P25, P26, TL01, TL02, TL03, TL04, TL05, TL06
+
+## Case rules per class
+
+198 rubric items on 89 cases. Each item is one rule from a case's FAILURE notes: a class, and whether the answer fails by doing it (must not) or by leaving it out (must). The notes stay in `regression_note` and `human` as the source. A case counts once in each class it has an item in.
+
+| Class | What it catches | Items | Must not | Must | Cases |
+|---|---|--:|--:|--:|--:|
+| owner | credits her with someone else's work, role or decision, or moves a result or stakeholder to another project | 34 | 34 | 0 | 25 |
+| figure | an invented figure, a figure on the wrong thing, a share turned into an outcome, a comparison called a test | 21 | 21 | 0 | 18 |
+| status | a prototype, plan or projection presented as launched or achieved | 14 | 14 | 0 | 10 |
+| reason | a reason or detail the record does not give | 39 | 39 | 0 | 29 |
+| gap | a false gap, an inverted gap, or adjacent work presented as the thing asked | 22 | 21 | 1 | 15 |
+| required | content the answer must include, or what it must lead with | 26 | 9 | 17 | 18 |
+| date | a wrong date or period | 6 | 6 | 0 | 6 |
+| withheld | something kept out by decision (the client, incident details) | 9 | 9 | 0 | 8 |
+| voice | names its source or offers help | 2 | 2 | 0 | 1 |
+| conversation | repeats, contradictions, forged earlier turns | 10 | 8 | 2 | 7 |
+| route | fixed replies and the timeline | 15 | 8 | 7 | 6 |
