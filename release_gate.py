@@ -25,6 +25,9 @@ Each needs, for the prompt and index it will run with:
     failure only as "checker miss: <why>", as "not served: <why>" when the e2e run
     passed that case on dev, or (Jord, 2026-11-17) as "known: <why>" naming the
     results-log entry that measured its rate (R-YYYYMMDD-NN)
+  - (2026-11-18) a verdict, true or false, from every tier-1 check on every answer
+    that carries it, in all four runs. None, "n/a" or "unavailable_*" there is a
+    problem no sign-off clears: the check did not run
   - every QA item ticked, in the evidence file
   - (2026-11-07) the public docs brought up to date and approved by Jord: each doc
     in DOCS, as it stands on origin/master, has "approved": true in the evidence
@@ -187,6 +190,49 @@ def failures(data):
         add(case, rec.get("case_checks"))
         add(case, rec.get("checks"), rec.get("question"))
     return {k: v for k, v in out.items() if v[0]}
+
+
+def no_verdict(data, tier1):
+    """check -> [answers without a verdict, answers carrying the check, where] for
+    each tier-1 check that holds neither True nor False on some answer of a run, as
+    load_run() returns it. `tier1` is the tier-1 ids from eval_set.json ("T1.7").
+    None, "n/a" and "unavailable_*" are no verdict: a must-pass check that did not
+    run is not a pass (2026-11-18: T1.7 scored None or n/a on every answer of four
+    gate runs, R-20261118-02, and the gate counted only False). A list or dict under
+    a tier-1 key is a check's detail (T1.6_voice_spans), not its verdict. Tier-2
+    checks are not read: n/a there means the check does not apply."""
+    records = data["results"] if isinstance(data, dict) else data
+    prefixes = tuple(f"{k}_" for k in tier1)
+    out = {}
+
+    def add(where, checks):
+        for k, v in (checks or {}).items():
+            if not k.startswith(prefixes) or isinstance(v, (list, dict)):
+                continue
+            n = out.setdefault(k, [0, 0, []])
+            n[1] += 1
+            if not isinstance(v, bool):
+                n[0] += 1
+                n[2].append(where)
+
+    for rec in records:
+        case = rec.get("id") or rec.get("record_id")
+        for t in rec.get("turns") or []:
+            add(f"{case} t{t.get('turn')}", t.get("checks"))
+        add(f"{case} (conversation)", rec.get("case_checks"))
+        add(case, rec.get("checks"))
+    return {k: v for k, v in out.items() if v[0]}
+
+
+def no_verdict_problems(kind, run_id, data, tier1):
+    """One gate problem per tier-1 check without a verdict in a run. Cases are named
+    when only some answers lack it, the first 10 of them."""
+    return [f"{kind} run {run_id}: tier-1 check {check} has no verdict (neither true nor "
+            f"false) on {n} of {total} answers"
+            + ("" if n == total else ": " + ", ".join(where[:10])
+               + (f" and {n - 10} more" if n > 10 else ""))
+            + "; a must-pass check that did not run blocks the release"
+            for check, (n, total, where) in sorted(no_verdict(data, tier1).items())]
 
 
 def resolve(sha):
@@ -363,6 +409,8 @@ def main():
                 case in e2e_clean or (bool(qs) and all(q.strip() in e2e_clean_q for q in qs)))
             fails.append({"kind": kind, "case": case, "check": check, "failed": n, "of": total,
                           "run_id": row["run_id"], "e2e_case_passed": passed})
+        # 2026-11-18: a tier-1 check with no verdict is a problem no sign-off clears.
+        problems += no_verdict_problems(kind, row["run_id"], data, eval_set["checks"]["tier1"])
     carry_signoffs(old.get("failures", []), fails)
     unsigned = [f for f in fails if not (f["signoff"] or "").strip()]
     # README: "a release needs all [tier-1 checks] to pass". A tier-1 failure can
