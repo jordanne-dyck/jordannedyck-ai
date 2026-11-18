@@ -78,6 +78,9 @@ QA = [
     # 2026-11-10 (Jord): prod #112 turned the lead form on before lead email had worked
     # on dev once (Mailgun 401 until a sending key went in). Dev first, every release.
     "Lead email on dev: scripts/lead-check.mjs (web repo) ends OK, and one real lead from the dev site reaches Jordanne's inbox",
+    # 2026-11-18 (Jord): jordbot-web v1.18 carried the traffic tab and its page-view
+    # beacon (web 1f22beb) with no QA item covering them.
+    "Traffic tab on dev: browse two pages and ask one question from a browser not left out, then /dashboard/admin/traffic shows that visit and the chat joined to it",
 ]
 
 RESULTS_LOG = HERE / "nimbalyst-local" / "results-log.md"
