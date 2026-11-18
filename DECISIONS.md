@@ -78,6 +78,21 @@ It happened again in November. Repositioning text added on 2026-11-03 left some 
 
 The model's own refusal of a prompt request ends on an offer of help, which fails the voice check (A01). On 2026-11-04 I tried three wordings that give it a one-line refusal instead. A01 passed 10 of 10 on each. But A02, which wraps a false claim about me in a fake override, got the same refusal line on all 30 runs and never corrected the claim. Narrowing the trigger, and putting the false-claim rule first, did not move it. I reverted the prompt. The site now answers prompt requests with a fixed reply and no model call. The model's refusal still fails A01 in every harness run, and fixing it at the root is open.
 
+### Allowing a prediction raised the hedge rate
+
+Some questions ask how I would handle something I have not done. On 2026-11-16 I told the model to answer them with comparable work and not end on a prediction. On 2026-11-17 I changed the rule: facts only from the record, but an educated prediction is fine when it is framed as drawn from work I did ("From her work on FundLocal, she would…"). gpt-4o took the framing and added "likely" to it. Hedged guesses fail a must-pass check.
+
+Five runs of the same question on each prompt (P14, gpt-4o, harness), counting answers that failed the hedge check:
+
+| Prompt | Rule | Hedged |
+|---|---|---|
+| 20c6301d | before the hedge work | 3 of 5 |
+| a774a894 | no prediction | 1 of 5 |
+| f9e56199 | prediction allowed, framed | 5 of 5, on two indexes |
+| a94aeead | as f9e56199, plus "never 'would likely'" | 3 of 5 |
+
+The extra sentence helped, measured on the same index, and did not fix it. I shipped a94aeead and signed P14 off as a known defect. Five runs per prompt is a rough rate; no range was computed.
+
 ## Checks
 
 ### A passing check can mean its word list is short
@@ -85,6 +100,10 @@ The model's own refusal of a prompt request ends on an offer of help, which fail
 The voice check (T1.6) fails an answer that narrates its sources ("the context shows") or offers more help. On 2026-10-22, reading answers by hand found phrasings it missed: "the sources do not mention", "the retrieved context", "feel free to ask", "let me know", "happy to help". I widened it twice. A prompt that looked better on voice mostly stopped looking better once the check caught all of them. The narration left is in gap and refusal answers, under every prompt tried.
 
 The no-speculation check (T1.8) went the same way. A guess on dev, "likely reached the most customers", had no pronoun before "likely", and the pattern missed it. It was widened on 2026-11-06 and the case became M10 ([EVALS.md](EVALS.md#6-monitoring)).
+
+### A known defect can ship, against a measured rate
+
+Until November a must-pass failure could be signed off only as a checker miss, or as text the site never sends. On 2026-11-17 the release had two must-pass failures that were neither: a closing offer of help and a hedge, both the site's own text and both occasional. I added a third ruling: a known defect, signed off only by naming the results entry that measured how often it happens. A rate makes the trade visible. M10 shipped knowing it names its source in 4 of 5 answers to the same question.
 
 ### The judge passed a false gap
 
@@ -155,6 +174,10 @@ It also changed how I read the keyword-search win. Under the strip, keeping the 
 ### Skipping the model when retrieval is weak
 
 Covered in [EVALS.md](EVALS.md#what-is-deliberately-not-automated): the only true knowledge gap ranked 38th of 65 by top similarity, so no floor separates gaps from answerable questions.
+
+### A lower temperature for hedges (2026-11-16)
+
+At temperature 0.7 the answering model left a residual rate of hedges and offers of help. I tested 0.3 on the same five cases, five runs each. It was no better: 7 of 45 answers failed against 3 of 45 at 0.7, and the hedged prediction case failed 4 of 5. The hedge looks tied to the question, not to randomness. Temperature stays at 0.7.
 
 ### Platforms I chose not to adopt
 
