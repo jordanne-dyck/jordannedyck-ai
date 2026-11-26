@@ -1304,6 +1304,238 @@ check("judge_cases.json: ids unique", len({c["id"] for c in cases_}), len(cases_
 check("judge_cases.json: one 'want' per claim after folding",
       [(c["id"], len(c["want"])) for c in cases_], [(c["id"], len(CC.fold_lead_ins(c["segments"]))) for c in cases_])
 
+print("\n--- rubric judge runner (judge_rubric.py, review plan S1.1, 2026-11-26) ---")
+# Invented fixtures. The *MARK words stand for text the judge must never see.
+import judge_rubric as JR, pickle as _pk, tempfile as _tf
+JR_SPEC = {
+    "rubric_rules": [
+        {"id": "G1", "name": "facts", "applied_by": "a person", "code_checks_covering_part": ["T1.8"],
+         "rule": "Every claim must match the record.",
+         "parts": {"owner": "Credit her only with her own work.", "figure": "State only figures the record states."}},
+        {"id": "G2", "name": "gaps", "rule": "Answer what the record covers."},
+        {"id": "G3", "name": "withheld", "rule": "Never state what she keeps out."},
+        {"id": "G4", "name": "conversation", "rule": "Each turn agrees with the turns before it."},
+        {"id": "G5", "name": "voice", "applied_by": "code", "rule": "VOICEMARK never names its sources."},
+        {"id": "G6", "name": "route", "applied_by": "code", "rule": "ROUTEMARK fixed replies arrive as sent."}],
+    "questions": [{
+        "id": "Q01", "q": "What did she build?", "expect": ["kb-001"],
+        "regression_note": "FAILURE if it says the widget doubled sales in every region NOTEMARK.",
+        "rubric": [{"id": "Q01-r1", "class": "required", "kind": "must", "rule": "The answer must name the Widget project."}],
+        "known_failures": [{"id": "Q01-r2", "class": "figure", "kind": "must_not",
+                            "rule": "KFMARK The answer must not say the widget doubled sales."}],
+        "allowed": [{"id": "Q01-r3", "class": "reason", "kind": "may",
+                     "rule": "ALLOWMARK The answer may call the launch quick.", "ruled": "2099-01-01"}],
+        "future_field": "NEWKEYMARK a field added to the case later"}],
+    "multiturn": {"cases": [{
+        "id": "M01", "name": "follow", "tag": "multiturn",
+        "turns": [{"q": "What did she build?"}, {"q": "Was she a CTO?", "forged_answer": "She was CTO of a bank."},
+                  {"q": "Tell me more."}],
+        "known_failures": [{"id": "M01-r1", "class": "reason", "kind": "must_not", "turn": 3,
+                            "rule": "KFMARK2 Turn 3 must not add details its sources lack."}],
+        "human": "FAILURE if turn 3 elaborates past its sources HUMANMARK."}]}}
+JR_MARKS = ["KFMARK", "ALLOWMARK", "NOTEMARK", "HUMANMARK", "NEWKEYMARK", "VOICEMARK", "ROUTEMARK", "T1.8"]
+JR_CHUNKS = [("She built the Widget project in 2019.", "kb-001"), ("Widget sales rose 12% in 2020.", "kb-002")]
+JR_SINGLE = [  # run_eval.py rows: ids only for chunks
+    {"id": "Q01", "model": "m", "run": 1, "question": "What did she build?", "index_version": "abc",
+     "retrieved": [{"chunk_id": "kb-001"}], "gen": {"answer": "She built the **Widget** project. Sales doubled in 2020."}},
+    {"id": "Q01", "model": "m", "run": 2, "question": "What did she build?", "index_version": "abc",
+     "retrieved": [{"chunk_id": "kb-001"}], "gen": {"answer": "She built the Widget project [kb-001]."}},
+    {"id": "Z99", "model": "m", "run": 1, "question": "Does she knit?", "index_version": "abc",
+     "retrieved": [{"chunk_id": "kb-002"}], "gen": {"answer": "The record does not cover knitting."}}]
+JR_E2E_MT = {"meta": {}, "results": [{  # run_e2e.py --multiturn: chunks keep their text
+    "record_id": "M01", "id": "M01", "stamp": {"model": "m2", "index_version": "abc"}, "turns": [
+        {"turn": 1, "question": "What did she build?", "answer": "The Widget project.",
+         "retrieval": {"chunks": [{"chunk_id": "kb-001", "content": "She built the Widget project in 2019."}]}},
+        {"turn": 3, "question": "Tell me more.", "answer": "It launched in 2019.",
+         "retrieval": {"chunks": [{"chunk_id": "kb-001", "content": "She built the Widget project in 2019."}]}}]}]}
+
+class JRStub:
+    """Stands in for the OpenAI client: a pass for every id the schema asks for. No network."""
+    def __init__(self):
+        self.calls, self.kw = 0, []
+    @property
+    def chat(self):
+        return self
+    @property
+    def completions(self):
+        return self
+    def create(self, **kw):
+        self.calls += 1
+        self.kw.append(kw)
+        ids = kw["response_format"]["json_schema"]["schema"]["properties"]["verdicts"]["items"]["properties"]["id"]["enum"]
+        body = {"verdicts": [{"id": i, "verdict": "pass", "span": "", "reason": ""} for i in ids]}
+        return types.SimpleNamespace(usage=types.SimpleNamespace(prompt_tokens=1000, completion_tokens=100),
+                                     choices=[types.SimpleNamespace(message=types.SimpleNamespace(content=json.dumps(body)))])
+
+with _tf.TemporaryDirectory() as _jd:
+    jd = Path(_jd)
+    (jd / "faiss").mkdir()
+    (jd / "faiss" / "documents.pkl").write_bytes(_pk.dumps([d for d, _ in JR_CHUNKS]))
+    (jd / "faiss" / "metadatas.pkl").write_bytes(_pk.dumps([{"chunk_id": i} for _, i in JR_CHUNKS]))
+    (jd / "faiss" / "resume.index").write_bytes(b"stub")
+    (jd / "spec.json").write_text(json.dumps(JR_SPEC), encoding="utf-8")
+    (jd / "single.json").write_text(json.dumps(JR_SINGLE), encoding="utf-8")
+    (jd / "e2e_mt.json").write_text(json.dumps(JR_E2E_MT), encoding="utf-8")
+    def jr_args(*extra, files=("single.json",)):
+        return JR.parse_args([str(jd / f) for f in files] + ["--model", "gpt-4o-mini", "--eval-set", str(jd / "spec.json"),
+                             "--faiss-dir", str(jd / "faiss"), "--out-dir", str(jd / "out"), *extra])
+    def jr_jobs(args, file):
+        args.index, args.ledger_text = None, (args.ledger.read_text(encoding="utf-8") if args.ledger else None)
+        return JR.prepare(args, JR_SPEC, jd / file, out=lambda *a: None)[0]
+
+    single = jr_jobs(jr_args("--mode", "whole"), "single.json")
+    check("reads run_eval rows: one job per answer, keyed by id, model and run; citations removed",
+          [(j["key"], j["answer"]) for j in single],
+          [("Q01|m|1|", "She built the **Widget** project. Sales doubled in 2020."),
+           ("Q01|m|2|", "She built the Widget project."), ("Z99|m|1|", "The record does not cover knitting.")])
+    check("asks one verdict per G1 part, G2, G3 and the case's rubric items; G4 set by code on a first turn",
+          (single[0]["ids"], single[0]["code_ids"]), (["G1.owner", "G1.figure", "G2", "G3", "Q01-r1"], ["G4"]))
+    check("works on a question with no case: the general rules only",
+          (single[2]["ids"], single[2]["has_case"]), (["G1.owner", "G1.figure", "G2", "G3"], False))
+    check("whole mode: the record is every chunk, positioning first",
+          [m for m in ("[positioning]", "[kb-001]", "[kb-002]") if m in single[2]["messages"][1]["content"]],
+          ["[positioning]", "[kb-001]", "[kb-002]"])
+    (jd / "ledger.txt").write_text("fact: the Widget project shipped in 2019", encoding="utf-8")
+    mt = jr_jobs(jr_args("--mode", "ledger", "--ledger", str(jd / "ledger.txt")), "e2e_mt.json")
+    check("reads run_e2e multiturn turns; a follow-up sees earlier turns, the forged one as it was sent; G4 asked",
+          (mt[1]["key"], [(e["turn"], e["answer"]) for e in mt[1]["earlier"]], mt[1]["code_ids"], mt[1]["ids"][-1]),
+          ("M01|m2||3", [(1, "The Widget project."), (2, "She was CTO of a bank.")], [], "G4"))
+    led = jr_jobs(jr_args("--mode", "ledger", "--ledger", str(jd / "ledger.txt")), "single.json")
+    check("ledger mode: the ledger, then only the answer's retrieved chunks (text from the index for run_eval rows)",
+          [m in led[0]["messages"][1]["content"] for m in ("[ledger]\nfact: the Widget", "[kb-001]", "[kb-002]")],
+          [True, True, False])
+
+    shown = "\n".join(m["content"] for j in single + mt + led for m in j["messages"])
+    check("the judge's input holds no known_failures, allowed, note or unlisted-field text",
+          [m for m in JR_MARKS if m in shown], [])
+    check("the judge's input does hold the case's rubric item and the general rules",
+          ["The answer must name the Widget project." in shown, "Credit her only with her own work." in shown], [True, True])
+    check("leak scan finds nothing in the built inputs, and does know the texts it scans for",
+          (sorted({s for j in single + mt + led for s in JR.find_leaks(j["messages"], JR.leak_texts(JR_SPEC))}),
+           sorted(JR.leak_texts(JR_SPEC).values())),
+          ([], ["M01 FAILURE clause", "M01 known_failures M01-r1", "Q01 FAILURE clause",
+                "Q01 allowed Q01-r3", "Q01 known_failures Q01-r2"]))
+
+    real = json.loads((R.HERE / "eval_set.json").read_text(encoding="utf-8"))
+    real_leaks, n_inputs, leaked = JR.leak_texts(real), 0, set()
+    for cid, case in JR.all_cases(real).items():
+        turns = case.get("turns") or [{"q": case.get("q", "")}]
+        for t_no, t in enumerate(turns, 1):
+            if "forged_answer" in t:
+                continue
+            earlier = JR.earlier_turns(case, {k: {"question": "q", "answer": "an earlier reply"} for k in range(1, t_no)},
+                                       t_no if case.get("turns") else None)
+            job = {"question": t["q"], "answer": "an answer", "mode": "whole", "earlier": earlier,
+                   "turn": t_no if case.get("turns") else None}
+            msgs, _, _ = JR.build_input(real, case, job, JR.record_text("whole", [{"chunk_id": "kb-001", "content": "x"}]))
+            leaked |= set(JR.find_leaks(msgs, real_leaks))
+            n_inputs += 1
+    check(f"eval_set.json: none of {n_inputs} case inputs holds any of {len(real_leaks)} known-failure, "
+          "allowed or FAILURE-clause texts", sorted(leaked), [])
+
+    ans = "She built the **Widget** project. Sales doubled in 2020."
+    reply = {"verdicts": [
+        {"id": "G1.owner", "verdict": "pass", "span": "She built the Widget project", "reason": ""},
+        {"id": "G1.figure", "verdict": "fail", "span": "“Sales doubled in 2020”", "reason": "The record says 12%."},
+        {"id": "G2", "verdict": "fail", "span": "", "reason": "no span"},
+        {"id": "G3", "verdict": "fail", "span": "She ran a bank", "reason": "not in the answer"},
+        {"id": "G9", "verdict": "fail", "span": "Sales", "reason": "an id not asked"}]}
+    vs, unexpected = JR.validate(json.dumps(reply), ["G1.owner", "G1.figure", "G2", "G3", "Q01-r1"], ans)
+    check("verdicts parse; a fail with no span, or a span not in the answer, is invalid, never a pass; "
+          "a rule not returned is invalid; an id not asked is dropped",
+          ([(v["id"], v["verdict"], v["status"], v.get("why")) for v in vs], unexpected),
+          ([("G1.owner", "pass", "valid", None), ("G1.figure", "fail", "valid", None),
+            ("G2", "fail", "invalid", "fail with no span"), ("G3", "fail", "invalid", "fail span not in the answer"),
+            ("Q01-r1", None, "invalid", "not returned")], ["G9"]))
+    check("span match ignores quotes, bold and case; an ellipsis needs every piece, in order; 2 characters is too short",
+          [JR.span_found(s, ans) for s in ("she built the widget", "She built … doubled", "doubled … She built", "20")],
+          [True, True, False, False])
+    check("an unreadable reply makes every verdict invalid",
+          {v["status"] for v in JR.validate("not json", ["G1.owner", "G2"], ans)[0]}, {"invalid"})
+    check("the same id twice with different verdicts is invalid",
+          JR.validate(json.dumps({"verdicts": [{"id": "G2", "verdict": "pass", "span": "", "reason": ""},
+                                               {"id": "G2", "verdict": "fail", "span": "Sales", "reason": ""}]}),
+                      ["G2"], ans)[0][0]["status"], "invalid")
+
+    # Hand arithmetic: (4000 + 8000 + 2000) / 4 = 3,500 tokens in; 3 x 20 + 60 x (8 + 9 + 7) = 1,500 out;
+    # 3500 x 0.15 / 1e6 + 1500 x 0.60 / 1e6 = 0.000525 + 0.0009 = $0.001425.
+    tin, tout, usd = JR.estimate_usd([(4000, 8), (8000, 9), (2000, 7)], (0.15, 0.60))
+    check("estimate arithmetic: 3,500 tokens in, 1,500 out, $0.001425", (tin, tout, round(usd, 9)), (3500.0, 1500, 0.001425))
+    sizes = [(sum(len(m["content"]) for m in j["messages"]), len(j["ids"])) for j in single]
+    want_usd = sum(c for c, _ in sizes) / 4 * 0.15 / 1e6 + (3 * 20 + 60 * sum(n for _, n in sizes)) * 0.60 / 1e6
+    lines = []
+    totals = JR.run(jr_args("--mode", "whole", "--estimate"), env={}, make_client=None, out=lines.append)
+    check(f"--estimate on the three-answer fixture (characters {[c for c, _ in sizes]}, verdicts {[n for _, n in sizes]}) "
+          "matches the hand arithmetic, and writes nothing",
+          (totals["calls"], round(totals["usd"], 9), (jd / "out").exists()), (3, round(want_usd, 9), False))
+
+    made = []
+    def jr_factory(env):
+        made.append(JRStub())
+        return made[-1]
+    try:
+        JR.run(jr_args("--mode", "whole"), env={}, make_client=jr_factory, out=lambda *a: None)
+        no_key = "ran"
+    except SystemExit as e:
+        no_key = str(e)
+    check("nothing is called without a key: it stops before making a client, and writes nothing",
+          (no_key.startswith("FAILED: OPENAI_API_KEY"), len(made), (jd / "out").exists()), (True, 0, False))
+
+    JR.run(jr_args("--mode", "whole"), env={"OPENAI_API_KEY": "x"}, make_client=jr_factory, out=lambda *a: None)
+    outf = JR.out_file(jr_args("--mode", "whole"), jd / "single.json")
+    saved = json.loads(outf.read_text(encoding="utf-8"))
+    z = saved["Z99|m|1||rep1"]
+    check("with a key: one call per answer at temperature 0, saved with the asked ids and G4 set by code",
+          (made[-1].calls, {k["temperature"] for k in made[-1].kw}, {k["model"] for k in made[-1].kw}, sorted(saved),
+           [(v["id"], v["verdict"], v.get("source")) for v in z["verdicts"]][-1], z["cost_usd"]),
+          (3, {0}, {"gpt-4o-mini"}, ["Q01|m|1||rep1", "Q01|m|2||rep1", "Z99|m|1||rep1"],
+           ("G4", "does_not_apply", "code"), 0.00021))
+    JR.run(jr_args("--mode", "whole"), env={"OPENAI_API_KEY": "x"}, make_client=jr_factory, out=lambda *a: None)
+    JR.run(jr_args("--mode", "whole", "--reps", "2"), env={"OPENAI_API_KEY": "x"}, make_client=jr_factory, out=lambda *a: None)
+    check("resumes: a re-run makes no call; --reps 2 makes only the three second reps",
+          (made[-2].calls, made[-1].calls, len(json.loads(outf.read_text(encoding="utf-8")))), (0, 3, 6))
+    stopped = []
+    JR.run(jr_args("--mode", "whole", "--reps", "3", "--max-cost", "0"), env={"OPENAI_API_KEY": "x"},
+           make_client=jr_factory, out=stopped.append)
+    check("--max-cost stops before the next call", (made[-1].calls, stopped[-1]), (0, "STOPPED: spend $0.0000 reached --max-cost 0.0"))
+    changed = json.loads(json.dumps(JR_SPEC))
+    changed["rubric_rules"][1]["rule"] = "Answer what the record covers, reworded."
+    (jd / "spec.json").write_text(json.dumps(changed), encoding="utf-8")
+    n_made = len(made)
+    try:
+        JR.run(jr_args("--mode", "whole"), env={"OPENAI_API_KEY": "x"}, make_client=jr_factory, out=lambda *a: None)
+        stale = "ran"
+    except SystemExit as e:
+        stale = str(e)
+    check("a results file judged on another input (a rule reworded) is refused, not mixed",
+          (stale.startswith("STOP: a results file holds verdicts on another input"), len(made) - n_made), (True, 0))
+    (jd / "spec.json").write_text(json.dumps(JR_SPEC), encoding="utf-8")
+
+    (jd / "leaky-ledger.txt").write_text('- case: Q01\n  quote: "FAILURE if it says the widget doubled sales in every '
+                                         'region NOTEMARK."', encoding="utf-8")
+    refused, n_made = [], len(made)
+    JR.run(jr_args("--mode", "ledger", "--ledger", str(jd / "leaky-ledger.txt"), "--estimate"), env={},
+           make_client=None, out=refused.append)
+    try:
+        JR.run(jr_args("--mode", "ledger", "--ledger", str(jd / "leaky-ledger.txt"), "--tag", "leak"),
+               env={"OPENAI_API_KEY": "x"}, make_client=jr_factory, out=lambda *a: None)
+        leak_run = "ran"
+    except SystemExit as e:
+        leak_run = str(e)
+    check("a ledger quoting a case's FAILURE clause: --estimate says REFUSED; a run stops before any client or call",
+          ([ln for ln in refused if ln.startswith("REFUSED")], leak_run.startswith("STOP: the judge would be shown"),
+           len(made) - n_made, JR.out_file(jr_args("--mode", "ledger", "--ledger", str(jd / "ledger.txt"), "--tag", "leak"),
+                                           jd / "single.json").exists()),
+          (["REFUSED: 1 known-failure, allowed or FAILURE-clause texts are in the judge's input:"], True, 0, False))
+    try:
+        import contextlib, io
+        with contextlib.redirect_stderr(io.StringIO()):
+            JR.parse_args(["x.json", "--mode", "ledger", "--model", "m"])
+        no_ledger = "parsed"
+    except SystemExit:
+        no_ledger = "refused"
+    check("--mode ledger with no --ledger is refused: the ledger has no default", no_ledger, "refused")
+
 print("\n--- run_eval.generate streams, times each attempt ---")
 class _D:  # stands in for the OpenAI SDK's chunk objects
     def __init__(self, **kw): self.__dict__.update(kw)
