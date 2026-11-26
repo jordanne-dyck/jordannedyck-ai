@@ -603,6 +603,42 @@ FIGURE_DENIAL_RE = re.compile(
     r"\b(?:has not|hasn't|have not|haven't|was not|wasn't|does not indicate|doesn't indicate)\b")
 
 
+def unsupported_figures(ans, context, question=""):
+    """T2.2: the figures in `ans` that `context` does not hold, as written, sorted."""
+    ctx_figures = figure_values(context)
+    q_numbers = {n for n, _ in figure_values(question or "", claims_only=True)}
+    unsupported = []
+    for key, fig in figure_values(ans, claims_only=True).items():
+        if not figure_supported(key, ctx_figures):
+            # A figure the visitor supplied, repeated in a sentence that denies
+            # it ("no record of 20 years as CTO"), is not a claim. Repeated
+            # without a denial it still fails: that is accepting a false premise.
+            if key[0] in q_numbers and any(
+                    FIGURE_DENIAL_RE.search(s.lower()) or any(n in s.lower() for n in DENIAL_MARKERS)
+                    for s in re.split(r"(?<=[.!?])\s+", ans) if fig in s):
+                continue
+            unsupported.append(fig)
+    return sorted(unsupported)
+
+
+def context_checks(q, context, ids, ans):
+    """T2.1 and T2.2: the answer against what the model was given, the retrieved
+    chunk ids in order and the context built from them. One implementation for
+    both runners: run_checks() here, and run_e2e.py's check_answer() on the
+    context it rebuilds from the site's data-retrieval part (S0.3, 2026-11-18).
+    The context is the current turn's only, so a follow-up that repeats a figure
+    from an earlier turn's sources fails T2.2 (a known checker defect)."""
+    expected = q.get("expect") or []
+    unsupported = unsupported_figures(ans, context, q.get("q", ""))
+    return {
+        "T2.1_retrieval_hit": (bool(set(expected) & set(ids)) if expected else None),
+        "_expected_hit": sorted(set(expected) & set(ids)),
+        "_expected_miss": sorted(set(expected) - set(ids)),
+        "T2.2_figure_fidelity": not unsupported,
+        "_unsupported_figures": unsupported,
+    }
+
+
 def run_checks(q, arm, context, retrieved, gen):
     ans = gen["answer"] or ""
     ids = [r["chunk_id"] for r in retrieved]
@@ -628,26 +664,7 @@ def run_checks(q, arm, context, retrieved, gen):
     checks["T1.8_no_speculation"] = not spec_spans
     checks["_speculation_spans"] = spec_spans
 
-    expected = q.get("expect") or []
-    checks["T2.1_retrieval_hit"] = (bool(set(expected) & set(ids)) if expected else None)
-    checks["_expected_hit"] = sorted(set(expected) & set(ids))
-    checks["_expected_miss"] = sorted(set(expected) - set(ids))
-
-    ctx_figures = figure_values(context)
-    q_numbers = {n for n, _ in figure_values(q.get("q", ""), claims_only=True)}
-    unsupported = []
-    for key, fig in figure_values(ans, claims_only=True).items():
-        if not figure_supported(key, ctx_figures):
-            # A figure the visitor supplied, repeated in a sentence that denies
-            # it ("no record of 20 years as CTO"), is not a claim. Repeated
-            # without a denial it still fails: that is accepting a false premise.
-            if key[0] in q_numbers and any(
-                    FIGURE_DENIAL_RE.search(s.lower()) or any(n in s.lower() for n in DENIAL_MARKERS)
-                    for s in re.split(r"(?<=[.!?])\s+", ans) if fig in s):
-                continue
-            unsupported.append(fig)
-    checks["T2.2_figure_fidelity"] = not unsupported
-    checks["_unsupported_figures"] = sorted(unsupported)
+    checks.update(context_checks(q, context, ids, ans))
 
     if q["tag"] == "gap":
         checks["T2.3_gap_honesty"] = gap_admitted(ans)

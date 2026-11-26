@@ -627,6 +627,77 @@ c = E2E.check_answer(R, {"id": "P16", "tag": "ws_core"}, {**_res, "answer": "Her
 check("speculation caught end to end, span kept", (c["T1.8_no_speculation"], c["T1.8_speculation_spans"]),
       (False, ["Her work likely"]))
 
+# S0.3, 2026-11-18: T2.1 and T2.2 run end to end on the data-retrieval part the site
+# streams (chunk ids and full text). Until then both were unavailable_no_context on
+# every record, though the 2026-11-18 gate file held five chunks with text on all 98.
+print("\n--- run_e2e: T2.1 and T2.2 from the stored retrieval part ---")
+_part = {"query": "q", "status": "ok", "chunks": [
+    {"chunk_id": "ops-003", "filename": "f", "title": "How I Operate", "similarity": 0.7,
+     "content": "cut resolution time by 86% and lifted conversion 35% on $150M+ revenue"},
+    {"chunk_id": "exp-001", "filename": "g", "title": "Loblaw", "similarity": 0.6, "content": "Led 12 people."}]}
+_qe = {"id": "W01", "tag": "ws_core", "q": "What did she change?", "expect": ["ops-003", "shopper-001"]}
+_ok = "She cut resolution time 86% and led 12 people. [ops-003]"
+c = E2E.check_answer(R, _qe, {**_res, "answer": _ok, "retrieval": _part})
+check("with a retrieval part: T2.1 and T2.2 are booleans, expected hit and missed recorded",
+      (c["T2.1_retrieval_hit"], c["_expected_hit"], c["_expected_miss"], c["T2.2_figure_fidelity"],
+       c["_unsupported_figures"]), (True, ["ops-003"], ["shopper-001"], True, []))
+c = E2E.check_answer(R, _qe, {**_res, "answer": "She cut resolution time 92% across 4,700 stores.", "retrieval": _part})
+check("a figure not in the stored chunks fails T2.2 end to end, figures listed",
+      (c["T2.2_figure_fidelity"], c["_unsupported_figures"]), (False, ["4,700", "92%"]))
+c = E2E.check_answer(R, _qe, {**_res, "answer": _ok})
+check("no retrieval part: both stay unavailable_no_context, no detail keys",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"], "_expected_hit" in c),
+      ("unavailable_no_context", "unavailable_no_context", False))
+c = E2E.check_answer(R, {**_qe, "expect": ["shopper-001"]}, {**_res, "answer": _ok, "retrieval": _part})
+check("expected id not retrieved fails T2.1 end to end", (c["T2.1_retrieval_hit"], c["_expected_miss"]),
+      (False, ["shopper-001"]))
+c = E2E.check_answer(R, {**_qe, "expect": []}, {**_res, "answer": _ok, "retrieval": _part})
+check("no expect list: T2.1 None, as run_eval.py gives it", c["T2.1_retrieval_hit"], None)
+c = E2E.check_answer(R, {"id": "TL01", "tag": "timeline", "fixed_lead": True, "expect": ["exp-001"]},
+                     {**_res, "answer": R.FIXED_LEAD, "retrieval": _part, "timeline": {"explicit": True}})
+check("a fixed reply never reached the model: T2.1 and T2.2 n/a",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"]), ("n/a", "n/a"))
+# P17, P19, P20, P24 on 2026-11-18: the site's build story, with its own figures
+# ("96 of 97"), failed T2.2 until the data-story part marked it as a fixed reply.
+_story = "{{story}}\n\n**Evals.** 90+ test cases; 96 of 97 answers through the live site passed."
+c = E2E.check_answer(R, {"id": "P17", "tag": "theme", "expect": ["proj-ai-resume-001"]},
+                     {**_res, "answer": _story, "retrieval": _part, "parts_seen": {"data-story": 1}})
+check("the build story (data-story part) is a fixed reply: T2.1 and T2.2 n/a",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"]), ("n/a", "n/a"))
+c = E2E.check_answer(R, {"id": "P17", "tag": "theme", "expect": ["proj-ai-resume-001"]},
+                     {**_res, "answer": _story, "retrieval": _part, "parts_seen": {"text-delta": 3}})
+check("the same text with no data-story part is scored, and its figures fail T2.2",
+      (c["T2.2_figure_fidelity"], c["_unsupported_figures"]), (False, ["90+", "96", "97"]))
+_noText = {**_part, "chunks": [{k: v for k, v in ch.items() if k != "content"} for ch in _part["chunks"]]}
+c = E2E.check_answer(R, _qe, {**_res, "answer": _ok, "retrieval": _noText})
+check("chunks with no text: T2.1 from the ids, T2.2 unavailable",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"]), (True, "unavailable_no_context"))
+c = E2E.check_answer(None, _qe, {**_res, "answer": _ok, "retrieval": _part})
+check("no harness: unavailable_no_checkers", c["T2.2_figure_fidelity"], "unavailable_no_checkers")
+# One implementation: the context run_e2e.py rebuilds is the string run_eval.py builds
+# for the same results, and both runners give the same T2.1/T2.2 fields on it.
+_results = [{"content": ch["content"], "similarity": ch["similarity"],
+             "metadata": {"chunk_id": ch["chunk_id"], "title": ch["title"], "filename": ch["filename"]}}
+            for ch in _part["chunks"]]
+_ctx, _meta = R.search_experience(None, 5, None, results=_results)
+check("rebuilt context is run_eval's context for the same chunks",
+      E2E.context_from_retrieval(_part), (_ctx, ["ops-003", "exp-001"]))
+_t2 = ("T2.1_retrieval_hit", "_expected_hit", "_expected_miss", "T2.2_figure_fidelity", "_unsupported_figures")
+_bad = []
+for _a in (_ok, "She cut resolution time 92% across 4,700 stores.", "From 2022 to 2025 she led the work.",
+           "Jordanne Dyck has not spent 20 years as a CTO.", ""):
+    for _q in (_qe, {**_qe, "expect": []}, {**_qe, "q": "Was she a CTO for 20 years?"}):
+        _h = R.run_checks(_q, "B", _ctx, _meta, mk(_a))
+        _e = E2E.check_answer(R, _q, {**_res, "answer": _a, "retrieval": _part})
+        if {k: _h[k] for k in _t2} != {k: _e[k] for k in _t2} or {k: _h[k] for k in _t2} != R.context_checks(_q, _ctx, [m["chunk_id"] for m in _meta], _a):
+            _bad.append((_a[:30], _q.get("q")))
+check("run_checks, check_answer and context_checks agree on T2.1/T2.2 (15 inputs)", _bad, [])
+# run_eval.py's own T2.2 results are unchanged by the move (the cases above, on CTX).
+check("run_checks T2.2 is context_checks' T2.2",
+      [R.run_checks(q2, "A", CTX, R_MOCK, mk(a))["_unsupported_figures"] for a in
+       ("She cut resolution time 86% and lifted conversion 35%.", "She drove a 92% reduction across 4,700 stores.")],
+      [[], ["4,700", "92%"]])
+
 # 2026-11-04: --only reaches additive and theme cases. 2026-11-09: a full run asks
 # every group, so the release gate's e2e run covers them all. --set asks one set alone.
 _spec = {"questions": [{"id": "G01", "q": "g"}, {"id": "C01", "q": "c", "runs": 2}],
