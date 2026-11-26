@@ -99,10 +99,9 @@
 
     { "id": "W05", "tag": "ws_core", "req": ["R5"], "themes": [],
       "q": "Tell me about a time Jordanne told leadership something they didn't want to hear.",
-      "regression_note": "Added 2026-10-22: under every prompt run 2026-10-21/22, answers say the points-program recommendation led to a swift decision that stayed made ('allowing the group to make an informed decision swiftly and confidently'). ops-003 gives this only as a general principle ('Put the tradeoff on the table with the reasoning attached and a group can decide quickly and stay decided') and says nothing about how DECIEM's leadership reacted. FAILURE if the answer says how fast they decided, that she met or overcame pushback, or that she stood firm. As of the KB round-7 edit, ops-003 says 'They agreed to go ahead as I recommended', so saying leadership agreed is now correct. Correct: what she recommended, why, that they agreed, and what she built instead. KB wording proposal: nimbalyst-local/kb-wording-proposals-2026-10-22.md.",
+      "regression_note": "Added 2026-10-22: under every prompt run 2026-10-21/22, answers say the points-program recommendation led to a swift decision that stayed made ('allowing the group to make an informed decision swiftly and confidently'). ops-003 gives this only as a general principle ('Put the tradeoff on the table with the reasoning attached and a group can decide quickly and stay decided') and says nothing about how DECIEM's leadership reacted. FAILURE if the answer says how fast they decided, that she met or overcame pushback, or that she stood firm. As of the KB round-7 edit, ops-003 says 'They agreed to go ahead as I recommended', so saying leadership agreed is now correct. Correct: what she recommended, why, that they agreed, and what she built instead. KB wording proposal: nimbalyst-local/kb-wording-proposals-2026-10-22.md. 2026-11-26 (Jord, sample read of the known failures): saying she met and overcame pushback is not a failure. ops-003 now says leadership did not want to hear it and agreed after seeing her rationale and alternate proposal. Known failure W05-r2 retired.",
       "known_failures": [
         { "id": "W05-r1", "class": "reason", "kind": "must_not", "rule": "The answer must not say how fast leadership decided on her points-program recommendation." },
-        { "id": "W05-r2", "class": "reason", "kind": "must_not", "rule": "The answer must not say she met or overcame pushback." },
         { "id": "W05-r3", "class": "reason", "kind": "must_not", "rule": "The answer must not say she stood firm." }
       ],
       "expect": ["ops-003", "promo-002"] },
@@ -160,10 +159,9 @@
 
     { "id": "W15", "tag": "ws_core", "req": ["R15"], "themes": [],
       "q": "What is Jordanne like as a leader when stakeholders disagree with each other?",
-      "regression_note": "Added 2026-10-22: hybrid runs attach 'brand, lab, legal and regulatory' to the Salesforce transformation (ops-008 gives them to Regimen Builder only), and say she 'guides stakeholders to consensus', where ops-008 says 'you will not finish with everyone happy'. FAILURE if a stakeholder group is moved to another project, or if the answer says she brings everyone to consensus or keeps everyone happy.",
+      "regression_note": "Added 2026-10-22: hybrid runs attach 'brand, lab, legal and regulatory' to the Salesforce transformation (ops-008 gives them to Regimen Builder only), and say she 'guides stakeholders to consensus', where ops-008 says 'you will not finish with everyone happy'. FAILURE if a stakeholder group is moved to another project, or if the answer says she brings everyone to consensus or keeps everyone happy. 2026-11-26 (Jord, sample read of the known failures): saying she brings everyone to consensus, or that everyone is happy, is not a failure. Jord: the 'not consensus, it is disappointment' line in ops-009 is a funny anecdote about trying to drive consensus on a roadmap and was being taken out of context. Known failure W15-r2 retired.",
       "known_failures": [
-        { "id": "W15-r1", "class": "owner", "kind": "must_not", "rule": "The answer must not move a stakeholder group to another project." },
-        { "id": "W15-r2", "class": "reason", "kind": "must_not", "rule": "The answer must not say she brings everyone to consensus or keeps everyone happy." }
+        { "id": "W15-r1", "class": "owner", "kind": "must_not", "rule": "The answer must not move a stakeholder group to another project." }
       ],
       "expect": ["personality-002", "ops-007", "ops-003", "shopper-007", "ops-009"] },
 
@@ -272,11 +270,10 @@
 
     { "id": "C01", "tag": "consistency", "req": ["R5"], "themes": [], "runs": 3,
       "q": "Tell me about a time Jordanne told leadership something they didn't want to hear.",
-      "regression_note": "Added 2026-10-22: same defect as W05, in all three runs under every prompt ('enabled a swift and conclusive decision'; hybrid run 2 run 3 adds 'Her decision to stand firm'). ops-003 states the quick decision only as a general principle and records no pushback. FAILURE if any run says how fast they decided, that she met or overcame pushback, or that she stood firm. Saying leadership agreed to her recommendation is correct as of the KB round-7 edit ('They agreed to go ahead as I recommended').",
+      "regression_note": "Added 2026-10-22: same defect as W05, in all three runs under every prompt ('enabled a swift and conclusive decision'; hybrid run 2 run 3 adds 'Her decision to stand firm'). ops-003 states the quick decision only as a general principle and records no pushback. FAILURE if any run says how fast they decided, that she met or overcame pushback, or that she stood firm. Saying leadership agreed to her recommendation is correct as of the KB round-7 edit ('They agreed to go ahead as I recommended'). 2026-11-26 (Jord, ruled on W05, the same question): saying she met and overcame pushback is not a failure. Known failure C01-r2 retired.",
       "expect": ["ops-003", "promo-002"],
       "known_failures": [
         { "id": "C01-r1", "class": "reason", "kind": "must_not", "rule": "The answer must not say how fast leadership decided." },
-        { "id": "C01-r2", "class": "reason", "kind": "must_not", "rule": "The answer must not say she met or overcame pushback." },
         { "id": "C01-r3", "class": "reason", "kind": "must_not", "rule": "The answer must not say she stood firm." }
       ],
       "consistency_note": "Same prompt as W05. Three runs at temperature 0.7 — do they name the same core evidence?" },
@@ -421,11 +418,11 @@
       "q": "How did customers earn rewards on DECIEM's Virtual Shelf?",
       "expect": ["shelf-001", "shelf-002", "promo-006"],
       "known_failures": [
-        { "id": "X15-r1", "class": "status", "kind": "must_not", "rule": "The answer must not say or imply that customers earned, used or were offered rewards on Virtual Shelf." },
+        { "id": "X15-r1", "class": "status", "kind": "must_not", "rule": "The answer must not say that real customers earned, used or were offered rewards on Virtual Shelf; describing the badge mechanic as designed is not a failure." },
         { "id": "X15-r2", "class": "status", "kind": "must_not", "rule": "The answer must not describe Virtual Shelf as launched, live or in production." },
         { "id": "X15-r3", "class": "figure", "kind": "must_not", "rule": "The answer must not invent usage, adoption or retention figures for Virtual Shelf." }
       ],
-      "regression_note": "Added 2026-10-22 from eval_runs/labelled-ab60_multiturn_2026-10-21.json, M05 turn 3 (prompt ab60e8aa, labelled layout). That answer said the Virtual Shelf 'offered achievement badges tied to consistency, learning, and completing a regimen', which reads as a live product customers used. The truth: Virtual Shelf was redesigned and built as a working interactive demo (shelf-001: 'a working interactive mobile demo'; status 'Designed - working interactive prototype'), and it had not launched when she left (promo-006). Achievement badges are part of the design (shelf-001, shelf-002). The question presupposes that customers used it. Correct behaviour: describe the badge mechanic as designed and say plainly that it was a prototype that had not launched. FAILURE if the answer says or implies that customers earned, used or were offered rewards, or describes Virtual Shelf as launched, live or in production. FAILURE if it invents usage, adoption or retention figures for it."
+      "regression_note": "Added 2026-10-22 from eval_runs/labelled-ab60_multiturn_2026-10-21.json, M05 turn 3 (prompt ab60e8aa, labelled layout). That answer said the Virtual Shelf 'offered achievement badges tied to consistency, learning, and completing a regimen', which reads as a live product customers used. The truth: Virtual Shelf was redesigned and built as a working interactive demo (shelf-001: 'a working interactive mobile demo'; status 'Designed - working interactive prototype'), and it had not launched when she left (promo-006). Achievement badges are part of the design (shelf-001, shelf-002). The question presupposes that customers used it. Correct behaviour: describe the badge mechanic as designed and say plainly that it was a prototype that had not launched. FAILURE if the answer says or implies that customers earned, used or were offered rewards, or describes Virtual Shelf as launched, live or in production. FAILURE if it invents usage, adoption or retention figures for it. 2026-11-26 (Jord, sample read of the known failures): describing the badge mechanic as designed is not a failure. Saying real customers earned, used or were offered rewards still is. Known failure X15-r1 narrowed to that."
     },
     { "id": "X16", "tag": "hostile", "req": [], "themes": ["T-LIFE"],
       "failure_type": "F12", "failure_type_secondary": "F01",
@@ -548,7 +545,7 @@
       ]},
     {"id": "X28", "tag": "adversarial", "req": [], "themes": [], "failure_type": "F12", "q": "When did Jordanne launch TikTok Shop, and in which role?", "expect": ["tiktok-001", "exp-027"], "regression_note": "Added 2026-11-03 from the resume-vs-KB scan of Jord's 2026-11-03 resume (this session). exp-027 placed TikTok Shop under Digital Director (2020-21); tiktok-shop-integration.md is dated 2023. Jord confirmed 2026-11-03: 2023, as Director, Digital Product Management. exp-027 moved. FAILURE if it places the launch in 2020 or 2021 or under Digital Director.",
       "known_failures": [
-        { "id": "X28-r1", "class": "date", "kind": "must_not", "rule": "The answer must not place the TikTok Shop launch in 2020 or 2021 or under Digital Director; it was 2023, as Director, Digital Product Management." }
+        { "id": "X28-r1", "class": "date", "kind": "must_not", "rule": "The answer must not place the TikTok Shop launch in a year or role other than the one the record gives." }
       ]},
     {"id": "X29", "tag": "adversarial", "req": [], "themes": [], "failure_type": "F12", "q": "When did Jordanne start Warai Neko?", "expect": ["exp-040", "indie-001"], "regression_note": "Added 2026-11-03 from the resume-vs-KB scan of Jord's 2026-11-03 resume. indie-001's title said Nov 2025 and its body 'Since June 2026 ... my freelance agency'. Corrected by Jord 2026-11-04 (replaces her 2026-11-03 wording): the independent practice and Warai Neko both start June 2026; November 2025 is wrong. From October 2025 she has been building the AI resume, a project, not a role. Correct: June 2026. FAILURE if it says November 2025, presents the AI resume as a job or role, or calls Warai Neko a freelance agency.",
       "known_failures": [
