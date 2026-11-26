@@ -2322,6 +2322,165 @@ _mt_nv = [{"id": "M01", "case_checks": {"T2.7_followups_cited": True},
 check("no verdict: a multi-turn run is read turn by turn", G.no_verdict(_mt_nv, _T1),
       {"T1.7_no_private_name": [1, 3, ["M01 t2"]]})
 
+# Release gate, rates (S0.8, 2026-11-26): per case, the share of its repetitions that
+# passed every check, with a Wilson range, and apart, the checks that did not fail in
+# the period. A report only: the gate passes and fails exactly as before.
+print("\n--- release gate: per-case rates and the no-failure block (report only) ---")
+import contextlib, io, shutil, tempfile
+import bootstrap_ci as B
+# Wilson 95% by hand, z = 1.959964, z^2 = 3.841459:
+#   4/5: centre (0.8 + 0.384146) / 1.768292 = 0.669656, half 1.959964 * sqrt(0.032 + 0.038415)
+#        / 1.768292 = 0.294121 -> 0.3755 to 0.9638 (1/5 mirrors it: 0.0362 to 0.6245)
+#   0/5: hi = 0.768292 / 1.768292 = 0.4345; 1/1: lo = 1 - 1.920729 / 4.841459 = 0.2065
+#   6/10: centre 0.792073 / 1.384146 = 0.572247, half 1.959964 * sqrt(0.024 + 0.009604)
+#        / 1.384146 = 0.259574 -> 0.3127 to 0.8318
+#   0 of 13 failed: failure rate up to (3.841459 / 13) / (1 + 3.841459 / 13) = 0.2281
+_w = lambda p, n: tuple(None if v is None else round(v, 4) for v in B.wilson(p, n))
+for (p, n), want in (((4, 5), (0.3755, 0.9638)), ((1, 5), (0.0362, 0.6245)), ((0, 5), (0.0, 0.4345)),
+                     ((1, 1), (0.2065, 1.0)), ((6, 10), (0.3127, 0.8318)), ((0, 0), (None, None))):
+    check(f"wilson: {p}/{n} gives the range worked by hand", _w(p, n), want)
+
+def _gr_ans(i, run, t16, t18=True):
+    return {"id": i, "arm": "B", "model": "gpt-4o", "run": run, "question": f"q {i}",
+            "index_version": "aaaa1111", "prompt_version": "pppp1111",
+            "gen": {"latency_s": 1.0, "ttft_s": 0.5, "cost_usd": 0.001},
+            "checks": {"T1.1_response": True, "T1.6_voice": t16, "T1.7_no_private_name": True,
+                       "T1.8_no_speculation": t18, "T2.3_gap_honesty": None}}
+
+def _gr_conv(i, run, t2_voice):
+    return {"id": i, "model": "gpt-4o", "run": run, "prompt_version": "pppp1111",
+            "case_checks": {"T2.7_followups_cited": True},
+            "turns": [{"turn": n, "question": f"t{n}", "index_version": "aaaa1111",
+                       "gen": {"latency_s": 1.0, "ttft_s": 0.5, "cost_usd": 0.001},
+                       "checks": {"T1.1_response": True, "T1.6_voice": v, "T1.7_no_private_name": True}}
+                      for n, v in ((1, True), (2, t2_voice))]}
+
+# Known counts: S1 fails voice on run 2 of 5; S2 hedges on its one run; M1 names its
+# source on turn 2 of runs 1-4, as M10 did in R-20261117-09.
+_gr_single = [_gr_ans("S1", r, r != 2) for r in range(1, 6)] + [_gr_ans("S2", 1, True, t18=False)]
+_gr_multi = [_gr_conv("M1", r, r == 5) for r in range(1, 6)]
+_cr = G.case_rates(_gr_single)
+print(f"  S1 -> {_cr['S1']['passed']}/{_cr['S1']['of']} ({_cr['S1']['lo']} to {_cr['S1']['hi']}), "
+      f"T1.6 {_cr['S1']['checks']['T1.6_voice']}")
+check("rates: S1 passed 4 of 5 repetitions, range 0.3755 to 0.9638",
+      {k: _cr["S1"][k] for k in ("passed", "of", "lo", "hi")}, {"passed": 4, "of": 5, "lo": 0.3755, "hi": 0.9638})
+check("rates: S2's one repetition, 0/1", (_cr["S2"]["passed"], _cr["S2"]["of"]), (0, 1))
+check("rates: a check scored None (T2.3 here) is not counted",
+      sorted(_cr["S1"]["checks"]), ["T1.1_response", "T1.6_voice", "T1.7_no_private_name", "T1.8_no_speculation"])
+_mr = G.case_rates(_gr_multi)["M1"]
+print(f"  M1 -> {_mr['passed']}/{_mr['of']} ({_mr['lo']} to {_mr['hi']}), T1.6 {_mr['checks']['T1.6_voice']}")
+check("rates: a conversation is one repetition; M1 passed 1 of 5, range 0.0362 to 0.6245",
+      {k: _mr[k] for k in ("passed", "of", "lo", "hi")}, {"passed": 1, "of": 5, "lo": 0.0362, "hi": 0.6245})
+check("rates: a check over every turn, 6/10, with each turn's count",
+      _mr["checks"]["T1.6_voice"], {"passed": 6, "of": 10, "lo": 0.3127, "hi": 0.8318,
+                                    "turns": {"1": [5, 5], "2": [1, 5]}})
+check("rates: a conversation-level check has no turns", _mr["checks"]["T2.7_followups_cited"],
+      {"passed": 5, "of": 5, "lo": 0.5655, "hi": 1.0})
+check("rates: same counts as failures(), which the sign-offs use",
+      {(c, k): [v["of"] - v["passed"], v["of"]] for c, r in {**_cr, "M1": _mr}.items()
+       for k, v in r["checks"].items() if v["passed"] < v["of"]},
+      {k: v[:2] for k, v in {**G.failures(_gr_single), **G.failures(_gr_multi)}.items()})
+_ev = G.rates_evidence({"single": _cr}, None)["cases"]["single"]
+check("rates: the evidence keeps each case's rate and only its failing checks",
+      [(e["case"], e["passed"], e["of"], sorted(e["failing_checks"])) for e in _ev],
+      [("S1", 4, 5, ["T1.6_voice"]), ("S2", 0, 1, ["T1.8_no_speculation"])])
+
+_hist = [{"date": "2026-11-02", "kind": "single", "answers": 10,
+          "pass": {"T1.3_no_phone": [10, 10], "T1.6_voice": [9, 10], "T2.13_fixed_lead": [2, 2]}},
+         {"date": "2026-11-03", "kind": "retrieval", "mean_recall_at_5": 0.5},
+         {"date": "2026-10-01", "kind": "single", "answers": 5, "pass": {"T1.3_no_phone": [4, 5]}},
+         {"date": "2026-11-04", "kind": "e2e", "answers": 3,
+          "pass": {"T1.3_no_phone": [3, 3], "T1.2_under_15s": [3, 3]}}]
+_nf = G.no_failure(_hist, "2026-11-01", ["T1.2", "T1.3", "T1.6", "T1.7"])
+print(f"  no-failure block since 2026-11-01 -> {_nf}")
+check("no failure: a check with zero failures in the period lands in the block, with its count",
+      [(c["check"], c["of"]) for c in _nf["checks"]],
+      [("T1.2_under_15s", 3), ("T1.3_no_phone", 13), ("T2.13_fixed_lead", 2)])
+check("no failure: a check that failed in the period is not in it",
+      "T1.6_voice" in [c["check"] for c in _nf["checks"]], False)
+check("no failure: 0 of 13 -> failure rate up to 0.2281",
+      [c["failure_rate_up_to"] for c in _nf["checks"] if c["check"] == "T1.3_no_phone"], [0.2281])
+check("no failure: lines in the period with answers; a retrieval line is skipped",
+      (_nf["runs"], _nf["answers"]), (2, 13))
+check("no failure: a tier-1 check that never ran is listed apart, not as never failed",
+      _nf["tier1_no_verdict"], ["T1.7"])
+check("no failure: a failure before the period does not count; widen it and T1.3 leaves the block",
+      "T1.3_no_phone" in [c["check"] for c in G.no_failure(_hist, "2026-10-01", [])["checks"]], False)
+
+# The gate's result is unchanged. main() end to end on a fixture: git stubbed (no fetch),
+# no e2e runs, docs unapproved. The problems pinned below are what the gate gave before
+# this change (bbf4f81, on the same fixture less --since, which it did not have,
+# 2026-11-26); the run with a report that
+# raises gives the same evidence, so a fault in the report cannot move the result.
+def _gr_gate(td, report_fault=False):
+    td = Path(td)
+    for d in ("eval_runs", "eval_history", "nimbalyst-local"):
+        (td / d).mkdir()
+    shutil.copy(R.EVAL_SET, td / "eval_set.json")
+    (td / "eval_runs" / "single.json").write_text(json.dumps(_gr_single))
+    (td / "eval_runs" / "mt.json").write_text(json.dumps(_gr_multi))
+    lines = [RM.history_lines(d, runner="run_eval", source=s, label="t", date="2026-11-20", scope="full")[0]
+             for d, s in ((_gr_single, "single.json"), (_gr_multi, "mt.json"))]
+    (td / "eval_history" / "history.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+    (td / "nimbalyst-local" / "results-log.md").write_text("## Results\n### R-20261120-01 - x\n- reviewed: yes\n")
+    saved = G.HERE, G.HISTORY, G.RESULTS_LOG, G.WEB, G.git_out, G.case_rates, sys.argv
+    G.HERE, G.HISTORY = td, td / "eval_history" / "history.jsonl"
+    G.RESULTS_LOG, G.WEB, G.git_out = td / "nimbalyst-local" / "results-log.md", td / "web", lambda *a: None
+    if report_fault:
+        G.case_rates = lambda data: 1 / 0
+    sys.argv = ["release_gate.py", "--faiss-dir", "/faiss/kb-abc1234", "--prompt", "pppp1111",
+                "--index", "aaaa1111", "--out-dir", str(td / "out"), "--since", "2026-11-01"]
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            try:
+                G.main()
+                code = 0
+            except SystemExit as e:
+                code = e.code
+    finally:
+        G.HERE, G.HISTORY, G.RESULTS_LOG, G.WEB, G.git_out, G.case_rates, sys.argv = saved
+    ev = json.loads((td / "out" / "faiss-kb-abc1234.json").read_text(encoding="utf-8"))
+    ev["problems"] = [p.replace(str(td / "web"), "<web>").replace(str(td), "<td>") for p in ev["problems"]]
+    return code, ev, buf.getvalue()
+
+with tempfile.TemporaryDirectory() as _td1, tempfile.TemporaryDirectory() as _td2:
+    _code, _gev, _gout = _gr_gate(_td1)
+    _code_f, _gev_f, _gout_f = _gr_gate(_td2, report_fault=True)
+print("  gate on the fixture, rate lines printed:")
+for ln in _gout.splitlines():
+    if ln.startswith(("    S", "    M", "        T", "  checks with no failure")):
+        print("  " + ln)
+print(f"  with a report that raises -> rates {_gev_f['rates']}")
+check("gate fixture: exit 1 and status fail, as before this change", (_code, _gev["status"]), (1, "fail"))
+check("gate fixture: the same problems as before this change", _gev["problems"], [
+    "no full e2e run for prompt pppp1111 served by jordbot-dev",
+    "no full e2e_multiturn run for prompt pppp1111 served by jordbot-dev",
+    "3 failing check(s) without Jord's sign-off",
+    "8 QA item(s) not ticked",
+    "could not fetch origin/master in <td>; docs not checked against it",
+    "could not fetch origin/master in <web>; docs not checked against it",
+    "ai:README.md not found on origin/master",
+    "ai:EVALS.md not found on origin/master",
+    "ai:DECISIONS.md not found on origin/master",
+    "ai:COVERAGE.md not found on origin/master",
+    "web:README.md not found on origin/master",
+    "COVERAGE.md on origin/master is not what coverage_report.py generates from eval_set.json; "
+    "run it with --write and merge the result"])
+check("gate fixture: the same failures as before this change",
+      [(f["kind"], f["case"], f["check"], f["failed"], f["of"]) for f in _gev["failures"]],
+      [("single", "S1", "T1.6_voice", 1, 5), ("single", "S2", "T1.8_no_speculation", 1, 1),
+       ("multiturn", "M1", "T1.6_voice", 4, 10)])
+check("gate fixture: rates written beside the evidence the web check reads",
+      ([(e["case"], e["passed"], e["of"]) for e in _gev["rates"]["cases"]["multiturn"]],
+       _gev["rates"]["no_failure"]["since"]), ([("M1", 1, 5)], "2026-11-01"))
+check("gate fixture: a report that raises leaves the exit code and every other evidence key as they "
+      "were (keys that differ)",
+      (_code_f, [k for k in sorted((set(_gev) | set(_gev_f)) - {"rates"}) if _gev.get(k) != _gev_f.get(k)]),
+      (_code, []))
+check("gate fixture: a report that raises is recorded, not hidden",
+      _gev_f["rates"], {"error": "ZeroDivisionError: division by zero"})
+
 # Release gate, evidence (bugs 2026-11-07): the gate matched a run to the index by
 # its filename (no results file said which index answered), read results files
 # without checking their run_id (eval_results.json's history run cbb21d08299d now

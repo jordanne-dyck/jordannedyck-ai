@@ -34,6 +34,15 @@ Each needs, for the prompt and index it will run with:
     file; COVERAGE.md on origin/master is what coverage_report.py generates; and
     no results-log entry is still "reviewed: no"
 
+The report also gives rates (2026-11-26), under "rates" in the evidence file. They
+are a report only: no rate adds a problem or clears one. Per case in each of the
+four runs, the share of its repetitions that passed every check, and each failing
+check's share of the case's answers, with 95% Wilson ranges. Then, apart, the
+checks that did not fail once in the history over the period (--since, default
+the last 30 days): a check that cannot fail is an invariant, not evidence of
+quality. --rates FILE... prints the same report for saved results files, such as
+a rate run, without running the gate.
+
 Reads eval_history/history.jsonl, the results files it names, the results log and
 the docs on origin/master (it fetches both repos first). Calls no paid API and
 spends nothing; the runs above are separate, paid, and need Jord's go.
@@ -49,6 +58,7 @@ Usage (from C:\\Users\\Jord\\jordannedyck-ai):
     uv run python release_gate.py --image jordbot-web --tag v1.16 --sha <web commit> \
         --prompt dd326013 --index <index_version>
     uv run python release_gate.py --faiss-dir /faiss/kb-762b34e --prompt dd326013 --index <index_version>
+    uv run python release_gate.py --rates eval_runs/rate-2026-11-17/m10-a94aeead.json --since 2026-11-01
 Exit 0 only when the evidence file says "status": "pass".
 """
 
@@ -57,9 +67,10 @@ import json
 import re
 import subprocess
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+import bootstrap_ci as B
 import run_e2e as E2E
 import run_metrics as RM
 
@@ -235,6 +246,140 @@ def no_verdict_problems(kind, run_id, data, tier1):
             for check, (n, total, where) in sorted(no_verdict(data, tier1).items())]
 
 
+# ── rates (2026-11-26): report only ───────────────────────────────────────────
+# Nothing here adds a problem, clears one or reads a sign-off. Whether gate runs
+# default to repetitions, and how a tier-1 check treats a failure that happens at a
+# rate, are Jord's decisions, not this code's.
+
+RATE_DAYS = 30  # default period of the no-failure block, back from today
+
+
+def _range(passed, n):
+    lo, hi = B.wilson(passed, n)
+    return {"passed": passed, "of": n,
+            "lo": None if lo is None else round(lo, 4), "hi": None if hi is None else round(hi, 4)}
+
+
+def case_rates(data):
+    """case -> {"passed", "of", "lo", "hi", "checks"} for a run, as load_run()
+    returns it. A record is one repetition of its case (one conversation, for
+    multi-turn) and passes when no check on it is False, as clean() reads it; "of"
+    counts the repetitions with at least one verdict. "checks" gives every check's
+    passed and of over the case's answers, the counts failures() takes, and on
+    multi-turn runs per turn as well ("turns": {"2": [passed, of]}). lo and hi are
+    the 95% Wilson range."""
+    records = data["results"] if isinstance(data, dict) else data
+    tally = {}
+    for rec in records:
+        c = tally.setdefault(rec.get("id") or rec.get("record_id"), [0, 0, {}])
+        groups = [(t.get("turn"), t.get("checks")) for t in rec.get("turns") or []]
+        groups += [(None, rec.get("case_checks")), (None, rec.get("checks"))]
+        seen = False
+        for turn, checks in groups:
+            for k, v in (checks or {}).items():
+                if k.startswith("_") or not isinstance(v, bool):
+                    continue
+                seen = True
+                n = c[2].setdefault(k, [0, 0, {}])
+                n[0] += v
+                n[1] += 1
+                if turn is not None:
+                    t = n[2].setdefault(turn, [0, 0])
+                    t[0] += v
+                    t[1] += 1
+        if seen:
+            c[0] += clean(rec)
+            c[1] += 1
+    return {case: {**_range(p, n), "checks": {
+        k: {**_range(cp, cn), **({"turns": {str(t): v for t, v in sorted(turns.items())}} if turns else {})}
+        for k, (cp, cn, turns) in sorted(checks.items())}}
+        for case, (p, n, checks) in tally.items()}
+
+
+def no_failure(rows, since, tier1):
+    """The checks that did not fail once in the history lines dated `since`
+    (YYYY-MM-DD) or later, each with the answers it ran on and the 95% Wilson upper
+    bound on its failure rate. Counts come from each line's "pass" ({check: [passed,
+    applicable]}); retrieval and judge-agreement lines have none and are skipped.
+    Lines are runs with distinct answers (run_id), so no answer counts twice unless
+    two results files hold the same answer. Tier-1 checks with no verdict on any
+    answer in the period are listed apart: a check that never ran has not passed."""
+    lines = [h for h in rows if str(h.get("date") or "") >= since and isinstance(h.get("pass"), dict)]
+    agg = {}
+    for h in lines:
+        for k, (p, n) in h["pass"].items():
+            a = agg.setdefault(k, [0, 0])
+            a[0] += n - p
+            a[1] += n
+    return {"since": since, "runs": len(lines), "answers": sum(h.get("answers") or 0 for h in lines),
+            "checks": [{"check": k, "of": n, "failure_rate_up_to": round(B.wilson(0, n)[1], 4)}
+                       for k, (f, n) in sorted(agg.items()) if f == 0 and n],
+            "tier1_no_verdict": [t for t in tier1 if not any(k.startswith(f"{t}_") for k in agg)]}
+
+
+def rates_evidence(runs, invariants):
+    """The evidence file's "rates": per kind, every case's rate over its repetitions
+    and only the checks that failed on it (the others passed every answer), then
+    the no-failure block. `runs` is kind -> case_rates()."""
+    return {"range": "95% Wilson",
+            "cases": {kind: [{"case": case, **{k: v for k, v in r.items() if k != "checks"},
+                              "failing_checks": {k: c for k, c in r["checks"].items()
+                                                 if c["passed"] < c["of"]}}
+                             for case, r in cases.items()]
+                      for kind, cases in runs.items()},
+            "no_failure": invariants}
+
+
+def _pc(v):
+    return "n/a" if v is None else f"{v:.0%}"
+
+
+def _span(r):
+    return f"({_pc(r['lo'])} to {_pc(r['hi'])})"
+
+
+def _rate(r):
+    return f"{r['passed']}/{r['of']}  {_pc(r['passed'] / r['of'] if r['of'] else None)}  {_span(r)}"
+
+
+def print_rates(name, cases, every_check=False, out=print):
+    """Cases with a failure in full; the rest in one line per repetition count, or
+    in full with every_check (for a rate run of a few cases)."""
+    out(f"\n  {name}: {len(cases)} case(s). Rate = repetitions passing every check, 95% Wilson range")
+    shown = {c: r for c, r in cases.items() if every_check or r["passed"] < r["of"]}
+    for case, r in shown.items():
+        out(f"    {case:<8} {_rate(r)}")
+        for k, c in r["checks"].items():
+            if not every_check and c["passed"] == c["of"]:
+                continue
+            turns = ", ".join(f"t{t} {p}/{n}" + ("" if p == n else f" {_span(_range(p, n))}")
+                              for t, (p, n) in c.get("turns", {}).items())
+            out(f"        {k:<32} {_rate(c)}" + (f"   {turns}" if turns else ""))
+    rest = {}
+    for case, r in cases.items():
+        if case not in shown:
+            rest.setdefault(r["of"], []).append(case)
+    for n, ids in sorted(rest.items()):
+        out(f"    {len(ids)} other case(s) with {n} repetition(s) each passed every check: "
+            f"{_rate(_range(n, n))} each")
+
+
+def print_no_failure(nf, out=print):
+    out(f"\n  checks with no failure since {nf['since']}: {nf['runs']} history line(s), "
+        f"{nf['answers']:,} answers. Kept apart from the rates: a check that has not failed "
+        "is an invariant, not evidence of quality")
+    for c in nf["checks"]:
+        out(f"    {c['check']:<32} 0 of {c['of']:,}  (failure rate up to {c['failure_rate_up_to']:.1%})")
+    if nf["tier1_no_verdict"]:
+        out(f"    tier 1 with no verdict on any answer in the period (never ran, not never failed): "
+            f"{', '.join(nf['tier1_no_verdict'])}")
+
+
+def period_start(since):
+    """The no-failure block's first day: --since, or RATE_DAYS back from today."""
+    return (since or date.today() - timedelta(days=RATE_DAYS)).isoformat()
+
+
 def resolve(sha):
     """(full sha, commit time) in the web repo, or (None, None)."""
     try:
@@ -315,10 +460,25 @@ def main():
     ap.add_argument("--tag", help="vX.Y the release PR sets")
     ap.add_argument("--sha", help="the commit tested in dev and built as the tag")
     ap.add_argument("--faiss-dir", help="/faiss/kb-<commit>, for a FAISS_DIR promotion")
-    ap.add_argument("--prompt", required=True, help="prompt_version prod will serve")
-    ap.add_argument("--index", required=True, help="index_version /search reports for the index going out (8 hex chars)")
+    ap.add_argument("--prompt", help="prompt_version prod will serve (required for the gate)")
+    ap.add_argument("--index", help="index_version /search reports for the index going out (8 hex chars; "
+                    "required for the gate)")
     ap.add_argument("--out-dir", default=str(WEB / "releases"))
+    ap.add_argument("--since", type=date.fromisoformat,
+                    help=f"first day (YYYY-MM-DD) of the no-failure block; default {RATE_DAYS} days ago")
+    ap.add_argument("--rates", nargs="+", type=Path, metavar="FILE",
+                    help="print the rate report for these results files and stop: no gate, no evidence file")
     args = ap.parse_args()
+    if args.rates:
+        rows = RM.read_history(HISTORY)
+        tier1 = list(json.loads((HERE / "eval_set.json").read_text(encoding="utf-8"))["checks"]["tier1"])
+        print("rates, report only (release_gate.py --rates)")
+        for f in args.rates:
+            print_rates(f.name, case_rates(json.loads(f.read_text(encoding="utf-8"))), every_check=True)
+        print_no_failure(no_failure(rows, period_start(args.since), tier1))
+        return
+    if not (args.prompt and args.index):
+        ap.error("the following arguments are required: --prompt, --index")
     if bool(args.image) == bool(args.faiss_dir):
         ap.error("give --image with --tag and --sha, or --faiss-dir")
     if args.image and not (args.tag and args.sha):
@@ -486,6 +646,20 @@ def main():
         problems.append(f"{len(pending)} results-log entr{'y' if len(pending) == 1 else 'ies'} "
                         "still reviewed: no")
 
+    # 2026-11-26: rates, a report only. Taken after every problem is counted, and a
+    # fault in it is printed and recorded, never a gate result.
+    rate_lines = ["", "  rates, report only: no rate passes or fails the gate"]
+    try:
+        run_rates = {kind: case_rates(data) for kind, (data, _why) in loaded.items() if data is not None}
+        invariants = no_failure(rows, period_start(args.since), list(eval_set["checks"]["tier1"]))
+        rates = rates_evidence(run_rates, invariants)
+        for kind, cases in run_rates.items():
+            print_rates(kind, cases, out=rate_lines.append)
+        print_no_failure(invariants, out=rate_lines.append)
+    except Exception as e:  # noqa: BLE001  a report fault must not decide the gate
+        rates = {"error": f"{type(e).__name__}: {e}"}
+        rate_lines = ["", f"  rates not reported (no effect on the gate): {rates['error']}"]
+
     evidence = {
         "generated_by": "jordannedyck-ai/release_gate.py",
         "generated": date.today().isoformat(),
@@ -496,6 +670,7 @@ def main():
                                      "all_checks_pass_rate")},
             "index_version": index_read.get(k)} for k, r in evals.items()},
         "failures": fails,
+        "rates": rates,
         "qa": qa,
         "docs": docs,
         "coverage_generated": coverage_ok,
@@ -517,6 +692,7 @@ def main():
         print(f"  {state} {f['kind']:9} {f['case']:6} {f['check']:32} {f['failed']}/{f['of']}")
         if was and not (f["signoff"] or "").strip():
             print(f"      was: run {was['run_id']} {was['failed']}/{was['of']}, {was['signoff']!r}")
+    print("\n".join(rate_lines) + "\n")
     for q in undone:
         print(f"  QA not ticked: {q['item']}")
     for d in docs:
