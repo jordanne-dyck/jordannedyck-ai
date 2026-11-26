@@ -2117,6 +2117,60 @@ check("known: without a results-log id does not",
 check("a template id is not a results-log id",
       bool(G.KNOWN_RATE_RE.search("known: see R-YYYYMMDD-NN")), False)
 
+# Release gate, missing verdicts (2026-11-18, R-20261118-02): T1.7 scored None or
+# "n/a" on every answer of the four a94aeead gate runs, and the gate counted only
+# False as a failure, so a must-pass check that never ran passed. A tier-1 check
+# with no True or False on an answer is now a problem; tier-2 n/a is not.
+print("\n--- release gate: a tier-1 check with no verdict is a problem ---")
+_T1 = json.load(open(R.EVAL_SET, encoding="utf-8"))["checks"]["tier1"]
+
+def _nv_run(t17, extra=None):
+    return [{"id": i, "question": f"q {i}",
+             "checks": {"T1.1_response": True, "T1.6_voice": True, "T1.7_no_private_name": t17,
+                        "T2.3_gap_honesty": None, "T2.4_injection_resistance": None, **(extra or {})}}
+            for i in ("A1", "A2")]
+
+_nv = G.no_verdict(_nv_run(None), _T1)
+print(f"  T1.7 None on both answers -> {_nv}")
+check("no verdict: T1.7 None is listed, with its count and cases", _nv,
+      {"T1.7_no_private_name": [2, 2, ["A1", "A2"]]})
+_nvp = G.no_verdict_problems("single", "ffff00000001", _nv_run(None), _T1)
+print(f"  gate problems -> {_nvp}")
+check("no verdict: the run lists the problem", _nvp,
+      ["single run ffff00000001: tier-1 check T1.7_no_private_name has no verdict (neither "
+       "true nor false) on 2 of 2 answers; a must-pass check that did not run blocks the release"])
+check("no verdict: the same run with T1.7 True is clean", G.no_verdict(_nv_run(True), _T1), {})
+check("no verdict: the same run with T1.7 True lists no problem",
+      G.no_verdict_problems("single", "ffff00000001", _nv_run(True), _T1), [])
+check("no verdict: some answers only -> those cases are named",
+      G.no_verdict_problems("e2e", "eeee00000001", [{"id": "A1", "checks": {"T1.7_no_private_name": True}},
+                                                   {"id": "A2", "checks": {"T1.7_no_private_name": None}}],
+                            _T1)[0].split(" answers")[1],
+      ": A2; a must-pass check that did not run blocks the release")
+check("no verdict: T1.7 False is a failure, not a missing verdict",
+      G.no_verdict(_nv_run(False), _T1), {})
+_e2e_nv = {"meta": {}, "results": [
+    {"record_id": "B1", "checks": {"T1.1_response_returned": True, "T1.7_no_private_name": "n/a",
+                                   "T2.1_retrieval_hit": "unavailable_no_context",
+                                   "T2.13_fixed_lead": "n/a", "C10_gap_honesty": "n/a"}},
+    {"record_id": "B2", "checks": {"T1.1_response_returned": True, "T1.7_no_private_name": True,
+                                   "T1.8_no_speculation": "unavailable_no_checkers",
+                                   "T2.16_fixed_refusal": "n/a"}}]}
+_nv = G.no_verdict(_e2e_nv, _T1)
+print(f"  e2e run, n/a and unavailable on tier 1 and tier 2 -> {_nv}")
+check("no verdict: n/a and unavailable_* on a tier-1 check are listed; tier-2 n/a is not", _nv,
+      {"T1.7_no_private_name": [1, 2, ["B1"]], "T1.8_no_speculation": [1, 1, ["B2"]]})
+check("no verdict: a check's detail (spans) is not a verdict",
+      G.no_verdict(_nv_run(True, {"T1.6_voice_spans": {"source": ["the record"]},
+                                  "T1.8_speculation_spans": ["likely"]}), _T1), {})
+_mt_nv = [{"id": "M01", "case_checks": {"T2.7_followups_cited": True},
+           "turns": [{"turn": n, "question": f"t{n}",
+                      "checks": {"T1.1_response": True, "T1.7_no_private_name": v,
+                                 "T2.1_retrieval_hit": None}}
+                     for n, v in ((1, True), (2, None), (3, True))]}]
+check("no verdict: a multi-turn run is read turn by turn", G.no_verdict(_mt_nv, _T1),
+      {"T1.7_no_private_name": [1, 3, ["M01 t2"]]})
+
 # Release gate, evidence (bugs 2026-11-07): the gate matched a run to the index by
 # its filename (no results file said which index answered), read results files
 # without checking their run_id (eval_results.json's history run cbb21d08299d now
