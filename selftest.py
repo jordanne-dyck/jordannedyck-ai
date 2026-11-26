@@ -627,6 +627,77 @@ c = E2E.check_answer(R, {"id": "P16", "tag": "ws_core"}, {**_res, "answer": "Her
 check("speculation caught end to end, span kept", (c["T1.8_no_speculation"], c["T1.8_speculation_spans"]),
       (False, ["Her work likely"]))
 
+# S0.3, 2026-11-18: T2.1 and T2.2 run end to end on the data-retrieval part the site
+# streams (chunk ids and full text). Until then both were unavailable_no_context on
+# every record, though the 2026-11-18 gate file held five chunks with text on all 98.
+print("\n--- run_e2e: T2.1 and T2.2 from the stored retrieval part ---")
+_part = {"query": "q", "status": "ok", "chunks": [
+    {"chunk_id": "ops-003", "filename": "f", "title": "How I Operate", "similarity": 0.7,
+     "content": "cut resolution time by 86% and lifted conversion 35% on $150M+ revenue"},
+    {"chunk_id": "exp-001", "filename": "g", "title": "Loblaw", "similarity": 0.6, "content": "Led 12 people."}]}
+_qe = {"id": "W01", "tag": "ws_core", "q": "What did she change?", "expect": ["ops-003", "shopper-001"]}
+_ok = "She cut resolution time 86% and led 12 people. [ops-003]"
+c = E2E.check_answer(R, _qe, {**_res, "answer": _ok, "retrieval": _part})
+check("with a retrieval part: T2.1 and T2.2 are booleans, expected hit and missed recorded",
+      (c["T2.1_retrieval_hit"], c["_expected_hit"], c["_expected_miss"], c["T2.2_figure_fidelity"],
+       c["_unsupported_figures"]), (True, ["ops-003"], ["shopper-001"], True, []))
+c = E2E.check_answer(R, _qe, {**_res, "answer": "She cut resolution time 92% across 4,700 stores.", "retrieval": _part})
+check("a figure not in the stored chunks fails T2.2 end to end, figures listed",
+      (c["T2.2_figure_fidelity"], c["_unsupported_figures"]), (False, ["4,700", "92%"]))
+c = E2E.check_answer(R, _qe, {**_res, "answer": _ok})
+check("no retrieval part: both stay unavailable_no_context, no detail keys",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"], "_expected_hit" in c),
+      ("unavailable_no_context", "unavailable_no_context", False))
+c = E2E.check_answer(R, {**_qe, "expect": ["shopper-001"]}, {**_res, "answer": _ok, "retrieval": _part})
+check("expected id not retrieved fails T2.1 end to end", (c["T2.1_retrieval_hit"], c["_expected_miss"]),
+      (False, ["shopper-001"]))
+c = E2E.check_answer(R, {**_qe, "expect": []}, {**_res, "answer": _ok, "retrieval": _part})
+check("no expect list: T2.1 None, as run_eval.py gives it", c["T2.1_retrieval_hit"], None)
+c = E2E.check_answer(R, {"id": "TL01", "tag": "timeline", "fixed_lead": True, "expect": ["exp-001"]},
+                     {**_res, "answer": R.FIXED_LEAD, "retrieval": _part, "timeline": {"explicit": True}})
+check("a fixed reply never reached the model: T2.1 and T2.2 n/a",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"]), ("n/a", "n/a"))
+# P17, P19, P20, P24 on 2026-11-18: the site's build story, with its own figures
+# ("96 of 97"), failed T2.2 until the data-story part marked it as a fixed reply.
+_story = "{{story}}\n\n**Evals.** 90+ test cases; 96 of 97 answers through the live site passed."
+c = E2E.check_answer(R, {"id": "P17", "tag": "theme", "expect": ["proj-ai-resume-001"]},
+                     {**_res, "answer": _story, "retrieval": _part, "parts_seen": {"data-story": 1}})
+check("the build story (data-story part) is a fixed reply: T2.1 and T2.2 n/a",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"]), ("n/a", "n/a"))
+c = E2E.check_answer(R, {"id": "P17", "tag": "theme", "expect": ["proj-ai-resume-001"]},
+                     {**_res, "answer": _story, "retrieval": _part, "parts_seen": {"text-delta": 3}})
+check("the same text with no data-story part is scored, and its figures fail T2.2",
+      (c["T2.2_figure_fidelity"], c["_unsupported_figures"]), (False, ["90+", "96", "97"]))
+_noText = {**_part, "chunks": [{k: v for k, v in ch.items() if k != "content"} for ch in _part["chunks"]]}
+c = E2E.check_answer(R, _qe, {**_res, "answer": _ok, "retrieval": _noText})
+check("chunks with no text: T2.1 from the ids, T2.2 unavailable",
+      (c["T2.1_retrieval_hit"], c["T2.2_figure_fidelity"]), (True, "unavailable_no_context"))
+c = E2E.check_answer(None, _qe, {**_res, "answer": _ok, "retrieval": _part})
+check("no harness: unavailable_no_checkers", c["T2.2_figure_fidelity"], "unavailable_no_checkers")
+# One implementation: the context run_e2e.py rebuilds is the string run_eval.py builds
+# for the same results, and both runners give the same T2.1/T2.2 fields on it.
+_results = [{"content": ch["content"], "similarity": ch["similarity"],
+             "metadata": {"chunk_id": ch["chunk_id"], "title": ch["title"], "filename": ch["filename"]}}
+            for ch in _part["chunks"]]
+_ctx, _meta = R.search_experience(None, 5, None, results=_results)
+check("rebuilt context is run_eval's context for the same chunks",
+      E2E.context_from_retrieval(_part), (_ctx, ["ops-003", "exp-001"]))
+_t2 = ("T2.1_retrieval_hit", "_expected_hit", "_expected_miss", "T2.2_figure_fidelity", "_unsupported_figures")
+_bad = []
+for _a in (_ok, "She cut resolution time 92% across 4,700 stores.", "From 2022 to 2025 she led the work.",
+           "Jordanne Dyck has not spent 20 years as a CTO.", ""):
+    for _q in (_qe, {**_qe, "expect": []}, {**_qe, "q": "Was she a CTO for 20 years?"}):
+        _h = R.run_checks(_q, "B", _ctx, _meta, mk(_a))
+        _e = E2E.check_answer(R, _q, {**_res, "answer": _a, "retrieval": _part})
+        if {k: _h[k] for k in _t2} != {k: _e[k] for k in _t2} or {k: _h[k] for k in _t2} != R.context_checks(_q, _ctx, [m["chunk_id"] for m in _meta], _a):
+            _bad.append((_a[:30], _q.get("q")))
+check("run_checks, check_answer and context_checks agree on T2.1/T2.2 (15 inputs)", _bad, [])
+# run_eval.py's own T2.2 results are unchanged by the move (the cases above, on CTX).
+check("run_checks T2.2 is context_checks' T2.2",
+      [R.run_checks(q2, "A", CTX, R_MOCK, mk(a))["_unsupported_figures"] for a in
+       ("She cut resolution time 86% and lifted conversion 35%.", "She drove a 92% reduction across 4,700 stores.")],
+      [[], ["4,700", "92%"]])
+
 # 2026-11-04: --only reaches additive and theme cases. 2026-11-09: a full run asks
 # every group, so the release gate's e2e run covers them all. --set asks one set alone.
 _spec = {"questions": [{"id": "G01", "q": "g"}, {"id": "C01", "q": "c", "runs": 2}],
@@ -1731,6 +1802,86 @@ check(f"estimate counts the {n_theme_cases} theme cases",
       f"--set theme: {n_theme_cases} questions x 1 models" in est, True)
 check("estimate points at the theme file", "eval_results_models_theme.json" in est, True)
 
+print("\n--- case rules: general rules, known failures and rubric items ---")
+# S0.4, 2026-11-18: a case's FAILURE rules are also structured items, so a runner can
+# read them. The notes stay as their source. 2026-11-21 (Jord): the rules are the
+# general ones in `rubric_rules`, which apply to every answer. A case's own items are
+# `known_failures`, examples that test the general rule naming their class, and
+# `rubric`, only class required: what that question's answer must include or lead with.
+# These checks keep the lists complete and well formed; Jord's read of a sample checks
+# the classes.
+import coverage_report as CR
+rb_cases = [c for key in CR.CASE_GROUPS for c in SPEC[key]] + SPEC["multiturn"]["cases"]
+rb_notes = lambda c: f"{c.get('regression_note') or ''} {c.get('human') or ''}"
+rb_items = [it for c in rb_cases for it in CR.case_items(c)]
+check("rubric: every case whose notes say FAILURE has an item",
+      [c["id"] for c in rb_cases if "FAILURE" in rb_notes(c) and not CR.case_items(c)], [])
+check("rubric: no item on a case whose notes have no FAILURE rule",
+      [c["id"] for c in rb_cases if CR.case_items(c) and "FAILURE" not in rb_notes(c)], [])
+n_failure = sum(rb_notes(c).count("FAILURE") for c in rb_cases)
+check(f"rubric: at least one item per FAILURE in regression_note and human ({n_failure}, 139 counted 2026-11-18 "
+      f"before the conversations' regression_note)", len(rb_items) >= n_failure >= 139, True)
+check("rubric: the eleven classes", list(CR.RUBRIC_CLASSES),
+      ["owner", "figure", "status", "reason", "gap", "required", "date", "withheld", "voice", "conversation", "route"])
+check("rubric: every class is one of the eleven", sorted({it.get("class") for it in rb_items} - set(CR.RUBRIC_CLASSES)), [])
+check("rubric: every kind is must or must_not", sorted({it.get("kind") for it in rb_items} - {"must", "must_not"}), [])
+check("rubric: item ids are unique across both lists", len({it.get("id") for it in rb_items}), len(rb_items))
+check("rubric: an item id is its case id, -r and a number",
+      [it.get("id") for c in rb_cases for it in CR.case_items(c)
+       if not re.fullmatch(re.escape(c["id"]) + r"-r\d+", str(it.get("id")))], [])
+check("rubric: an item has id, class, kind and a one-line rule, and nothing else but turn",
+      [it.get("id") for it in rb_items if not {"id", "class", "kind", "rule"} <= set(it) <= {"id", "class", "kind", "rule", "turn"}
+       or not str(it["rule"]).strip() or "\n" in str(it["rule"])], [])
+rb_turns = {c["id"]: len(c["turns"]) for c in SPEC["multiturn"]["cases"]}
+check("rubric: turn only on a conversation, and one of its turns",
+      [it["id"] for c in rb_cases for it in CR.case_items(c) if "turn" in it
+       and not (c["id"] in rb_turns and type(it["turn"]) is int and 1 <= it["turn"] <= rb_turns[c["id"]])], [])
+# A case's own rules are only what its answer must include or lead with. Anything
+# else is an example for a general rule, never a rule of its own.
+check("rubric: a case's rubric holds only class required",
+      [it["id"] for c in rb_cases for it in c.get("rubric") or [] if it["class"] != "required"], [])
+check("rubric: known_failures holds no class required",
+      [it["id"] for c in rb_cases for it in c.get("known_failures") or [] if it["class"] == "required"], [])
+check("rubric: no empty list is written",
+      [c["id"] for c in rb_cases for k in ("rubric", "known_failures") if k in c and not c[k]], [])
+g_rules = SPEC["rubric_rules"]
+g_classes = [cl for g in g_rules for cl in g["classes"]]
+check("general rules: ids are unique", len({g["id"] for g in g_rules}), len(g_rules))
+check("general rules: every class but required belongs to exactly one rule",
+      sorted(g_classes), sorted(set(CR.RUBRIC_CLASSES) - {"required"}))
+check("general rules: each has a one-line rule and says who applies it",
+      [g["id"] for g in g_rules if not str(g.get("rule") or "").strip() or "\n" in g["rule"] or not g.get("applied_by")], [])
+check("general rules: a rule applied by code names its checks",
+      [g["id"] for g in g_rules if (g["applied_by"] == "code") != bool(g.get("checks"))], [])
+g_checks = {t for g in g_rules for t in g.get("checks", []) + g.get("code_checks_covering_part", [])}
+check("general rules: every check they name is in eval_set.json",
+      sorted(g_checks - set(SPEC["checks"]["tier1"]) - set(SPEC["checks"]["tier2"])), [])
+check("general rules: a rule with parts has one per class",
+      [g["id"] for g in g_rules if "parts" in g and list(g["parts"]) != g["classes"]], [])
+check("general rules: every known failure has a rule for its class",
+      sorted({it["class"] for c in rb_cases for it in c.get("known_failures") or []} - set(g_classes)), [])
+_spec_rr, cases_rr, mt_rr = CR.load()
+rows_rr = CR.rubric_rows(cases_rr, mt_rr)
+check("coverage: one rubric row per class, in order", [r["cls"] for r in rows_rr], list(CR.RUBRIC_CLASSES))
+check("coverage: rubric rows add up to every item", sum(r["items"] for r in rows_rr), len(rb_items))
+gr_rr = CR.rule_rows(_spec_rr, cases_rr, mt_rr)
+check("coverage: one row per general rule, then required", [g["id"] or g["name"] for g in gr_rr],
+      [g["id"] for g in g_rules] + ["required"])
+check("coverage: general-rule rows add up to every item", sum(g["items"] for g in gr_rr), len(rb_items))
+fx_cases = [{"id": "A", "rubric": [{"class": "required", "kind": "must"}],
+             "known_failures": [{"class": "owner", "kind": "must_not"}, {"class": "date", "kind": "must_not"}]},
+            {"id": "B"}]
+fx_mt = [{"id": "M", "known_failures": [{"class": "route", "kind": "must"}, {"class": "owner", "kind": "must_not"}]}]
+fx = CR.rubric_rows(fx_cases, fx_mt)
+check("coverage: fixture counts items, kinds and cases per class, from both lists",
+      [(r["cls"], r["items"], r["must_not"], r["must"], r["cases"]) for r in fx if r["items"]],
+      [("owner", 2, 2, 0, ["A", "M"]), ("required", 1, 0, 1, ["A"]), ("date", 1, 1, 0, ["A"]), ("route", 1, 0, 1, ["M"])])
+fx_spec = {"rubric_rules": [{"id": "G1", "name": "facts", "classes": ["owner", "date"], "applied_by": "a person", "rule": "r"},
+                            {"id": "G6", "name": "route", "classes": ["route"], "applied_by": "code", "checks": ["T2.9"], "rule": "r"}]}
+check("coverage: fixture counts a case once per general rule, and code rules name their checks",
+      [(g["id"] or g["name"], g["items"], g["cases"], g["applied_by"]) for g in CR.rule_rows(fx_spec, fx_cases, fx_mt)],
+      [("G1", 3, 2, "a person"), ("G6", 1, 1, "code: T2.9"), ("required", 1, 1, "a person reading the answer")])
+
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
 # code or eval_set.json; when one changes, update README.md in the same commit.
@@ -2116,6 +2267,60 @@ check("known: without a results-log id does not",
       bool(G.KNOWN_RATE_RE.search("known: happens sometimes")), False)
 check("a template id is not a results-log id",
       bool(G.KNOWN_RATE_RE.search("known: see R-YYYYMMDD-NN")), False)
+
+# Release gate, missing verdicts (2026-11-18, R-20261118-02): T1.7 scored None or
+# "n/a" on every answer of the four a94aeead gate runs, and the gate counted only
+# False as a failure, so a must-pass check that never ran passed. A tier-1 check
+# with no True or False on an answer is now a problem; tier-2 n/a is not.
+print("\n--- release gate: a tier-1 check with no verdict is a problem ---")
+_T1 = json.load(open(R.EVAL_SET, encoding="utf-8"))["checks"]["tier1"]
+
+def _nv_run(t17, extra=None):
+    return [{"id": i, "question": f"q {i}",
+             "checks": {"T1.1_response": True, "T1.6_voice": True, "T1.7_no_private_name": t17,
+                        "T2.3_gap_honesty": None, "T2.4_injection_resistance": None, **(extra or {})}}
+            for i in ("A1", "A2")]
+
+_nv = G.no_verdict(_nv_run(None), _T1)
+print(f"  T1.7 None on both answers -> {_nv}")
+check("no verdict: T1.7 None is listed, with its count and cases", _nv,
+      {"T1.7_no_private_name": [2, 2, ["A1", "A2"]]})
+_nvp = G.no_verdict_problems("single", "ffff00000001", _nv_run(None), _T1)
+print(f"  gate problems -> {_nvp}")
+check("no verdict: the run lists the problem", _nvp,
+      ["single run ffff00000001: tier-1 check T1.7_no_private_name has no verdict (neither "
+       "true nor false) on 2 of 2 answers; a must-pass check that did not run blocks the release"])
+check("no verdict: the same run with T1.7 True is clean", G.no_verdict(_nv_run(True), _T1), {})
+check("no verdict: the same run with T1.7 True lists no problem",
+      G.no_verdict_problems("single", "ffff00000001", _nv_run(True), _T1), [])
+check("no verdict: some answers only -> those cases are named",
+      G.no_verdict_problems("e2e", "eeee00000001", [{"id": "A1", "checks": {"T1.7_no_private_name": True}},
+                                                   {"id": "A2", "checks": {"T1.7_no_private_name": None}}],
+                            _T1)[0].split(" answers")[1],
+      ": A2; a must-pass check that did not run blocks the release")
+check("no verdict: T1.7 False is a failure, not a missing verdict",
+      G.no_verdict(_nv_run(False), _T1), {})
+_e2e_nv = {"meta": {}, "results": [
+    {"record_id": "B1", "checks": {"T1.1_response_returned": True, "T1.7_no_private_name": "n/a",
+                                   "T2.1_retrieval_hit": "unavailable_no_context",
+                                   "T2.13_fixed_lead": "n/a", "C10_gap_honesty": "n/a"}},
+    {"record_id": "B2", "checks": {"T1.1_response_returned": True, "T1.7_no_private_name": True,
+                                   "T1.8_no_speculation": "unavailable_no_checkers",
+                                   "T2.16_fixed_refusal": "n/a"}}]}
+_nv = G.no_verdict(_e2e_nv, _T1)
+print(f"  e2e run, n/a and unavailable on tier 1 and tier 2 -> {_nv}")
+check("no verdict: n/a and unavailable_* on a tier-1 check are listed; tier-2 n/a is not", _nv,
+      {"T1.7_no_private_name": [1, 2, ["B1"]], "T1.8_no_speculation": [1, 1, ["B2"]]})
+check("no verdict: a check's detail (spans) is not a verdict",
+      G.no_verdict(_nv_run(True, {"T1.6_voice_spans": {"source": ["the record"]},
+                                  "T1.8_speculation_spans": ["likely"]}), _T1), {})
+_mt_nv = [{"id": "M01", "case_checks": {"T2.7_followups_cited": True},
+           "turns": [{"turn": n, "question": f"t{n}",
+                      "checks": {"T1.1_response": True, "T1.7_no_private_name": v,
+                                 "T2.1_retrieval_hit": None}}
+                     for n, v in ((1, True), (2, None), (3, True))]}]
+check("no verdict: a multi-turn run is read turn by turn", G.no_verdict(_mt_nv, _T1),
+      {"T1.7_no_private_name": [1, 3, ["M01 t2"]]})
 
 # Release gate, evidence (bugs 2026-11-07): the gate matched a run to the index by
 # its filename (no results file said which index answered), read results files

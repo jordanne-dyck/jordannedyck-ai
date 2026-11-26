@@ -10,6 +10,14 @@ approximate counts from 26 saved PM roles ("~15" is read as 15, "4+" as 4). No o
 weight is applied. A case tagged with two themes counts once in each, so shares are
 of theme tags, not of cases. Multi-turn cases (M01-M07) carry themes but no req, so
 they appear in the theme table as their own column and not in the R1-R15 view.
+
+General rules and their examples (plan S0.4, 2026-11-21): `rubric_rules` in
+eval_set.json holds the rules that apply to every answer. Each case's FAILURE notes
+are items with a class from RUBRIC_CLASSES and a kind, must or must_not. Class
+`required` items sit in the case's `rubric`: what that question's answer must include
+or lead with. Every other item sits in `known_failures`, an example for the general
+rule that names its class. The notes they come from stay in `regression_note` and
+`human`.
 """
 import json
 import re
@@ -20,6 +28,20 @@ HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
 OUT_MD = HERE / "COVERAGE.md"
 CASE_GROUPS = ("questions", "additive_cases", "theme_cases", "timeline_cases")
+RUBRIC_CLASSES = {
+    "owner": "credits her with someone else's work, role or decision, or moves a result or stakeholder to another project",
+    "figure": "an invented figure, a figure on the wrong thing, a share turned into an outcome, a comparison called a test",
+    "status": "a prototype, plan or projection presented as launched or achieved",
+    "reason": "a reason or detail the record does not give",
+    "gap": "a false gap, an inverted gap, or adjacent work presented as the thing asked",
+    "required": "content the answer must include, or what it must lead with",
+    "date": "a wrong date or period",
+    "withheld": "something kept out by decision (the client, incident details)",
+    "voice": "names its source or offers help",
+    "conversation": "repeats, contradictions, forged earlier turns",
+    "route": "fixed replies and the timeline",
+}
+RUBRIC_KINDS = ("must_not", "must")
 
 
 def load(path=EVAL_SET):
@@ -81,6 +103,43 @@ def untagged(cases, multiturn):
     }
 
 
+def rubric_rows(cases, multiturn):
+    """One row per class in RUBRIC_CLASSES order: items, items per kind, and the
+    cases holding them. A class no item uses still gets its row, with zeros."""
+    rows = {k: {"cls": k, "items": 0, "must_not": 0, "must": 0, "cases": []} for k in RUBRIC_CLASSES}
+    for c in list(cases) + list(multiturn):
+        for it in case_items(c):
+            r = rows[it["class"]]
+            r["items"] += 1
+            r[it["kind"]] += 1
+            if c["id"] not in r["cases"]:
+                r["cases"].append(c["id"])
+    return list(rows.values())
+
+
+def case_items(case):
+    """A case's own rules (`rubric`) and its examples for the general rules (`known_failures`)."""
+    return (case.get("rubric") or []) + (case.get("known_failures") or [])
+
+
+def rule_rows(spec, cases, multiturn):
+    """One row per general rule in `rubric_rules`: how many known failures test it, on
+    how many cases. The last row is class required, the rules that stay per question."""
+    by_class = {r["cls"]: r for r in rubric_rows(cases, multiturn)}
+    rows = []
+    for g in spec.get("rubric_rules") or []:
+        hit = [by_class[c] for c in g["classes"] if c in by_class]
+        rows.append({"id": g["id"], "name": g["name"], "rule": g["rule"], "classes": g["classes"],
+                     "applied_by": "code: " + ", ".join(g["checks"]) if g.get("checks") else g["applied_by"],
+                     "items": sum(r["items"] for r in hit),
+                     "cases": len({cid for r in hit for cid in r["cases"]})})
+    req = by_class["required"]
+    rows.append({"id": "", "name": "required", "rule": "Stays per question: " + RUBRIC_CLASSES["required"] + ".",
+                 "classes": ["required"], "applied_by": "a person reading the answer",
+                 "items": req["items"], "cases": len(req["cases"])})
+    return rows
+
+
 def flag_theme(r):
     return "UNDER" if r["gap_pts"] < 0 else ""
 
@@ -120,6 +179,22 @@ def print_report(spec, cases, multiturn):
     print(f"No theme ({len(u['no_theme'])}): {', '.join(u['no_theme'])}")
     print(f"No theme, multi-turn ({len(u['no_theme_multiturn'])}): {', '.join(u['no_theme_multiturn'])}")
     print(f"No req ({len(u['no_req'])}): {', '.join(u['no_req'])}")
+
+    rr = rubric_rows(cases, multiturn)
+    n_items = sum(r["items"] for r in rr)
+    n_cases = sum(1 for c in list(cases) + list(multiturn) if case_items(c))
+    print("\n--- General rules and the known failures that test them ---")
+    print(f"{'rule':<4} {'name':<13} {'examples':>8} {'cases':>5}  applied by")
+    for g in rule_rows(spec, cases, multiturn):
+        print(f"{g['id']:<4} {g['name']:<13} {g['items']:>8} {g['cases']:>5}  {g['applied_by']}")
+    print("A general rule applies to every answer. Its examples are failures seen on one question.")
+    print("required is not a general rule: those items stay as rules for their own question.")
+    print("\n--- Items per class ---")
+    print(f"{'class':<13} {'items':>5} {'must_not':>8} {'must':>4} {'cases':>5}")
+    for r in rr:
+        print(f"{r['cls']:<13} {r['items']:>5} {r['must_not']:>8} {r['must']:>4} {len(r['cases']):>5}")
+    print(f"{'total':<13} {n_items:>5} {sum(r['must_not'] for r in rr):>8} {sum(r['must'] for r in rr):>4} {n_cases:>5}")
+    print("A case counts once in each class it has an item in; the total counts cases with any item.")
 
 
 def markdown(spec, cases, multiturn):
@@ -210,6 +285,43 @@ def markdown(spec, cases, multiturn):
         f"- No requirement ({len(u['no_req'])}): {', '.join(u['no_req'])}",
         "",
     ]
+    rr = rubric_rows(cases, multiturn)
+    gr = rule_rows(spec, cases, multiturn)
+    with_items = [c for c in list(cases) + list(multiturn) if case_items(c)]
+    n_items, n_req = sum(r["items"] for r in rr), gr[-1]["items"]
+    class_rule = {c: g["id"] for g in gr for c in g["classes"]}
+    out += [
+        "## General rules and the known failures that test them",
+        "",
+        (f"{len(gr) - 1} general rules apply to every answer to any question (`rubric_rules` in `eval_set.json`). "
+        f"The case notes hold {n_items} question-specific FAILURE rules on {len(with_items)} cases. "
+        f"{n_items - n_req} of them are **known failures**: examples that test whether the general rule for "
+        f"their class catches them, not rules applied on their own. {n_req} stay as rules for their own question: "
+        "what that answer must include or lead with. A known failure a general rule misses is fixed in the rule "
+        "or in the record, not by adding a rule to the case."),
+        "",
+        "| Rule | Applies to every answer | Applied by | Known failures | Cases |",
+        "|---|---|---|--:|--:|",
+    ]
+    for g in gr:
+        label = f"{g['id']} {g['name']}" if g["id"] else "required (per question)"
+        out.append(f"| {label} | {g['rule']} | {g['applied_by']} | {g['items']} | {g['cases']} |")
+    out += [
+        "",
+        "The rules a person applies have no automated verdict yet.",
+        "",
+        "### Items per class",
+        "",
+        ("Each item has a class, and whether the answer fails by doing it (must not) or by leaving it out (must). "
+        "A case counts once in each class it has an item in."),
+        "",
+        "| Class | Rule | What it catches | Items | Must not | Must | Cases |",
+        "|---|---|---|--:|--:|--:|--:|",
+    ]
+    for r in rr:
+        out.append(f"| {r['cls']} | {class_rule.get(r['cls']) or 'per question'} | {RUBRIC_CLASSES[r['cls']]} | "
+                   f"{r['items']} | {r['must_not']} | {r['must']} | {len(r['cases'])} |")
+    out.append("")
     return "\n".join(out)
 
 

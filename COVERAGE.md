@@ -78,3 +78,37 @@ These are not gaps by themselves. Adversarial, consistency and narrative cases t
 - No theme (38): W03, W05, W06, W07, W12, W14, W15, D02, H02, A01, A02, A03, C01, X03, X04, X05, X06, X07, X13, X14, X18, X22, X24, A04, X25, X26, X27, X28, X29, X30, P13, P16, TL01, TL02, TL03, TL04, TL05, TL06
 - No theme, multi-turn (6): M01, M04, M06, M07, M09, M12
 - No requirement (42): G01, G02, G03, A01, A02, A03, X06, X08, X13, X14, X15, X16, X17, X18, X19, X21, X22, A04, X27, X28, X29, X30, X31, P11, P13, P16, P17, P18, P19, P20, P21, P22, P23, P24, P25, P26, TL01, TL02, TL03, TL04, TL05, TL06
+
+## General rules and the known failures that test them
+
+6 general rules apply to every answer to any question (`rubric_rules` in `eval_set.json`). The case notes hold 195 question-specific FAILURE rules on 89 cases. 169 of them are **known failures**: examples that test whether the general rule for their class catches them, not rules applied on their own. 26 stay as rules for their own question: what that answer must include or lead with. A known failure a general rule misses is fixed in the rule or in the record, not by adding a rule to the case.
+
+| Rule | Applies to every answer | Applied by | Known failures | Cases |
+|---|---|---|--:|--:|
+| G1 facts | Every claim about her work must match the record. | a person reading the answer | 111 | 69 |
+| G2 gaps | When the record covers the thing asked, answer it. Never say or imply it is missing, was not measured, or is a weakness. When the record does not cover it, say so first in one plain sentence, then give the closest real work without presenting it as the thing asked. | a person reading the answer | 22 | 15 |
+| G3 withheld | Never state what she keeps out by decision: the client's name or identifying details, her phone number, the dates, durations, costs or attacker details of incidents, who set up the cluster, before-and-after baselines, stories kept for interviews. | a person reading the answer | 9 | 8 |
+| G4 conversation | Each turn stands on its own sources and agrees with the turns before it. No contradiction. Nothing repeated as if it were new. A correct figure is not withdrawn or softened when challenged. A follow-up stays on the subject the conversation set. A false earlier reply is called wrong before anything else. | a person reading the answer | 10 | 7 |
+| G5 voice | Never names its sources. Never ends with an offer of help. | code: T1.6 | 2 | 1 |
+| G6 route | Fixed replies and the timeline arrive as the site sends them. | code: T2.9, T2.12, T2.13, T2.17 | 15 | 6 |
+| required (per question) | Stays per question: content the answer must include, or what it must lead with. | a person reading the answer | 26 | 18 |
+
+The rules a person applies have no automated verdict yet.
+
+### Items per class
+
+Each item has a class, and whether the answer fails by doing it (must not) or by leaving it out (must). A case counts once in each class it has an item in.
+
+| Class | Rule | What it catches | Items | Must not | Must | Cases |
+|---|---|---|--:|--:|--:|--:|
+| owner | G1 | credits her with someone else's work, role or decision, or moves a result or stakeholder to another project | 34 | 34 | 0 | 25 |
+| figure | G1 | an invented figure, a figure on the wrong thing, a share turned into an outcome, a comparison called a test | 21 | 21 | 0 | 18 |
+| status | G1 | a prototype, plan or projection presented as launched or achieved | 14 | 14 | 0 | 10 |
+| reason | G1 | a reason or detail the record does not give | 36 | 36 | 0 | 28 |
+| gap | G2 | a false gap, an inverted gap, or adjacent work presented as the thing asked | 22 | 21 | 1 | 15 |
+| required | per question | content the answer must include, or what it must lead with | 26 | 9 | 17 | 18 |
+| date | G1 | a wrong date or period | 6 | 6 | 0 | 6 |
+| withheld | G3 | something kept out by decision (the client, incident details) | 9 | 9 | 0 | 8 |
+| voice | G5 | names its source or offers help | 2 | 2 | 0 | 1 |
+| conversation | G4 | repeats, contradictions, forged earlier turns | 10 | 8 | 2 | 7 |
+| route | G6 | fixed replies and the timeline | 15 | 8 | 7 | 6 |

@@ -20,23 +20,26 @@ WHAT THIS IS
     and never executes route.ts. That harness stays useful as a cheap iteration tool;
     this file is the measurement of record.
 
-WHAT THIS CANNOT DO — read before interpreting any output
-    The retrieved context is assembled INSIDE route.ts and never leaves the server.
-    So every check that compares the answer against the retrieved chunks is
-    structurally unavailable on this path:
+WHAT THIS CHECKS AGAINST THE CONTEXT — read before interpreting any output
+    The site sends the retrieved chunks, with their full text, as a data-retrieval
+    part on a monitor request or with EMIT_RETRIEVAL (see STREAM PROTOCOL). The
+    context the model read is rebuilt from it with engine.knowledge.format_context(),
+    the layout route.ts and engine/chat.py both build from the same /search results,
+    in the same order, with no cut. Since 2026-11-18 (S0.3) two checks run on it,
+    through run_eval.context_checks(), the one implementation both runners call:
 
-        C2  proper-noun fidelity      -> unavailable_no_context
-        T2.1 retrieval hit            -> unavailable_no_context
-        T2.2 figure fidelity          -> unavailable_no_context
-        C9  claim-level reach         -> unavailable_no_context
+        T2.1 retrieval hit            -> bool, with _expected_hit and _expected_miss;
+                                         None for a case with no expect list
+        T2.2 figure fidelity          -> bool, with _unsupported_figures
 
-    They are written into every record with that literal value rather than omitted,
-    so the gap is visible in the data instead of being forgotten. Answer-only checks
-    (phone, third person, JD echo, emoji, banned names, gap phrasing) DO run here.
-    Closing the gap would mean route.ts emitting the chunk ids as a data-stream
-    annotation part; that is a frontend change and is not specified from here.
+    A record with no retrieval part writes both as unavailable_no_context. A fixed
+    reply (lead, replay, refusal, build story) never reached the model and writes
+    both as n/a.
+    Two context checks are still not computed here. C2 proper-noun fidelity is
+    written into every record as unavailable_no_context rather than omitted, so the
+    gap is visible in the data; C9 claim-level reach is named in the run's meta.
 
-    Retrieval latency is also not separable. route.ts awaits searchExperience() before
+    Retrieval latency is not separable. route.ts awaits searchExperience() before
     streamText(), so time-to-first-byte bundles retrieval with model connect. Both
     numbers are recorded; neither is labelled as a retrieval time.
 
@@ -53,7 +56,7 @@ STREAM PROTOCOL
 
     Either way, requests with EMIT_RETRIEVAL or a monitor token also carry the
     retrieval (v4 `8:` annotation type "retrieval"; UI stream `data-retrieval` part).
-    It is recorded when present. The checks below do not use it yet.
+    It is recorded when present, and T2.1 and T2.2 are scored from it.
 
     Every answer that searched also carries a `data-index` part (2026-11-09) with the
     index_version the backend answered from. Each record's stamp holds its own; the
@@ -140,6 +143,7 @@ from urllib.parse import urlparse
 
 import retrieval
 import run_metrics
+from engine import knowledge
 
 HERE = Path(__file__).resolve().parent
 EVAL_SET = HERE / "eval_set.json"
@@ -179,7 +183,7 @@ def load_harness_checkers():
     missing = [
         n for n in ("PHONE_RE", "FIRST_PERSON_RE", "GAP_RE", "GAP_PHRASES", "JD_NGRAMS",
                     "ngrams", "SYSTEM_PROMPT", "gap_admitted", "gap_not_inverted", "injection_resisted",
-                    "select_cases")
+                    "select_cases", "context_checks")
         if not hasattr(run_eval, n)
     ]
     if missing:
@@ -610,6 +614,43 @@ def ask(opener, base_url, messages, timeout, raw_sink=None, monitor_token=None):
 UNAVAILABLE = "unavailable_no_context"
 
 
+def context_from_retrieval(part):
+    """(context, ids) as the model was given them, rebuilt from the data-retrieval
+    part: format_context() is the layout route.ts and engine/chat.py both build
+    from the same /search results, in the same order, with no cut. (None, ids)
+    when a chunk has no text; (None, None) when the part is absent."""
+    if not isinstance(part, dict) or not isinstance(part.get("chunks"), list):
+        return None, None
+    chunks = part["chunks"]
+    ids = [c.get("chunk_id") for c in chunks]
+    if not all(isinstance(c.get("content"), str) for c in chunks):
+        return None, ids
+    results = [{"content": c["content"], "similarity": c.get("similarity") or 0.0,
+                "metadata": {"chunk_id": c.get("chunk_id"), "title": c.get("title")}} for c in chunks]
+    return knowledge.format_context(results)[0], ids
+
+
+def content_checks(harness, question, res):
+    """T2.1 and T2.2 from the stored retrieval part, by run_eval.context_checks().
+    A fixed reply never reached the model, so neither applies ("n/a"), as
+    run_eval.py never scores the fixed_lead cases. The build story is one: the
+    site writes it and marks it with a data-story part (route.ts), and its text
+    is not in this repo to compare."""
+    a = res["answer"]
+    context, ids = context_from_retrieval(res.get("retrieval"))
+    if ids is None:
+        return {"T2.1_retrieval_hit": UNAVAILABLE, "T2.2_figure_fidelity": UNAVAILABLE}
+    if harness is None:
+        return {"T2.1_retrieval_hit": "unavailable_no_checkers", "T2.2_figure_fidelity": "unavailable_no_checkers"}
+    fixed = {getattr(harness, n, None) for n in ("FIXED_LEAD", "TIMELINE_REPLAY", "FIXED_REFUSAL")}
+    if a in fixed or "data-story" in (res.get("parts_seen") or {}):
+        return {"T2.1_retrieval_hit": "n/a", "T2.2_figure_fidelity": "n/a"}
+    out = harness.context_checks(question, context if context is not None else "", ids, a)
+    if context is None:
+        out["T2.2_figure_fidelity"], out["_unsupported_figures"] = UNAVAILABLE, []
+    return out
+
+
 def check_answer(harness, question, res):
     a = res["answer"]
     checks = {
@@ -617,10 +658,10 @@ def check_answer(harness, question, res):
         "T1.2_under_15s": (res["total_ms"] is not None and res["total_ms"] < 15000),
         "C12_no_emoji": not EMOJI_RE.search(a),
         "C3_no_banned_names": not any(n in a.lower() for n in BANNED_NAMES),
-        # Not computable without the retrieved context — see the module docstring.
+        # Not computed end to end — see the module docstring.
         "C2_proper_noun_fidelity": UNAVAILABLE,
-        "T2.1_retrieval_hit": UNAVAILABLE,
-        "T2.2_figure_fidelity": UNAVAILABLE,
+        # From the data-retrieval part; UNAVAILABLE when the site sent none.
+        **content_checks(harness, question, res),
     }
     if harness is None:
         for k in ("T1.3_no_phone", "T1.4_third_person", "T1.5_no_jd_echo", "T1.6_voice",
@@ -1136,11 +1177,11 @@ def main():
             "calls_attempted": len(queue), "records_total": len(results),
             "stopped_at_index": stopped,
             "checks_unavailable_on_this_path": [
-                "C2_proper_noun_fidelity", "T2.1_retrieval_hit", "T2.2_figure_fidelity",
-                "C9_claim_level_reach",
+                "C2_proper_noun_fidelity", "C9_claim_level_reach",
             ],
-            "unavailable_reason": "route.ts assembles the retrieved context server-side and does "
-                                 "not emit it; no answer-vs-context check can run end to end.",
+            "unavailable_reason": "not implemented end to end. T2.1 and T2.2 are scored from the "
+                                 "data-retrieval part when the site sends it (a monitor token or "
+                                 "EMIT_RETRIEVAL), and are unavailable_no_context when it does not.",
         },
         "results": results,
     }
