@@ -1597,6 +1597,40 @@ check("no reader or indexer names an embedding model of its own",
       [f for f in ("api_server.py", "mcp_server/server_faiss.py", "scripts/embed_knowledge_faiss.py")
        if re.search(r'model="text-embedding', (R.HERE / f).read_text(encoding="utf-8"))], [])
 
+print("\n--- indexer: which chunks go in (S0.7) ---")
+# 2026-11-26: `index: false` keeps a new chunk out of the index; embedding_weight
+# below 0.3 keeps dropping the chunks that already use it. build_chunks only: no
+# embedding, no API call. A made-up file in a temporary knowledge base.
+import contextlib, importlib.util, io
+_spec = importlib.util.spec_from_file_location("embed_knowledge_faiss",
+                                               R.HERE / "scripts" / "embed_knowledge_faiss.py")
+EKF = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(EKF)
+
+def _kb_chunk(meta_lines, text):
+    return "<!--chunk:start-->\n```yaml\n" + "\n".join(meta_lines) + "\n```\n" + text + "\n<!--chunk:end-->\n"
+
+with tempfile.TemporaryDirectory() as td:
+    kb = Path(td) / "knowledge-base"
+    (kb / "examples").mkdir(parents=True)
+    (kb / "examples" / "sample.md").write_text(
+        "---\ntitle: Sample\n---\n# Sample\n\n"
+        + _kb_chunk(["chunk_id: ex-001"], "An ordinary chunk about loyalty programs.")
+        + _kb_chunk(["chunk_id: ex-002", "index: false"], "A new chunk kept out of the index.")
+        + _kb_chunk(["chunk_id: ex-003", "embedding_weight: 0.2"], "An older chunk dropped by its weight.")
+        + _kb_chunk(["chunk_id: ex-004", "index: true"], "A chunk marked index: true."),
+        encoding="utf-8")
+    with contextlib.redirect_stdout(io.StringIO()):
+        built = EKF.build_chunks(kb)
+built_ids = [m["chunk_id"] for _, m, _ in built]
+check("indexer: an ordinary chunk is kept", "ex-001" in built_ids, True)
+check("indexer: a chunk with index: false is dropped", "ex-002" in built_ids, False)
+check("indexer: a chunk with embedding_weight 0.2 is still dropped", "ex-003" in built_ids, False)
+check("indexer: index: true is kept", "ex-004" in built_ids, True)
+check("indexer: kept chunks, in file order", built_ids, ["ex-001", "ex-004"])
+check("indexer: the flag adds no key to the stored metadata", sorted(built[0][1]),
+      ["category", "chunk_id", "context_priority", "embedding_weight", "filename", "title"])
+
 print("\n--- analyser (plan G.3) ---")
 import analyse as AN
 check("analyser prices match run_eval's gpt-4o prices",
