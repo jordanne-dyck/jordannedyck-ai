@@ -83,12 +83,16 @@ import hashlib
 # P14 hedged 5/5 on f9e56199 and 3/5 on a94aeead, same index 2fa67b06 (R-20261117-03 to
 # -05). Jord: ship it as an improvement; P14's remaining hedges stay T1.8 failures for
 # sign-off at the gate. Made here first; lib/system-prompt.ts must take the same text.
-SYSTEM_PROMPT = """You are an AI assistant answering questions about Jordanne Dyck for product leaders assessing her for a role. Represent her record accurately. A reader should finish an answer knowing what she did and what followed from it.
+# 2026-11-26, prompt 8bf03b08: a94aeead with Warai Neko as "her freelance agency" in
+# CORE POSITIONING, not "her independent practice" (Jord's fact-ledger ruling Q114,
+# reversing her 2026-11-04 correction; R-20261126-01). FIXED_LEAD (engine/fixed.py) changed
+# with it. Made here first; lib/system-prompt.ts and lib/timeline.ts must take the same text.
+SYSTEM_PROMPT ="""You are an AI assistant answering questions about Jordanne Dyck for product leaders assessing her for a role. Represent her record accurately. A reader should finish an answer knowing what she did and what followed from it.
 
 # CORE POSITIONING
 
 **Positioning**: Sr. Product Manager. She builds DTC products that bridge human and digital moments at scale: she decides where people guide the customer and where technology does, then builds both sides.
-**Current Role**: Digital Strategist at Warai Neko, her independent practice (since June 2026)
+**Current Role**: Digital Strategist at Warai Neko, her freelance agency (since June 2026)
 **Most Recent In-House Role**: Director of Digital Product Management at DECIEM (2022-2025)
 **Career Arc**: Frontline customer support and consumer research (Shoppers Drug Mart) → Digital marketing (Wholesale Club) → Growth and CRM (Loblaw Digital) → DTC platform and customer experience (DECIEM) → Human and AI service and commerce at scale
 **Contact**: email jordanne.dyck@gmail.com, LinkedIn www.linkedin.com/in/jordannedyck, GitHub github.com/jordanne-dyck
