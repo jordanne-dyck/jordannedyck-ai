@@ -1809,33 +1809,46 @@ print("\n--- case rules: general rules, known failures and rubric items ---")
 # `known_failures`, examples that test the general rule naming their class, and
 # `rubric`, only class required: what that question's answer must include or lead with.
 # These checks keep the lists complete and well formed; Jord's read of a sample checks
-# the classes.
+# the classes. 2026-11-26 (Jord): a known failure she rules is not a failure moves to
+# the case's `allowed` list, keeping its id: what an answer may say. A rule that fails
+# an answer for one of them is wrong, so they test the general rules from the other side.
 import coverage_report as CR
 rb_cases = [c for key in CR.CASE_GROUPS for c in SPEC[key]] + SPEC["multiturn"]["cases"]
 rb_notes = lambda c: f"{c.get('regression_note') or ''} {c.get('human') or ''}"
 rb_items = [it for c in rb_cases for it in CR.case_items(c)]
-check("rubric: every case whose notes say FAILURE has an item",
-      [c["id"] for c in rb_cases if "FAILURE" in rb_notes(c) and not CR.case_items(c)], [])
+rb_ok = [it for c in rb_cases for it in CR.allowed_items(c)]
+rb_all = lambda c: CR.case_items(c) + CR.allowed_items(c)
+check("rubric: every case whose notes say FAILURE has an item or an allowed statement",
+      [c["id"] for c in rb_cases if "FAILURE" in rb_notes(c) and not rb_all(c)], [])
 check("rubric: no item on a case whose notes have no FAILURE rule",
-      [c["id"] for c in rb_cases if CR.case_items(c) and "FAILURE" not in rb_notes(c)], [])
+      [c["id"] for c in rb_cases if rb_all(c) and "FAILURE" not in rb_notes(c)], [])
 n_failure = sum(rb_notes(c).count("FAILURE") for c in rb_cases)
 check(f"rubric: at least one item per FAILURE in regression_note and human ({n_failure}, 139 counted 2026-11-18 "
-      f"before the conversations' regression_note)", len(rb_items) >= n_failure >= 139, True)
+      f"before the conversations' regression_note)", len(rb_items) + len(rb_ok) >= n_failure >= 139, True)
 check("rubric: the eleven classes", list(CR.RUBRIC_CLASSES),
       ["owner", "figure", "status", "reason", "gap", "required", "date", "withheld", "voice", "conversation", "route"])
-check("rubric: every class is one of the eleven", sorted({it.get("class") for it in rb_items} - set(CR.RUBRIC_CLASSES)), [])
+check("rubric: every class is one of the eleven",
+      sorted({it.get("class") for it in rb_items + rb_ok} - set(CR.RUBRIC_CLASSES)), [])
 check("rubric: every kind is must or must_not", sorted({it.get("kind") for it in rb_items} - {"must", "must_not"}), [])
-check("rubric: item ids are unique across both lists", len({it.get("id") for it in rb_items}), len(rb_items))
+check("rubric: item ids are unique across the three lists",
+      len({it.get("id") for it in rb_items + rb_ok}), len(rb_items) + len(rb_ok))
 check("rubric: an item id is its case id, -r and a number",
-      [it.get("id") for c in rb_cases for it in CR.case_items(c)
+      [it.get("id") for c in rb_cases for it in rb_all(c)
        if not re.fullmatch(re.escape(c["id"]) + r"-r\d+", str(it.get("id")))], [])
 check("rubric: an item has id, class, kind and a one-line rule, and nothing else but turn",
       [it.get("id") for it in rb_items if not {"id", "class", "kind", "rule"} <= set(it) <= {"id", "class", "kind", "rule", "turn"}
        or not str(it["rule"]).strip() or "\n" in str(it["rule"])], [])
 rb_turns = {c["id"]: len(c["turns"]) for c in SPEC["multiturn"]["cases"]}
 check("rubric: turn only on a conversation, and one of its turns",
-      [it["id"] for c in rb_cases for it in CR.case_items(c) if "turn" in it
+      [it["id"] for c in rb_cases for it in rb_all(c) if "turn" in it
        and not (c["id"] in rb_turns and type(it["turn"]) is int and 1 <= it["turn"] <= rb_turns[c["id"]])], [])
+check("allowed: an item has id, class, kind may, a one-line rule starting 'The answer may', and the date ruled",
+      [it.get("id") for it in rb_ok
+       if not {"id", "class", "kind", "rule", "ruled"} <= set(it) <= {"id", "class", "kind", "rule", "ruled", "turn"}
+       or it["kind"] != "may" or not str(it["rule"]).startswith("The answer may ") or "\n" in it["rule"]
+       or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(it["ruled"]))], [])
+check("allowed: no class required (that list is what an answer must hold, not what it may say)",
+      [it["id"] for it in rb_ok if it["class"] == "required"], [])
 # A case's own rules are only what its answer must include or lead with. Anything
 # else is an example for a general rule, never a rule of its own.
 check("rubric: a case's rubric holds only class required",
@@ -1843,7 +1856,7 @@ check("rubric: a case's rubric holds only class required",
 check("rubric: known_failures holds no class required",
       [it["id"] for c in rb_cases for it in c.get("known_failures") or [] if it["class"] == "required"], [])
 check("rubric: no empty list is written",
-      [c["id"] for c in rb_cases for k in ("rubric", "known_failures") if k in c and not c[k]], [])
+      [c["id"] for c in rb_cases for k in ("rubric", "known_failures", "allowed") if k in c and not c[k]], [])
 g_rules = SPEC["rubric_rules"]
 g_classes = [cl for g in g_rules for cl in g["classes"]]
 check("general rules: ids are unique", len({g["id"] for g in g_rules}), len(g_rules))
@@ -1860,6 +1873,8 @@ check("general rules: a rule with parts has one per class",
       [g["id"] for g in g_rules if "parts" in g and list(g["parts"]) != g["classes"]], [])
 check("general rules: every known failure has a rule for its class",
       sorted({it["class"] for c in rb_cases for it in c.get("known_failures") or []} - set(g_classes)), [])
+check("general rules: every allowed statement has a rule for its class, the one that must not fail it",
+      sorted({it["class"] for it in rb_ok} - set(g_classes)), [])
 _spec_rr, cases_rr, mt_rr = CR.load()
 rows_rr = CR.rubric_rows(cases_rr, mt_rr)
 check("coverage: one rubric row per class, in order", [r["cls"] for r in rows_rr], list(CR.RUBRIC_CLASSES))
@@ -1868,9 +1883,10 @@ gr_rr = CR.rule_rows(_spec_rr, cases_rr, mt_rr)
 check("coverage: one row per general rule, then required", [g["id"] or g["name"] for g in gr_rr],
       [g["id"] for g in g_rules] + ["required"])
 check("coverage: general-rule rows add up to every item", sum(g["items"] for g in gr_rr), len(rb_items))
+check("coverage: general-rule rows add up to every allowed statement", sum(g["allowed"] for g in gr_rr), len(rb_ok))
 fx_cases = [{"id": "A", "rubric": [{"class": "required", "kind": "must"}],
              "known_failures": [{"class": "owner", "kind": "must_not"}, {"class": "date", "kind": "must_not"}]},
-            {"id": "B"}]
+            {"id": "B", "allowed": [{"class": "date", "kind": "may"}, {"class": "route", "kind": "may"}]}]
 fx_mt = [{"id": "M", "known_failures": [{"class": "route", "kind": "must"}, {"class": "owner", "kind": "must_not"}]}]
 fx = CR.rubric_rows(fx_cases, fx_mt)
 check("coverage: fixture counts items, kinds and cases per class, from both lists",
@@ -1881,6 +1897,9 @@ fx_spec = {"rubric_rules": [{"id": "G1", "name": "facts", "classes": ["owner", "
 check("coverage: fixture counts a case once per general rule, and code rules name their checks",
       [(g["id"] or g["name"], g["items"], g["cases"], g["applied_by"]) for g in CR.rule_rows(fx_spec, fx_cases, fx_mt)],
       [("G1", 3, 2, "a person"), ("G6", 1, 1, "code: T2.9"), ("required", 1, 1, "a person reading the answer")])
+check("coverage: fixture counts allowed statements per general rule, apart from its known failures",
+      [(g["id"] or g["name"], g["allowed"]) for g in CR.rule_rows(fx_spec, fx_cases, fx_mt)],
+      [("G1", 1), ("G6", 1), ("required", 0)])
 
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
