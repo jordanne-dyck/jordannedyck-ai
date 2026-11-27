@@ -17,7 +17,8 @@ are items with a class from RUBRIC_CLASSES and a kind, must or must_not. Class
 `required` items sit in the case's `rubric`: what that question's answer must include
 or lead with. Every other item sits in `known_failures`, an example for the general
 rule that names its class. The notes they come from stay in `regression_note` and
-`human`.
+`human`. A known failure Jord rules is not a failure moves to the case's `allowed`
+list (2026-11-26): what an answer may say, so a judge that fails it is wrong.
 """
 import json
 import re
@@ -122,21 +123,29 @@ def case_items(case):
     return (case.get("rubric") or []) + (case.get("known_failures") or [])
 
 
+def allowed_items(case):
+    """What Jord ruled an answer may say on this case. Each was once a known failure."""
+    return case.get("allowed") or []
+
+
 def rule_rows(spec, cases, multiturn):
     """One row per general rule in `rubric_rules`: how many known failures test it, on
-    how many cases. The last row is class required, the rules that stay per question."""
+    how many cases, and how many allowed statements it must not fail. The last row is
+    class required, the rules that stay per question."""
     by_class = {r["cls"]: r for r in rubric_rows(cases, multiturn)}
+    ok = [it["class"] for c in list(cases) + list(multiturn) for it in allowed_items(c)]
     rows = []
     for g in spec.get("rubric_rules") or []:
         hit = [by_class[c] for c in g["classes"] if c in by_class]
         rows.append({"id": g["id"], "name": g["name"], "rule": g["rule"], "classes": g["classes"],
                      "applied_by": "code: " + ", ".join(g["checks"]) if g.get("checks") else g["applied_by"],
                      "items": sum(r["items"] for r in hit),
-                     "cases": len({cid for r in hit for cid in r["cases"]})})
+                     "cases": len({cid for r in hit for cid in r["cases"]}),
+                     "allowed": sum(1 for c in ok if c in g["classes"])})
     req = by_class["required"]
     rows.append({"id": "", "name": "required", "rule": "Stays per question: " + RUBRIC_CLASSES["required"] + ".",
                  "classes": ["required"], "applied_by": "a person reading the answer",
-                 "items": req["items"], "cases": len(req["cases"])})
+                 "items": req["items"], "cases": len(req["cases"]), "allowed": ok.count("required")})
     return rows
 
 
@@ -184,10 +193,11 @@ def print_report(spec, cases, multiturn):
     n_items = sum(r["items"] for r in rr)
     n_cases = sum(1 for c in list(cases) + list(multiturn) if case_items(c))
     print("\n--- General rules and the known failures that test them ---")
-    print(f"{'rule':<4} {'name':<13} {'examples':>8} {'cases':>5}  applied by")
+    print(f"{'rule':<4} {'name':<13} {'examples':>8} {'cases':>5} {'allowed':>7}  applied by")
     for g in rule_rows(spec, cases, multiturn):
-        print(f"{g['id']:<4} {g['name']:<13} {g['items']:>8} {g['cases']:>5}  {g['applied_by']}")
+        print(f"{g['id']:<4} {g['name']:<13} {g['items']:>8} {g['cases']:>5} {g['allowed']:>7}  {g['applied_by']}")
     print("A general rule applies to every answer. Its examples are failures seen on one question.")
+    print("allowed = statements ruled not a failure: the rule must not fail an answer for one of them.")
     print("required is not a general rule: those items stay as rules for their own question.")
     print("\n--- Items per class ---")
     print(f"{'class':<13} {'items':>5} {'must_not':>8} {'must':>4} {'cases':>5}")
@@ -287,25 +297,27 @@ def markdown(spec, cases, multiturn):
     ]
     rr = rubric_rows(cases, multiturn)
     gr = rule_rows(spec, cases, multiturn)
-    with_items = [c for c in list(cases) + list(multiturn) if case_items(c)]
+    with_items = [c for c in list(cases) + list(multiturn) if case_items(c) or allowed_items(c)]
     n_items, n_req = sum(r["items"] for r in rr), gr[-1]["items"]
+    n_ok = sum(g["allowed"] for g in gr)
     class_rule = {c: g["id"] for g in gr for c in g["classes"]}
     out += [
         "## General rules and the known failures that test them",
         "",
         (f"{len(gr) - 1} general rules apply to every answer to any question (`rubric_rules` in `eval_set.json`). "
-        f"The case notes hold {n_items} question-specific FAILURE rules on {len(with_items)} cases. "
+        f"The case notes hold {n_items + n_ok} question-specific FAILURE rules on {len(with_items)} cases. "
         f"{n_items - n_req} of them are **known failures**: examples that test whether the general rule for "
         f"their class catches them, not rules applied on their own. {n_req} stay as rules for their own question: "
-        "what that answer must include or lead with. A known failure a general rule misses is fixed in the rule "
-        "or in the record, not by adding a rule to the case."),
+        f"what that answer must include or lead with. {n_ok} were ruled not failures and are kept as **allowed**: "
+        "what an answer may say, so a rule that fails one of them is wrong. A known failure a general rule misses "
+        "is fixed in the rule or in the record, not by adding a rule to the case."),
         "",
-        "| Rule | Applies to every answer | Applied by | Known failures | Cases |",
-        "|---|---|---|--:|--:|",
+        "| Rule | Applies to every answer | Applied by | Known failures | Cases | Allowed |",
+        "|---|---|---|--:|--:|--:|",
     ]
     for g in gr:
         label = f"{g['id']} {g['name']}" if g["id"] else "required (per question)"
-        out.append(f"| {label} | {g['rule']} | {g['applied_by']} | {g['items']} | {g['cases']} |")
+        out.append(f"| {label} | {g['rule']} | {g['applied_by']} | {g['items']} | {g['cases']} | {g['allowed']} |")
     out += [
         "",
         "The rules a person applies have no automated verdict yet.",
