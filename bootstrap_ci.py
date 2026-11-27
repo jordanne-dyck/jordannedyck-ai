@@ -15,6 +15,9 @@ includes zero. With 8 questions (both blind samples) or 7 conversations
 (multi-turn) a range is rough: it can show a gap is noise, not that a small gap
 is real.
 
+wilson() is the range on one case's repetitions, where there is one question and
+nothing to resample; release_gate.py reports per-case rates with it.
+
 Usage (from C:\\Users\\Jord\\jordannedyck-ai):
     uv run python bootstrap_ci.py eval_runs/FILE.json                  # ranges per model/arm
     uv run python bootstrap_ci.py FILE --models gpt-4o claude-opus-5-5 # gap, two models in one file
@@ -24,10 +27,12 @@ Usage (from C:\\Users\\Jord\\jordannedyck-ai):
 
 import argparse
 import json
+import math
 import random
 import sys
 from itertools import combinations
 from pathlib import Path
+from statistics import NormalDist
 
 import run_metrics as RM
 
@@ -110,6 +115,20 @@ def bootstrap(cells, *, resamples=RESAMPLES, seed=SEED, level=LEVEL):
     stats = [_ratio([vals[j] for j in d]) for d in _draws(len(ids), resamples, seed)]
     lo, hi = interval(stats, level)
     return {"n": len(ids), "value": _ratio(vals), "lo": lo, "hi": hi}
+
+
+def wilson(passed, n, level=LEVEL):
+    """Wilson score range on passed / n, as (lo, hi); (None, None) when n is 0.
+    For one case's repetitions, where there is a single question and nothing to
+    resample: unlike passed / n ± a normal range, it stays inside 0 to 1 and does
+    not collapse to a point at 0 of n or n of n (S0.8, 2026-11-26)."""
+    if not n:
+        return None, None
+    z = NormalDist().inv_cdf(1 - (1 - level) / 2)
+    p, z2 = passed / n, z * z
+    mid = (p + z2 / (2 * n)) / (1 + z2 / n)
+    half = z * math.sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / (1 + z2 / n)
+    return max(0.0, mid - half), min(1.0, mid + half)
 
 
 def paired_gap(a, b, *, resamples=RESAMPLES, seed=SEED, level=LEVEL):

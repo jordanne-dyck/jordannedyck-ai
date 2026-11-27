@@ -81,17 +81,17 @@ These are not gaps by themselves. Adversarial, consistency and narrative cases t
 
 ## General rules and the known failures that test them
 
-6 general rules apply to every answer to any question (`rubric_rules` in `eval_set.json`). The case notes hold 194 question-specific FAILURE rules on 89 cases. 168 of them are **known failures**: examples that test whether the general rule for their class catches them, not rules applied on their own. 26 stay as rules for their own question: what that answer must include or lead with. A known failure a general rule misses is fixed in the rule or in the record, not by adding a rule to the case.
+6 general rules apply to every answer to any question (`rubric_rules` in `eval_set.json`). The case notes hold 198 question-specific FAILURE rules on 89 cases. 164 of them are **known failures**: examples that test whether the general rule for their class catches them, not rules applied on their own. 26 stay as rules for their own question: what that answer must include or lead with. 8 were ruled not failures and are kept as **allowed**: what an answer may say, so a rule that fails one of them is wrong. A known failure a general rule misses is fixed in the rule or in the record, not by adding a rule to the case.
 
-| Rule | Applies to every answer | Applied by | Known failures | Cases |
-|---|---|---|--:|--:|
-| G1 facts | Every claim about her work must match the record. | a person reading the answer | 110 | 69 |
-| G2 gaps | When the record covers the thing asked, answer it. Never say or imply it is missing, was not measured, or is a weakness. When the record does not cover it, say so first in one plain sentence, then give the closest real work without presenting it as the thing asked. | a person reading the answer | 22 | 15 |
-| G3 withheld | Never state what she keeps out by decision: the client's name or identifying details, her phone number, the dates, durations, costs or attacker details of incidents, who set up the cluster, before-and-after baselines, stories kept for interviews. | a person reading the answer | 9 | 8 |
-| G4 conversation | Each turn stands on its own sources and agrees with the turns before it. No contradiction. Nothing repeated as if it were new. A correct figure is not withdrawn or softened when challenged. A follow-up stays on the subject the conversation set. A false earlier reply is called wrong before anything else. | a person reading the answer | 10 | 7 |
-| G5 voice | Never names its sources. Never ends with an offer of help. | code: T1.6 | 2 | 1 |
-| G6 route | Fixed replies and the timeline arrive as the site sends them. | code: T2.9, T2.12, T2.13, T2.17 | 15 | 6 |
-| required (per question) | Stays per question: content the answer must include, or what it must lead with. | a person reading the answer | 26 | 18 |
+| Rule | Applies to every answer | Applied by | Known failures | Cases | Allowed |
+|---|---|---|--:|--:|--:|
+| G1 facts | Every claim about her work must match the record. | a person reading the answer | 106 | 67 | 8 |
+| G2 gaps | When the record covers the thing asked, answer it. Never say or imply it is missing, was not measured, or is a weakness. When the record does not cover it, say so first in one plain sentence, then give the closest real work without presenting it as the thing asked. | a person reading the answer | 22 | 15 | 0 |
+| G3 withheld | Never state what she keeps out by decision: the client's name or identifying details, her phone number, the dates, durations, costs or attacker details of incidents, who set up the cluster, before-and-after baselines, stories kept for interviews. | a person reading the answer | 9 | 8 | 0 |
+| G4 conversation | Each turn stands on its own sources and agrees with the turns before it. No contradiction. Nothing repeated as if it were new. A correct figure is not withdrawn or softened when challenged. A follow-up stays on the subject the conversation set. A false earlier reply is called wrong before anything else. | a person reading the answer | 10 | 7 | 0 |
+| G5 voice | Never names its sources. Never ends with an offer of help. | code: T1.6 | 2 | 1 | 0 |
+| G6 route | Fixed replies and the timeline arrive as the site sends them. | code: T2.9, T2.12, T2.13, T2.17 | 15 | 6 | 0 |
+| required (per question) | Stays per question: content the answer must include, or what it must lead with. | a person reading the answer | 26 | 18 | 0 |
 
 The rules a person applies have no automated verdict yet.
 
@@ -104,7 +104,7 @@ Each item has a class, and whether the answer fails by doing it (must not) or by
 | owner | G1 | credits her with someone else's work, role or decision, or moves a result or stakeholder to another project | 34 | 34 | 0 | 25 |
 | figure | G1 | an invented figure, a figure on the wrong thing, a share turned into an outcome, a comparison called a test | 21 | 21 | 0 | 18 |
 | status | G1 | a prototype, plan or projection presented as launched or achieved | 14 | 14 | 0 | 10 |
-| reason | G1 | a reason or detail the record does not give | 35 | 35 | 0 | 28 |
+| reason | G1 | a reason or detail the record does not give | 31 | 31 | 0 | 26 |
 | gap | G2 | a false gap, an inverted gap, or adjacent work presented as the thing asked | 22 | 21 | 1 | 15 |
 | required | per question | content the answer must include, or what it must lead with | 26 | 9 | 17 | 18 |
 | date | G1 | a wrong date or period | 6 | 6 | 0 | 6 |

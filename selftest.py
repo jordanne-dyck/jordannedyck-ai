@@ -1809,33 +1809,46 @@ print("\n--- case rules: general rules, known failures and rubric items ---")
 # `known_failures`, examples that test the general rule naming their class, and
 # `rubric`, only class required: what that question's answer must include or lead with.
 # These checks keep the lists complete and well formed; Jord's read of a sample checks
-# the classes.
+# the classes. 2026-11-26 (Jord): a known failure she rules is not a failure moves to
+# the case's `allowed` list, keeping its id: what an answer may say. A rule that fails
+# an answer for one of them is wrong, so they test the general rules from the other side.
 import coverage_report as CR
 rb_cases = [c for key in CR.CASE_GROUPS for c in SPEC[key]] + SPEC["multiturn"]["cases"]
 rb_notes = lambda c: f"{c.get('regression_note') or ''} {c.get('human') or ''}"
 rb_items = [it for c in rb_cases for it in CR.case_items(c)]
-check("rubric: every case whose notes say FAILURE has an item",
-      [c["id"] for c in rb_cases if "FAILURE" in rb_notes(c) and not CR.case_items(c)], [])
+rb_ok = [it for c in rb_cases for it in CR.allowed_items(c)]
+rb_all = lambda c: CR.case_items(c) + CR.allowed_items(c)
+check("rubric: every case whose notes say FAILURE has an item or an allowed statement",
+      [c["id"] for c in rb_cases if "FAILURE" in rb_notes(c) and not rb_all(c)], [])
 check("rubric: no item on a case whose notes have no FAILURE rule",
-      [c["id"] for c in rb_cases if CR.case_items(c) and "FAILURE" not in rb_notes(c)], [])
+      [c["id"] for c in rb_cases if rb_all(c) and "FAILURE" not in rb_notes(c)], [])
 n_failure = sum(rb_notes(c).count("FAILURE") for c in rb_cases)
 check(f"rubric: at least one item per FAILURE in regression_note and human ({n_failure}, 139 counted 2026-11-18 "
-      f"before the conversations' regression_note)", len(rb_items) >= n_failure >= 139, True)
+      f"before the conversations' regression_note)", len(rb_items) + len(rb_ok) >= n_failure >= 139, True)
 check("rubric: the eleven classes", list(CR.RUBRIC_CLASSES),
       ["owner", "figure", "status", "reason", "gap", "required", "date", "withheld", "voice", "conversation", "route"])
-check("rubric: every class is one of the eleven", sorted({it.get("class") for it in rb_items} - set(CR.RUBRIC_CLASSES)), [])
+check("rubric: every class is one of the eleven",
+      sorted({it.get("class") for it in rb_items + rb_ok} - set(CR.RUBRIC_CLASSES)), [])
 check("rubric: every kind is must or must_not", sorted({it.get("kind") for it in rb_items} - {"must", "must_not"}), [])
-check("rubric: item ids are unique across both lists", len({it.get("id") for it in rb_items}), len(rb_items))
+check("rubric: item ids are unique across the three lists",
+      len({it.get("id") for it in rb_items + rb_ok}), len(rb_items) + len(rb_ok))
 check("rubric: an item id is its case id, -r and a number",
-      [it.get("id") for c in rb_cases for it in CR.case_items(c)
+      [it.get("id") for c in rb_cases for it in rb_all(c)
        if not re.fullmatch(re.escape(c["id"]) + r"-r\d+", str(it.get("id")))], [])
 check("rubric: an item has id, class, kind and a one-line rule, and nothing else but turn",
       [it.get("id") for it in rb_items if not {"id", "class", "kind", "rule"} <= set(it) <= {"id", "class", "kind", "rule", "turn"}
        or not str(it["rule"]).strip() or "\n" in str(it["rule"])], [])
 rb_turns = {c["id"]: len(c["turns"]) for c in SPEC["multiturn"]["cases"]}
 check("rubric: turn only on a conversation, and one of its turns",
-      [it["id"] for c in rb_cases for it in CR.case_items(c) if "turn" in it
+      [it["id"] for c in rb_cases for it in rb_all(c) if "turn" in it
        and not (c["id"] in rb_turns and type(it["turn"]) is int and 1 <= it["turn"] <= rb_turns[c["id"]])], [])
+check("allowed: an item has id, class, kind may, a one-line rule starting 'The answer may', and the date ruled",
+      [it.get("id") for it in rb_ok
+       if not {"id", "class", "kind", "rule", "ruled"} <= set(it) <= {"id", "class", "kind", "rule", "ruled", "turn"}
+       or it["kind"] != "may" or not str(it["rule"]).startswith("The answer may ") or "\n" in it["rule"]
+       or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(it["ruled"]))], [])
+check("allowed: no class required (that list is what an answer must hold, not what it may say)",
+      [it["id"] for it in rb_ok if it["class"] == "required"], [])
 # A case's own rules are only what its answer must include or lead with. Anything
 # else is an example for a general rule, never a rule of its own.
 check("rubric: a case's rubric holds only class required",
@@ -1843,7 +1856,7 @@ check("rubric: a case's rubric holds only class required",
 check("rubric: known_failures holds no class required",
       [it["id"] for c in rb_cases for it in c.get("known_failures") or [] if it["class"] == "required"], [])
 check("rubric: no empty list is written",
-      [c["id"] for c in rb_cases for k in ("rubric", "known_failures") if k in c and not c[k]], [])
+      [c["id"] for c in rb_cases for k in ("rubric", "known_failures", "allowed") if k in c and not c[k]], [])
 g_rules = SPEC["rubric_rules"]
 g_classes = [cl for g in g_rules for cl in g["classes"]]
 check("general rules: ids are unique", len({g["id"] for g in g_rules}), len(g_rules))
@@ -1860,6 +1873,8 @@ check("general rules: a rule with parts has one per class",
       [g["id"] for g in g_rules if "parts" in g and list(g["parts"]) != g["classes"]], [])
 check("general rules: every known failure has a rule for its class",
       sorted({it["class"] for c in rb_cases for it in c.get("known_failures") or []} - set(g_classes)), [])
+check("general rules: every allowed statement has a rule for its class, the one that must not fail it",
+      sorted({it["class"] for it in rb_ok} - set(g_classes)), [])
 _spec_rr, cases_rr, mt_rr = CR.load()
 rows_rr = CR.rubric_rows(cases_rr, mt_rr)
 check("coverage: one rubric row per class, in order", [r["cls"] for r in rows_rr], list(CR.RUBRIC_CLASSES))
@@ -1868,9 +1883,10 @@ gr_rr = CR.rule_rows(_spec_rr, cases_rr, mt_rr)
 check("coverage: one row per general rule, then required", [g["id"] or g["name"] for g in gr_rr],
       [g["id"] for g in g_rules] + ["required"])
 check("coverage: general-rule rows add up to every item", sum(g["items"] for g in gr_rr), len(rb_items))
+check("coverage: general-rule rows add up to every allowed statement", sum(g["allowed"] for g in gr_rr), len(rb_ok))
 fx_cases = [{"id": "A", "rubric": [{"class": "required", "kind": "must"}],
              "known_failures": [{"class": "owner", "kind": "must_not"}, {"class": "date", "kind": "must_not"}]},
-            {"id": "B"}]
+            {"id": "B", "allowed": [{"class": "date", "kind": "may"}, {"class": "route", "kind": "may"}]}]
 fx_mt = [{"id": "M", "known_failures": [{"class": "route", "kind": "must"}, {"class": "owner", "kind": "must_not"}]}]
 fx = CR.rubric_rows(fx_cases, fx_mt)
 check("coverage: fixture counts items, kinds and cases per class, from both lists",
@@ -1881,6 +1897,9 @@ fx_spec = {"rubric_rules": [{"id": "G1", "name": "facts", "classes": ["owner", "
 check("coverage: fixture counts a case once per general rule, and code rules name their checks",
       [(g["id"] or g["name"], g["items"], g["cases"], g["applied_by"]) for g in CR.rule_rows(fx_spec, fx_cases, fx_mt)],
       [("G1", 3, 2, "a person"), ("G6", 1, 1, "code: T2.9"), ("required", 1, 1, "a person reading the answer")])
+check("coverage: fixture counts allowed statements per general rule, apart from its known failures",
+      [(g["id"] or g["name"], g["allowed"]) for g in CR.rule_rows(fx_spec, fx_cases, fx_mt)],
+      [("G1", 1), ("G6", 1), ("required", 0)])
 
 print("\n--- README matches the code ---")
 # The README is what hiring managers read. Each fact below is derived from the
@@ -2321,6 +2340,165 @@ _mt_nv = [{"id": "M01", "case_checks": {"T2.7_followups_cited": True},
                      for n, v in ((1, True), (2, None), (3, True))]}]
 check("no verdict: a multi-turn run is read turn by turn", G.no_verdict(_mt_nv, _T1),
       {"T1.7_no_private_name": [1, 3, ["M01 t2"]]})
+
+# Release gate, rates (S0.8, 2026-11-26): per case, the share of its repetitions that
+# passed every check, with a Wilson range, and apart, the checks that did not fail in
+# the period. A report only: the gate passes and fails exactly as before.
+print("\n--- release gate: per-case rates and the no-failure block (report only) ---")
+import contextlib, io, shutil, tempfile
+import bootstrap_ci as B
+# Wilson 95% by hand, z = 1.959964, z^2 = 3.841459:
+#   4/5: centre (0.8 + 0.384146) / 1.768292 = 0.669656, half 1.959964 * sqrt(0.032 + 0.038415)
+#        / 1.768292 = 0.294121 -> 0.3755 to 0.9638 (1/5 mirrors it: 0.0362 to 0.6245)
+#   0/5: hi = 0.768292 / 1.768292 = 0.4345; 1/1: lo = 1 - 1.920729 / 4.841459 = 0.2065
+#   6/10: centre 0.792073 / 1.384146 = 0.572247, half 1.959964 * sqrt(0.024 + 0.009604)
+#        / 1.384146 = 0.259574 -> 0.3127 to 0.8318
+#   0 of 13 failed: failure rate up to (3.841459 / 13) / (1 + 3.841459 / 13) = 0.2281
+_w = lambda p, n: tuple(None if v is None else round(v, 4) for v in B.wilson(p, n))
+for (p, n), want in (((4, 5), (0.3755, 0.9638)), ((1, 5), (0.0362, 0.6245)), ((0, 5), (0.0, 0.4345)),
+                     ((1, 1), (0.2065, 1.0)), ((6, 10), (0.3127, 0.8318)), ((0, 0), (None, None))):
+    check(f"wilson: {p}/{n} gives the range worked by hand", _w(p, n), want)
+
+def _gr_ans(i, run, t16, t18=True):
+    return {"id": i, "arm": "B", "model": "gpt-4o", "run": run, "question": f"q {i}",
+            "index_version": "aaaa1111", "prompt_version": "pppp1111",
+            "gen": {"latency_s": 1.0, "ttft_s": 0.5, "cost_usd": 0.001},
+            "checks": {"T1.1_response": True, "T1.6_voice": t16, "T1.7_no_private_name": True,
+                       "T1.8_no_speculation": t18, "T2.3_gap_honesty": None}}
+
+def _gr_conv(i, run, t2_voice):
+    return {"id": i, "model": "gpt-4o", "run": run, "prompt_version": "pppp1111",
+            "case_checks": {"T2.7_followups_cited": True},
+            "turns": [{"turn": n, "question": f"t{n}", "index_version": "aaaa1111",
+                       "gen": {"latency_s": 1.0, "ttft_s": 0.5, "cost_usd": 0.001},
+                       "checks": {"T1.1_response": True, "T1.6_voice": v, "T1.7_no_private_name": True}}
+                      for n, v in ((1, True), (2, t2_voice))]}
+
+# Known counts: S1 fails voice on run 2 of 5; S2 hedges on its one run; M1 names its
+# source on turn 2 of runs 1-4, as M10 did in R-20261117-09.
+_gr_single = [_gr_ans("S1", r, r != 2) for r in range(1, 6)] + [_gr_ans("S2", 1, True, t18=False)]
+_gr_multi = [_gr_conv("M1", r, r == 5) for r in range(1, 6)]
+_cr = G.case_rates(_gr_single)
+print(f"  S1 -> {_cr['S1']['passed']}/{_cr['S1']['of']} ({_cr['S1']['lo']} to {_cr['S1']['hi']}), "
+      f"T1.6 {_cr['S1']['checks']['T1.6_voice']}")
+check("rates: S1 passed 4 of 5 repetitions, range 0.3755 to 0.9638",
+      {k: _cr["S1"][k] for k in ("passed", "of", "lo", "hi")}, {"passed": 4, "of": 5, "lo": 0.3755, "hi": 0.9638})
+check("rates: S2's one repetition, 0/1", (_cr["S2"]["passed"], _cr["S2"]["of"]), (0, 1))
+check("rates: a check scored None (T2.3 here) is not counted",
+      sorted(_cr["S1"]["checks"]), ["T1.1_response", "T1.6_voice", "T1.7_no_private_name", "T1.8_no_speculation"])
+_mr = G.case_rates(_gr_multi)["M1"]
+print(f"  M1 -> {_mr['passed']}/{_mr['of']} ({_mr['lo']} to {_mr['hi']}), T1.6 {_mr['checks']['T1.6_voice']}")
+check("rates: a conversation is one repetition; M1 passed 1 of 5, range 0.0362 to 0.6245",
+      {k: _mr[k] for k in ("passed", "of", "lo", "hi")}, {"passed": 1, "of": 5, "lo": 0.0362, "hi": 0.6245})
+check("rates: a check over every turn, 6/10, with each turn's count",
+      _mr["checks"]["T1.6_voice"], {"passed": 6, "of": 10, "lo": 0.3127, "hi": 0.8318,
+                                    "turns": {"1": [5, 5], "2": [1, 5]}})
+check("rates: a conversation-level check has no turns", _mr["checks"]["T2.7_followups_cited"],
+      {"passed": 5, "of": 5, "lo": 0.5655, "hi": 1.0})
+check("rates: same counts as failures(), which the sign-offs use",
+      {(c, k): [v["of"] - v["passed"], v["of"]] for c, r in {**_cr, "M1": _mr}.items()
+       for k, v in r["checks"].items() if v["passed"] < v["of"]},
+      {k: v[:2] for k, v in {**G.failures(_gr_single), **G.failures(_gr_multi)}.items()})
+_ev = G.rates_evidence({"single": _cr}, None)["cases"]["single"]
+check("rates: the evidence keeps each case's rate and only its failing checks",
+      [(e["case"], e["passed"], e["of"], sorted(e["failing_checks"])) for e in _ev],
+      [("S1", 4, 5, ["T1.6_voice"]), ("S2", 0, 1, ["T1.8_no_speculation"])])
+
+_hist = [{"date": "2026-11-02", "kind": "single", "answers": 10,
+          "pass": {"T1.3_no_phone": [10, 10], "T1.6_voice": [9, 10], "T2.13_fixed_lead": [2, 2]}},
+         {"date": "2026-11-03", "kind": "retrieval", "mean_recall_at_5": 0.5},
+         {"date": "2026-10-01", "kind": "single", "answers": 5, "pass": {"T1.3_no_phone": [4, 5]}},
+         {"date": "2026-11-04", "kind": "e2e", "answers": 3,
+          "pass": {"T1.3_no_phone": [3, 3], "T1.2_under_15s": [3, 3]}}]
+_nf = G.no_failure(_hist, "2026-11-01", ["T1.2", "T1.3", "T1.6", "T1.7"])
+print(f"  no-failure block since 2026-11-01 -> {_nf}")
+check("no failure: a check with zero failures in the period lands in the block, with its count",
+      [(c["check"], c["of"]) for c in _nf["checks"]],
+      [("T1.2_under_15s", 3), ("T1.3_no_phone", 13), ("T2.13_fixed_lead", 2)])
+check("no failure: a check that failed in the period is not in it",
+      "T1.6_voice" in [c["check"] for c in _nf["checks"]], False)
+check("no failure: 0 of 13 -> failure rate up to 0.2281",
+      [c["failure_rate_up_to"] for c in _nf["checks"] if c["check"] == "T1.3_no_phone"], [0.2281])
+check("no failure: lines in the period with answers; a retrieval line is skipped",
+      (_nf["runs"], _nf["answers"]), (2, 13))
+check("no failure: a tier-1 check that never ran is listed apart, not as never failed",
+      _nf["tier1_no_verdict"], ["T1.7"])
+check("no failure: a failure before the period does not count; widen it and T1.3 leaves the block",
+      "T1.3_no_phone" in [c["check"] for c in G.no_failure(_hist, "2026-10-01", [])["checks"]], False)
+
+# The gate's result is unchanged. main() end to end on a fixture: git stubbed (no fetch),
+# no e2e runs, docs unapproved. The problems pinned below are what the gate gave before
+# this change (bbf4f81, on the same fixture less --since, which it did not have,
+# 2026-11-26); the run with a report that
+# raises gives the same evidence, so a fault in the report cannot move the result.
+def _gr_gate(td, report_fault=False):
+    td = Path(td)
+    for d in ("eval_runs", "eval_history", "nimbalyst-local"):
+        (td / d).mkdir()
+    shutil.copy(R.EVAL_SET, td / "eval_set.json")
+    (td / "eval_runs" / "single.json").write_text(json.dumps(_gr_single))
+    (td / "eval_runs" / "mt.json").write_text(json.dumps(_gr_multi))
+    lines = [RM.history_lines(d, runner="run_eval", source=s, label="t", date="2026-11-20", scope="full")[0]
+             for d, s in ((_gr_single, "single.json"), (_gr_multi, "mt.json"))]
+    (td / "eval_history" / "history.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+    (td / "nimbalyst-local" / "results-log.md").write_text("## Results\n### R-20261120-01 - x\n- reviewed: yes\n")
+    saved = G.HERE, G.HISTORY, G.RESULTS_LOG, G.WEB, G.git_out, G.case_rates, sys.argv
+    G.HERE, G.HISTORY = td, td / "eval_history" / "history.jsonl"
+    G.RESULTS_LOG, G.WEB, G.git_out = td / "nimbalyst-local" / "results-log.md", td / "web", lambda *a: None
+    if report_fault:
+        G.case_rates = lambda data: 1 / 0
+    sys.argv = ["release_gate.py", "--faiss-dir", "/faiss/kb-abc1234", "--prompt", "pppp1111",
+                "--index", "aaaa1111", "--out-dir", str(td / "out"), "--since", "2026-11-01"]
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            try:
+                G.main()
+                code = 0
+            except SystemExit as e:
+                code = e.code
+    finally:
+        G.HERE, G.HISTORY, G.RESULTS_LOG, G.WEB, G.git_out, G.case_rates, sys.argv = saved
+    ev = json.loads((td / "out" / "faiss-kb-abc1234.json").read_text(encoding="utf-8"))
+    ev["problems"] = [p.replace(str(td / "web"), "<web>").replace(str(td), "<td>") for p in ev["problems"]]
+    return code, ev, buf.getvalue()
+
+with tempfile.TemporaryDirectory() as _td1, tempfile.TemporaryDirectory() as _td2:
+    _code, _gev, _gout = _gr_gate(_td1)
+    _code_f, _gev_f, _gout_f = _gr_gate(_td2, report_fault=True)
+print("  gate on the fixture, rate lines printed:")
+for ln in _gout.splitlines():
+    if ln.startswith(("    S", "    M", "        T", "  checks with no failure")):
+        print("  " + ln)
+print(f"  with a report that raises -> rates {_gev_f['rates']}")
+check("gate fixture: exit 1 and status fail, as before this change", (_code, _gev["status"]), (1, "fail"))
+check("gate fixture: the same problems as before this change", _gev["problems"], [
+    "no full e2e run for prompt pppp1111 served by jordbot-dev",
+    "no full e2e_multiturn run for prompt pppp1111 served by jordbot-dev",
+    "3 failing check(s) without Jord's sign-off",
+    "8 QA item(s) not ticked",
+    "could not fetch origin/master in <td>; docs not checked against it",
+    "could not fetch origin/master in <web>; docs not checked against it",
+    "ai:README.md not found on origin/master",
+    "ai:EVALS.md not found on origin/master",
+    "ai:DECISIONS.md not found on origin/master",
+    "ai:COVERAGE.md not found on origin/master",
+    "web:README.md not found on origin/master",
+    "COVERAGE.md on origin/master is not what coverage_report.py generates from eval_set.json; "
+    "run it with --write and merge the result"])
+check("gate fixture: the same failures as before this change",
+      [(f["kind"], f["case"], f["check"], f["failed"], f["of"]) for f in _gev["failures"]],
+      [("single", "S1", "T1.6_voice", 1, 5), ("single", "S2", "T1.8_no_speculation", 1, 1),
+       ("multiturn", "M1", "T1.6_voice", 4, 10)])
+check("gate fixture: rates written beside the evidence the web check reads",
+      ([(e["case"], e["passed"], e["of"]) for e in _gev["rates"]["cases"]["multiturn"]],
+       _gev["rates"]["no_failure"]["since"]), ([("M1", 1, 5)], "2026-11-01"))
+check("gate fixture: a report that raises leaves the exit code and every other evidence key as they "
+      "were (keys that differ)",
+      (_code_f, [k for k in sorted((set(_gev) | set(_gev_f)) - {"rates"}) if _gev.get(k) != _gev_f.get(k)]),
+      (_code, []))
+check("gate fixture: a report that raises is recorded, not hidden",
+      _gev_f["rates"], {"error": "ZeroDivisionError: division by zero"})
 
 # Release gate, evidence (bugs 2026-11-07): the gate matched a run to the index by
 # its filename (no results file said which index answered), read results files
