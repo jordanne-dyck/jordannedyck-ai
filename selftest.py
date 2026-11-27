@@ -1663,8 +1663,8 @@ check("e2e full set holds TL01-TL06 (the release gate requires it)",
 check("e2e full set holds every single-turn case",
       sorted({i.split("#")[0] for i in _full}),
       sorted(c["id"] for g in E2E.ONLY_GROUPS for c in _spec_all[g]))
-check("e2e full set: 34 questions with C01 three times, 30 additive, 26 theme, 6 timeline",
-      len(_full), 98)
+check("e2e full set: 34 questions with C01 three times, 31 additive, 26 theme, 6 timeline",
+      len(_full), 99)
 
 print("\n--- fixed refusal, T2.16 (2026-11-05, web PR #85) ---")
 # The same 23 strings as jordannedyck-ai-web/scripts/prompt-request.test.mjs.
