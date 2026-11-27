@@ -152,6 +152,13 @@ def extract_semantic_chunks(content, file_meta):
 
         # Extract per-chunk YAML metadata
         chunk_meta = parse_chunk_yaml(chunk_body)
+
+        # `index: false` keeps a chunk out of the index. It is the one setting a
+        # new chunk needs. embedding_weight below 0.3 still drops a chunk in
+        # build_chunks, for the chunks that already use it.
+        if chunk_meta.get("index") is False:
+            continue
+
         chunk_id = chunk_meta.get("chunk_id", "unknown")
         priority = chunk_meta.get("context_priority", "medium")
         weight = chunk_meta.get("embedding_weight", 1.0)
