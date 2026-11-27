@@ -29,9 +29,9 @@ FIXED_LEAD = (
     "Jordanne's career runs from the human side of helping customers to the digital side. She started in "
     "bilingual frontline support at Shoppers Drug Mart's call centre, and has since built the systems that "
     "decide where people help customers and where technology does: at DECIEM, Regimen Builder, the AI Personal "
-    "Shopper and automated service that cut resolution time 86%, while annual DTC revenue grew to $150M+ with "
-    f"4M+ DTC customers globally.\n\n{TIMELINE_MARKER}\n\n"
-    "Today she runs Warai Neko, her independent practice, bringing that work to small businesses while "
+    "Shopper and automated service that cut resolution time 86%, while annual DTC revenue grew to $150M+, with "
+    f"4M+ customers acquired into the DTC database.\n\n{TIMELINE_MARKER}\n\n"
+    "Today she runs Warai Neko, her freelance agency, bringing that work to small businesses while "
     "continuing to refine her AI building skills with this AI-powered resume and portfolio system among "
     "other hobby projects."
 )
